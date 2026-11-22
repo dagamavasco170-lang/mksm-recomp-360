@@ -137,22 +137,44 @@ int main()
     assert(readLane<std::uint32_t>(addSaturatingUnsignedLanes<std::uint32_t>(unsigned32a, unsigned32b), 0u) == 0xFFFFFFFFu);
     assert(readLane<std::uint32_t>(subtractSaturatingUnsignedLanes<std::uint32_t>(unsigned32a, unsigned32b), 1u) == 0u);
 
-    // PMADDH: four signed halfword dot-products become four wrapping words.
-    Vector128 maddA{}, maddB{};
-    writeLane<std::uint16_t>(maddA, 0u, 0x8000u);
-    writeLane<std::uint16_t>(maddA, 1u, 0x8000u);
-    writeLane<std::uint16_t>(maddB, 0u, 0x8000u);
-    writeLane<std::uint16_t>(maddB, 1u, 0x8000u);
-    writeLane<std::uint16_t>(maddA, 2u, 1u);
-    writeLane<std::uint16_t>(maddA, 3u, 3u);
-    writeLane<std::uint16_t>(maddB, 2u, 2u);
-    writeLane<std::uint16_t>(maddB, 3u, 4u);
-    const auto madd = multiplyAddSigned16Pairs(maddA, maddB);
-    assert(readLane<std::uint32_t>(madd, 0u) == 0x80000000u); // MADDWD overflow edge
-    assert(readLane<std::uint32_t>(madd, 1u) == 14u);
-    const std::uint64_t maddAccumulated = accumulateSigned32Lanes(0u, madd);
-    assert(maddAccumulated == 0xFFFFFFFF8000000Eu);
-    assert(accumulateSigned32Lanes(0xFFFFFFFFFFFFFFF0ull, madd) == 0xFFFFFFFF7FFFFFFEull);
+    // PMADDH: all eight products accumulate into the documented HI/LO lanes.
+    Vector128 maddA{}, maddB{}, initialHi{}, initialLo{};
+    const std::uint16_t lhsHalfwords[8] = {
+        2u, 0xFFFDu, 4u, 0xFFFBu, 6u, 0xFFF9u, 8u, 0xFFF7u};
+    const std::uint16_t rhsHalfwords[8] = {
+        10u, 20u, 0xFFE2u, 0xFFD8u, 50u, 60u, 0xFFBAu, 0xFFB0u};
+    for (std::size_t i = 0; i < 8u; ++i)
+    {
+        writeLane<std::uint16_t>(maddA, i, lhsHalfwords[i]);
+        writeLane<std::uint16_t>(maddB, i, rhsHalfwords[i]);
+    }
+    for (std::size_t i = 0; i < 4u; ++i)
+    {
+        writeLane<std::uint32_t>(initialLo, i, static_cast<std::uint32_t>(i + 1u));
+        writeLane<std::uint32_t>(initialHi, i, static_cast<std::uint32_t>(i + 5u));
+    }
+    const auto madd = pmaddh(maddA, maddB, initialHi, initialLo);
+    assert(readLane<std::uint32_t>(madd.lo, 0u) == 21u);
+    assert(readLane<std::uint32_t>(madd.lo, 1u) == 0xFFFFFFC6u);
+    assert(readLane<std::uint32_t>(madd.hi, 0u) == 0xFFFFFF8Du);
+    assert(readLane<std::uint32_t>(madd.hi, 1u) == 206u);
+    assert(readLane<std::uint32_t>(madd.lo, 2u) == 303u);
+    assert(readLane<std::uint32_t>(madd.lo, 3u) == 0xFFFFFE60u);
+    assert(readLane<std::uint32_t>(madd.hi, 2u) == 0xFFFFFDD7u);
+    assert(readLane<std::uint32_t>(madd.hi, 3u) == 728u);
+    assert(readLane<std::uint32_t>(madd.destination, 0u) == 21u);
+    assert(readLane<std::uint32_t>(madd.destination, 1u) == 0xFFFFFF8Du);
+    assert(readLane<std::uint32_t>(madd.destination, 2u) == 303u);
+    assert(readLane<std::uint32_t>(madd.destination, 3u) == 0xFFFFFDD7u);
+
+    // Accumulator words wrap independently at 32 bits.
+    Vector128 wrapA{}, wrapB{}, wrapLo{};
+    writeLane<std::uint16_t>(wrapA, 0u, 1u);
+    writeLane<std::uint16_t>(wrapB, 0u, 1u);
+    writeLane<std::uint32_t>(wrapLo, 0u, 0x7FFFFFFFu);
+    const auto wrappedMadd = pmaddh(wrapA, wrapB, Vector128{}, wrapLo);
+    assert(readLane<std::uint32_t>(wrappedMadd.lo, 0u) == 0x80000000u);
+    assert(readLane<std::uint32_t>(wrappedMadd.destination, 0u) == 0x80000000u);
 
     // Variable shifts use the low five bits of each count.
     a = {}; b = {};

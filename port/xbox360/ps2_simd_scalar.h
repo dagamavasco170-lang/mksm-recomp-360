@@ -271,39 +271,62 @@ template <typename Lane>
 {
     return subtractSaturatingSignedLanes<std::uint32_t>(a, b);
 }
- 
-// PS2 PMADDH reference: multiply adjacent signed 16-bit lanes, add each pair,
-// and return the four 32-bit two's-complement results. The exceptional pair
-// (-32768 * -32768) + (-32768 * -32768) intentionally wraps to 0x80000000,
-// matching the packed MADD instruction's 32-bit result lane.
-[[nodiscard]] constexpr Vector128 multiplyAddSigned16Pairs(const Vector128 &a,
-                                                             const Vector128 &b) noexcept
-{
-    Vector128 result{};
-    for (std::size_t lane = 0; lane < 4u; ++lane)
-    {
-        const std::int64_t a0 = detail::asSigned(readLane<std::uint16_t>(a, lane * 2u));
-        const std::int64_t a1 = detail::asSigned(readLane<std::uint16_t>(a, lane * 2u + 1u));
-        const std::int64_t b0 = detail::asSigned(readLane<std::uint16_t>(b, lane * 2u));
-        const std::int64_t b1 = detail::asSigned(readLane<std::uint16_t>(b, lane * 2u + 1u));
-        const std::int64_t pairSum = (a0 * b0) + (a1 * b1);
-        writeLane<std::uint32_t>(result, lane, static_cast<std::uint32_t>(pairSum));
-    }
-    return result;
-}
 
-// Sign-extend four 32-bit lanes and add them to a 64-bit HI:LO-style
-// accumulator. Unsigned arithmetic gives defined modulo-2^64 wraparound.
-[[nodiscard]] constexpr std::uint64_t accumulateSigned32Lanes(
-    std::uint64_t accumulator, const Vector128 &values) noexcept
+struct PmaddhResult
 {
-    for (std::size_t lane = 0; lane < 4u; ++lane)
+    Vector128 destination{};
+    Vector128 hi{};
+    Vector128 lo{};
+};
+
+// PS2 PMADDH: eight independent signed-halfword products are accumulated into
+// eight corresponding 32-bit words spread across the 128-bit HI and LO banks.
+// The GPR destination receives LO[0], HI[0], LO[2], HI[2], in that order.
+[[nodiscard]] constexpr PmaddhResult pmaddh(const Vector128 &rs,
+                                             const Vector128 &rt,
+                                             const Vector128 &initialHi,
+                                             const Vector128 &initialLo) noexcept
+{
+    PmaddhResult result{};
+    result.hi = initialHi;
+    result.lo = initialLo;
+
+    for (std::size_t product = 0; product < 8u; ++product)
     {
-        const std::int32_t signedValue =
-            detail::asSigned(readLane<std::uint32_t>(values, lane));
-        accumulator += static_cast<std::uint64_t>(static_cast<std::int64_t>(signedValue));
+        const std::int64_t lhs = detail::asSigned(readLane<std::uint16_t>(rs, product));
+        const std::int64_t rhs = detail::asSigned(readLane<std::uint16_t>(rt, product));
+        const std::uint32_t productBits = static_cast<std::uint32_t>(lhs * rhs);
+
+        if (product < 2u)
+        {
+            const std::uint32_t accum = readLane<std::uint32_t>(result.lo, product);
+            writeLane<std::uint32_t>(result.lo, product, accum + productBits);
+        }
+        else if (product < 4u)
+        {
+            const std::size_t lane = product - 2u;
+            const std::uint32_t accum = readLane<std::uint32_t>(result.hi, lane);
+            writeLane<std::uint32_t>(result.hi, lane, accum + productBits);
+        }
+        else if (product < 6u)
+        {
+            const std::size_t lane = product - 2u;
+            const std::uint32_t accum = readLane<std::uint32_t>(result.lo, lane);
+            writeLane<std::uint32_t>(result.lo, lane, accum + productBits);
+        }
+        else
+        {
+            const std::size_t lane = product - 4u;
+            const std::uint32_t accum = readLane<std::uint32_t>(result.hi, lane);
+            writeLane<std::uint32_t>(result.hi, lane, accum + productBits);
+        }
     }
-    return accumulator;
+
+    writeLane<std::uint32_t>(result.destination, 0u, readLane<std::uint32_t>(result.lo, 0u));
+    writeLane<std::uint32_t>(result.destination, 1u, readLane<std::uint32_t>(result.hi, 0u));
+    writeLane<std::uint32_t>(result.destination, 2u, readLane<std::uint32_t>(result.lo, 2u));
+    writeLane<std::uint32_t>(result.destination, 3u, readLane<std::uint32_t>(result.hi, 2u));
+    return result;
 }
 
 [[nodiscard]] constexpr Vector128 shiftLeftVariable32(const Vector128 &v,

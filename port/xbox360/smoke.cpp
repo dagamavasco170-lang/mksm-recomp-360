@@ -72,13 +72,13 @@ bool checkScalarMmi()
     const auto saturatedUnsignedByte = addSaturatingUnsignedLanes<uint8_t>(unsignedByteA, unsignedByteB);
     const auto unsignedWordSum = addSaturatingUnsignedLanes<uint32_t>(lhs, rhs);
     const auto unsignedWordDifference = subtractSaturatingUnsignedLanes<uint32_t>(rhs, lhs);
-    Vector128 maddLhs{}, maddRhs{};
-    writeLane<uint16_t>(maddLhs, 0u, 1u);
-    writeLane<uint16_t>(maddLhs, 1u, 3u);
-    writeLane<uint16_t>(maddRhs, 0u, 2u);
-    writeLane<uint16_t>(maddRhs, 1u, 4u);
-    const auto maddProducts = multiplyAddSigned16Pairs(maddLhs, maddRhs);
-    const auto maddAccumulator = accumulateSigned32Lanes(0u, maddProducts);
+    Vector128 maddLhs{}, maddRhs{}, maddHi{}, maddLo{};
+    for (size_t i = 0; i < 8u; i += 2u)
+    {
+        writeLane<uint16_t>(maddLhs, i, static_cast<uint16_t>(i / 2u + 1u));
+        writeLane<uint16_t>(maddRhs, i, 1u);
+    }
+    const auto madd = pmaddh(maddLhs, maddRhs, maddHi, maddLo);
     const auto packed = packEvenLanes<uint32_t>(lhs, rhs);
     return readLane<uint32_t>(sum, 0u) == 0u &&
            readLane<uint32_t>(unpack, 0u) == 1u &&
@@ -89,8 +89,12 @@ bool checkScalarMmi()
            readLane<uint8_t>(saturatedUnsignedByte, 0u) == 0xFFu &&
            readLane<uint32_t>(unsignedWordSum, 0u) == 0xFFFFFFFFu &&
            readLane<uint32_t>(unsignedWordDifference, 0u) == 0u &&
-           readLane<uint32_t>(maddProducts, 0u) == 14u &&
-           maddAccumulator == 14u &&
+           readLane<uint32_t>(madd.destination, 0u) == 1u &&
+           readLane<uint32_t>(madd.destination, 1u) == 2u &&
+           readLane<uint32_t>(madd.destination, 2u) == 3u &&
+           readLane<uint32_t>(madd.destination, 3u) == 4u &&
+           readLane<uint32_t>(madd.lo, 0u) == 1u &&
+           readLane<uint32_t>(madd.hi, 0u) == 2u &&
            readLane<uint32_t>(packed, 0u) == 1u;
 }
 

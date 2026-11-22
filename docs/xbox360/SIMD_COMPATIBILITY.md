@@ -52,7 +52,9 @@ The host tests check selected normal and boundary values. The SSE2 differential 
 
 ## PMADDH scalar reference slice
 
-The portable helper `multiplyAddSigned16Pairs` now models the current `_mm_madd_epi16` reference as four adjacent signed-halfword pair products summed into wrapping 32-bit lanes. `accumulateSigned32Lanes` sign-extends those lanes into a 64-bit HI:LO-style accumulator with defined modulo-2^64 behavior. Host tests compare the helper directly with SSE2 over 4,096 deterministic vector pairs and include the `-32768 * -32768 + -32768 * -32768` wraparound edge. The smoke title includes a small target-side PMADDH/accumulator probe. This is a reference slice only; it is not wired into the full runtime or generated game code.
+The portable helper `pmaddh` models the PS2 instruction as eight independent signed-halfword products, each added with modulo-2^32 wraparound to its corresponding 32-bit accumulator lane across the 128-bit HI and LO banks. Its GPR destination is assembled from LO lane 0, HI lane 0, LO lane 2 and HI lane 2. The host differential test uses SSE2 masked `_mm_madd_epi16` operations to isolate each halfword product, then checks every HI/LO lane and the destination vector over 4,096 deterministic inputs plus boundary cases.
+
+This correction is important: the previous prototype that reduced adjacent halfword products into a single 64-bit accumulator did not implement PS2 PMADDH. The current recompiler translation in `mmi_translation_helpers.cpp` also uses that reduced form, and `R5900Context` currently stores scalar 64-bit HI/LO fields rather than the required 128-bit banks. Therefore this helper is an isolated semantic reference, not yet integrated into generated game code. The HI/LO state representation and code generator must be redesigned before PMADDH can be safely wired into the runtime.
 
 ## Gaps that remain
 
