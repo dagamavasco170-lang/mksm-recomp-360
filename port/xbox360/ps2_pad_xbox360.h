@@ -25,6 +25,7 @@ inline constexpr uint16_t PadY = 0x8000u;
 
 struct GamepadSnapshot
 {
+    bool connected = false;
     uint16_t buttons = 0u;
     uint8_t leftTrigger = 0u;
     uint8_t rightTrigger = 0u;
