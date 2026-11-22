@@ -42,3 +42,10 @@ This audit is based on the checked-in build files on the `main` branch. It is a 
 ## Reproducibility note
 
 The next source audit should record the exact repository commit, compiler version, CMake options and dependency versions used. No Xbox toolchain build or hardware run has been performed as part of this documentation change.
+
+
+## Hardware smoke follow-up — 2026-11-22
+
+The source/build-graph findings above remain valid. A later xSDK smoke XEX build passed CI, and a user-provided console log records title startup, successful C++20 runtime checks, 1280x720 display initialization and process exit status 0. The run is documented in [HARDWARE_SMOKE_2026-11-22.md](HARDWARE_SMOKE_2026-11-22.md).
+
+This evidence validates only the console bootstrap path. It does not validate the MKSM runtime, translated PowerPC game code, guest memory, PS2 GS-to-Xenos rendering, IOP, audio, saves or gameplay. The original log also lacks explicit Back-button/shutdown-reason and console model/kernel details.
