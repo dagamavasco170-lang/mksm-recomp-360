@@ -35,6 +35,16 @@ jobs:
             build-essential bison flex texinfo libgmp-dev libmpfr-dev libmpc-dev \
             curl xz-utils patch python3 cmake ninja-build git
 
+      - name: Test portable Xbox-to-PS2 controller mapping
+        run: |
+          mkdir -p build/host-tests
+          c++ -std=c++20 -Wall -Wextra -Werror \
+            -Ips2xRuntime/include -Iport/xbox360 \
+            port/xbox360/tests/ps2_pad_xbox360_test.cpp \
+            port/xbox360/ps2_pad_mapping.cpp \
+            -o build/host-tests/ps2_pad_xbox360_test
+          ./build/host-tests/ps2_pad_xbox360_test
+
       - name: Check out pinned xSDK
         env:
           XSDK_COMMIT: 9e6de98f6b5d737bce0fecd2864edae94bdd2637
