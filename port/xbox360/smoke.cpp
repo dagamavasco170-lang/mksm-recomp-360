@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -18,6 +19,10 @@
 
 #include "ps2_pad_xbox360.h"
 #include "runtime/ps2_pad.h"
+
+static_assert(sizeof(void *) == 4u, "Xbox 360 target must use a 32-bit pointer ABI");
+static_assert(std::endian::native == std::endian::big,
+              "Xbox 360 target must use the big-endian PowerPC ABI");
 
 namespace
 {
@@ -143,6 +148,7 @@ int runTitle()
 int main()
 {
     xsdk_log_write("MKSM Xbox 360 smoke: starting");
+    xsdk_log_write("MKSM smoke: target ABI verified (32-bit big-endian PowerPC)");
 
     if (!checkCpp20Runtime())
     {
