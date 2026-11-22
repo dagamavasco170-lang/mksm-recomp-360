@@ -1,13 +1,6 @@
 name: Xbox 360 smoke XEX
 
 on:
-  push:
-    branches:
-      - "xbox360/**"
-    paths:
-      - "port/xbox360/**"
-      - "docs/xbox360/**"
-      - ".github/workflows/xbox360-smoke.yml"
   pull_request:
     branches: [main]
     paths:
