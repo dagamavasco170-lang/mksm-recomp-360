@@ -59,10 +59,10 @@ A GitHub Actions workflow builds this target on updates to the `xbox360/**` bran
 
 ## Hardware test
 
-Copy the XEX to a folder on the RGH/JTAG console using Aurora's FTP service, then launch it from the dashboard's file browser. The screen should show a solid 720p background. The title reads controller 1 through the XAM adapter, converts it into the same 32-byte PS2 pad report used by the runtime, and exits when Xbox Back arrives as the PS2 Select bit. The adapter's portable mapping is unit-tested by CI; the actual XAM button path still requires a repeat run on the console. The title writes `mksm_xbox360_smoke.log` beside the XEX; retain the log and the exact console/kernel details with the test report.
+Copy the XEX to a folder on the RGH/JTAG console using Aurora's FTP service, then launch it from the dashboard's file browser. The screen should show a solid 720p background. The target source reads controller 1 through the XAM adapter, converts it into the same 32-byte PS2 pad report used by the runtime, and exits when Xbox Back arrives as the PS2 Select bit. The portable mapping is unit-tested by CI; the full PowerPC build and actual XAM button path still require verification. The title writes `mksm_xbox360_smoke.log` beside the XEX; retain the log and the exact console/kernel details with the test report.
 
 Unsigned xSDK titles require RGH/JTAG. They do not run on an unmodified retail console.
 
 ## What comes next
 
-With the initial launch/display gate recorded, add the real MKSM runtime in separate slices: file/memory platform layer, input, audio, then the GS-to-Xenos renderer. Keep host-side recompilation/generation separate from the PowerPC target build. See [the port roadmap](../../docs/xbox360/PORT_PLAN.md), [the source audit](../../docs/xbox360/SOURCE_AUDIT.md) and [the SDK evaluation](../../docs/xbox360/SDK_EVALUATION.md).
+With initial launch/display verified, finish validating the XAM input/ABI smoke build, then address the PowerPC SIMD and endian-safe memory compatibility layers before integrating runtime services, audio and the GS-to-Xenos renderer. Keep host-side recompilation/generation separate from the PowerPC target build. See [the port roadmap](../../docs/xbox360/PORT_PLAN.md), [the source audit](../../docs/xbox360/SOURCE_AUDIT.md) and [the SDK evaluation](../../docs/xbox360/SDK_EVALUATION.md).

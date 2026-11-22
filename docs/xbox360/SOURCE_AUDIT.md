@@ -54,8 +54,8 @@ This evidence validates only the console bootstrap path. It does not validate th
 ## Xbox-specific follow-up — controller input and SIMD
 
 - Added an isolated XAM adapter at `port/xbox360/ps2_pad_xbox360.cpp`. It polls player 1/player 2 and produces the existing 32-byte PS2 pad protocol report; the shared mapping logic is in `ps2_pad_mapping.cpp`.
-- The mapping is built into the Xbox smoke title. A host-side unit test covers neutral/disconnected state, face buttons, D-pad, shoulders, triggers and stick axis conversion. The host test step passed in the CI run based on the current PR merge snapshot; the subsequent push/PR runs are also checking the corrected branch location.
+- The adapter is wired into the Xbox smoke target. A host-side unit test covers neutral/disconnected state, face buttons, D-pad, shoulders, triggers and stick axis conversion. That host-test step passed in the push workflow for commit `786b6145eeb75aa93489120218c3bbc626b0bc75`. The full PowerPC/XEX compile for the adapter and ABI checks added afterward is pending.
 - The adapter deliberately does not claim PS2 pressure-sensitive button support or vibration.
 - A more serious runtime build blocker has been documented in [SIMD_COMPATIBILITY.md](SIMD_COMPATIBILITY.md): the shared runtime's public state and source still depend on x86 SSE types/intrinsics, and the PowerPC target has no compatibility implementation yet.
 
-The smoke target remains isolated and does not link the full PS2 runtime.
+The smoke target remains isolated and does not link the full PS2 runtime. `smoke.cpp` now also has compile-time assertions for a 32-bit pointer and big-endian target; the next target build will establish whether the pinned xSDK toolchain satisfies these Xbox ABI assumptions.
