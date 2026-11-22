@@ -11,7 +11,9 @@ The first target is a **C++20 smoke title**, not the game yet. It tests:
 - Controller polling and clean exit with Back.
 - Per-title logging.
 
-It draws a solid background only. It does not load the retail game, render the PS2 GS, or contain any game data. It has not yet been cross-compiled or run on a physical console; the first acceptance gate is a successful Aurora launch.
+It draws a solid background only. It does not load the retail game, render the PS2 GS, or contain any game data. The initial XEX build passed GitHub Actions, and a user-provided console log dated 2026-11-22 records startup, passing C++20 runtime checks, successful 1280x720 display initialization and process exit status 0. See [the hardware smoke report](../../docs/xbox360/HARDWARE_SMOKE_2026-11-22.md).
+
+The first log did not explicitly record the Back-button event or shutdown reason. The smoke title now logs the Back event, presented-frame count and nonzero presentation/shutdown failures; re-run the updated artifact to close that evidence gap.
 
 ## Preferred SDK
 
@@ -62,4 +64,4 @@ Unsigned xSDK titles require RGH/JTAG. They do not run on an unmodified retail c
 
 ## What comes next
 
-Once the smoke XEX is built and launched, add the real MKSM runtime in separate slices: file/memory platform layer, input, audio, then the GS-to-Xenos renderer. Keep host-side recompilation/generation separate from the PowerPC target build. See [the port roadmap](../../docs/xbox360/PORT_PLAN.md), [the source audit](../../docs/xbox360/SOURCE_AUDIT.md) and [the SDK evaluation](../../docs/xbox360/SDK_EVALUATION.md).
+With the initial launch/display gate recorded, add the real MKSM runtime in separate slices: file/memory platform layer, input, audio, then the GS-to-Xenos renderer. Keep host-side recompilation/generation separate from the PowerPC target build. See [the port roadmap](../../docs/xbox360/PORT_PLAN.md), [the source audit](../../docs/xbox360/SOURCE_AUDIT.md) and [the SDK evaluation](../../docs/xbox360/SDK_EVALUATION.md).
