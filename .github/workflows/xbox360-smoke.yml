@@ -16,6 +16,10 @@ on:
       - ".github/workflows/xbox360-smoke.yml"
   workflow_dispatch:
 
+concurrency:
+  group: xbox360-smoke-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
