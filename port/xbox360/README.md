@@ -59,7 +59,7 @@ A GitHub Actions workflow builds this target on updates to the `xbox360/**` bran
 
 ## Hardware test
 
-Copy the XEX to a folder on the RGH/JTAG console using Aurora's FTP service, then launch it from the dashboard's file browser. The screen should show a solid 720p background; press Back on controller 1 to exit (the Xbox Back button is mapped to the PS2 Select bit by the adapter). The title writes `mksm_xbox360_smoke.log` beside the XEX; retain the log and the exact console/kernel details with the test report.
+Copy the XEX to a folder on the RGH/JTAG console using Aurora's FTP service, then launch it from the dashboard's file browser. The screen should show a solid 720p background. The title reads controller 1 through the XAM adapter, converts it into the same 32-byte PS2 pad report used by the runtime, and exits when Xbox Back arrives as the PS2 Select bit. The adapter's portable mapping is unit-tested by CI; the actual XAM button path still requires a repeat run on the console. The title writes `mksm_xbox360_smoke.log` beside the XEX; retain the log and the exact console/kernel details with the test report.
 
 Unsigned xSDK titles require RGH/JTAG. They do not run on an unmodified retail console.
 
