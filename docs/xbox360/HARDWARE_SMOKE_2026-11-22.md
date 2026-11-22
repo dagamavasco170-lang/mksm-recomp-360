@@ -6,7 +6,7 @@ This report records the user-provided `mksm_xbox360_smoke.log` from the first ru
 
 ## Observed log
 
-- XEX path reported by the title: `\\Device\\Mass1\\mksm_xbox360_smoke.xex`.
+- XEX path reported by the title: `\Device\Mass1\mksm_xbox360_smoke.xex`.
 - The title reached `MKSM Xbox 360 smoke: starting`.
 - C++20 runtime checks reported `passed`.
 - Display output reported `1280x720 scaled to the 1920x1080 output`.
