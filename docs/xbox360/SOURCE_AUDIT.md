@@ -49,3 +49,13 @@ The next source audit should record the exact repository commit, compiler versio
 The source/build-graph findings above remain valid. A later xSDK smoke XEX build passed CI, and a user-provided console log records title startup, successful C++20 runtime checks, 1280x720 display initialization and process exit status 0. The run is documented in [HARDWARE_SMOKE_2026-11-22.md](HARDWARE_SMOKE_2026-11-22.md).
 
 This evidence validates only the console bootstrap path. It does not validate the MKSM runtime, translated PowerPC game code, guest memory, PS2 GS-to-Xenos rendering, IOP, audio, saves or gameplay. The original log also lacks explicit Back-button/shutdown-reason and console model/kernel details.
+
+
+## Xbox-specific follow-up — controller input and SIMD
+
+- Added an isolated XAM adapter at `port/xbox360/ps2_pad_xbox360.cpp`. It polls player 1/player 2 and produces the existing 32-byte PS2 pad protocol report; the shared mapping logic is in `ps2_pad_mapping.cpp`.
+- The mapping is built into the Xbox smoke title. A host-side unit test covers neutral/disconnected state, face buttons, D-pad, shoulders, triggers and stick axis conversion. The host test step passed in the CI run based on the current PR merge snapshot; the subsequent push/PR runs are also checking the corrected branch location.
+- The adapter deliberately does not claim PS2 pressure-sensitive button support or vibration.
+- A more serious runtime build blocker has been documented in [SIMD_COMPATIBILITY.md](SIMD_COMPATIBILITY.md): the shared runtime's public state and source still depend on x86 SSE types/intrinsics, and the PowerPC target has no compatibility implementation yet.
+
+The smoke target remains isolated and does not link the full PS2 runtime.
