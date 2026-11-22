@@ -15,7 +15,7 @@ The first target is a **C++20 smoke title**, not the game yet. It tests:
 
 It draws a solid background only. It does not load the retail game, render the PS2 GS, or contain any game data. The initial XEX build passed GitHub Actions, and a user-provided console log dated 2026-11-22 records startup, passing C++20 runtime checks, successful 1280x720 display initialization and process exit status 0. See [the hardware smoke report](../../docs/xbox360/HARDWARE_SMOKE_2026-11-22.md).
 
-The first log did not explicitly record the Back-button event or shutdown reason. The smoke title now logs the Back event, presented-frame count and nonzero presentation/shutdown failures; re-run the updated artifact to close that evidence gap.
+The revised smoke XEX from GitHub Actions run #76 includes the XAM-to-PS2 adapter and the explicit target ABI assertions. CI passed the portable controller and guest-memory tests, compiled the PowerPC target and uploaded the XEX. The new artifact has not yet been run on the physical console, so the actual XAM Back-to-PS2-Select exit path and clean-shutdown log remain unverified. See the [run #76 build report](../../docs/xbox360/BUILD_2026-11-22_RUN76.md).
 
 ## Preferred SDK
 
@@ -60,10 +60,10 @@ A GitHub Actions workflow builds this target on updates to the `xbox360/**` bran
 
 ## Hardware test
 
-Copy the XEX to a folder on the RGH/JTAG console using Aurora's FTP service, then launch it from the dashboard's file browser. The screen should show a solid 720p background. The target source reads controller 1 through the XAM adapter, converts it into the same 32-byte PS2 pad report used by the runtime, and exits when Xbox Back arrives as the PS2 Select bit. The portable mapping is unit-tested by CI; the full PowerPC build and actual XAM button path still require verification. The title writes `mksm_xbox360_smoke.log` beside the XEX; retain the log and the exact console/kernel details with the test report.
+Copy the XEX to a folder on the RGH/JTAG console using Aurora's FTP service, then launch it from the dashboard's file browser. The screen should show a solid 720p background. The target source reads controller 1 through the XAM adapter, converts it into the same 32-byte PS2 pad report used by the runtime, and exits when Xbox Back arrives as the PS2 Select bit. CI run #76 compiled this path into the XEX; the actual XAM button behavior still requires verification on hardware. The title writes `mksm_xbox360_smoke.log` beside the XEX; retain the log and the exact console/kernel details with the test report.
 
 Unsigned xSDK titles require RGH/JTAG. They do not run on an unmodified retail console.
 
 ## What comes next
 
-With initial launch/display verified, finish validating the XAM input/ABI smoke build, then address the PowerPC SIMD and endian-safe memory compatibility layers before integrating runtime services, audio and the GS-to-Xenos renderer. Keep host-side recompilation/generation separate from the PowerPC target build. See [the port roadmap](../../docs/xbox360/PORT_PLAN.md), [the source audit](../../docs/xbox360/SOURCE_AUDIT.md), [the guest-memory groundwork](../../docs/xbox360/GUEST_MEMORY.md), [the SIMD compatibility audit](../../docs/xbox360/SIMD_COMPATIBILITY.md) and [the SDK evaluation](../../docs/xbox360/SDK_EVALUATION.md).
+The latest XAM/ABI/endian smoke build is now CI-verified; the next gate is its repeat test on the console. After that, address the PowerPC SIMD and full guest-memory compatibility layers before integrating runtime services, audio and the GS-to-Xenos renderer. Keep host-side recompilation/generation separate from the PowerPC target build. See [the port roadmap](../../docs/xbox360/PORT_PLAN.md), [the source audit](../../docs/xbox360/SOURCE_AUDIT.md), [the guest-memory groundwork](../../docs/xbox360/GUEST_MEMORY.md), [the SIMD compatibility audit](../../docs/xbox360/SIMD_COMPATIBILITY.md) and [the SDK evaluation](../../docs/xbox360/SDK_EVALUATION.md).

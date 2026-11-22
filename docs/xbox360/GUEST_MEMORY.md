@@ -15,7 +15,7 @@ A target port must not reinterpret PS2 byte arrays as native PowerPC integers wi
 - Raw 16-byte reads/writes that preserve byte order rather than assigning host SIMD lane meaning.
 - Rejection of empty and non-power-of-two buffers.
 
-The Xbox smoke title performs a target-side read test across the end of a 16-byte probe buffer. GitHub Actions also runs a host-side test covering normal reads, wraparound reads, writes, raw 128-bit byte order and invalid buffer rejection.
+The Xbox smoke source performs a target-side read test across the end of a 16-byte probe buffer. GitHub Actions run #76 passed the host-side test covering normal reads, wraparound reads, writes, raw 128-bit byte order and invalid buffer rejection, and compiled the target probe into the XEX. The revised probe still needs execution on the physical console.
 
 ## Important scope limits
 

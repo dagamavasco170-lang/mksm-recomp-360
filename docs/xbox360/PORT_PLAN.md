@@ -10,9 +10,9 @@ This document is a plan and a record of verified constraints. It does not claim 
 
 ## Latest smoke result (2026-11-22)
 
-The xSDK smoke XEX was built successfully by GitHub Actions. A user-provided console log records title startup, passing C++20 runtime checks, 1280x720 display initialization (scaled by the display path to 1920x1080 output), and process exit status 0. See [the hardware smoke report](HARDWARE_SMOKE_2026-11-22.md).
+The initial xSDK smoke XEX was built and run on the console; the user-provided log records title startup, passing C++20 runtime checks, 1280x720 display initialization (scaled by the display path to 1920x1080 output), and process exit status 0. The revised XEX from GitHub Actions run #76 also compiles successfully with controller mapping, guest-memory probes and 32-bit big-endian ABI assertions; its artifact details are in [BUILD_2026-11-22_RUN76.md](BUILD_2026-11-22_RUN76.md).
 
-This validates the bootstrap title only. The log does not explicitly identify a Back-button event or shutdown reason, and it omits console model/kernel details. The smoke title has been instrumented to record those events and to return a nonzero status for presentation/close failures; that revised build still needs a repeat run. No game code or PS2 GS rendering has run on Xbox as part of this test.
+This validates the bootstrap title only. The original log does not explicitly identify a Back-button event or shutdown reason and omits console model/kernel details. Run #76 passed CI, but the revised artifact still needs a repeat console run to verify XAM input and the updated shutdown diagnostics. No game code or PS2 GS rendering has run on Xbox as part of this test.
 
 ## Source baseline and constraints
 
@@ -71,7 +71,7 @@ If xSDK fails the C++20 smoke build, stop and investigate a specific missing fea
 - Package the smoke title with a development Title ID and name.
 - Launch it from Aurora on an RGH/JTAG console and capture the build log and console result.
 
-**Acceptance:** CI packages the smoke XEX and a console run records title startup, C++20 checks, display initialization, explicit Back-button exit and clean shutdown. The first four checks are recorded in the 2026-11-22 log; explicit exit reason and console model/kernel remain to be captured with the revised diagnostic build.
+**Acceptance:** CI packages the smoke XEX and a console run records title startup, C++20/guest-memory checks, display initialization, explicit Back-button exit and clean shutdown. The initial log records title startup, C++20 checks and display initialization. Run #76 passed the host tests and PowerPC/XEX build; the revised XEX still needs a physical run to verify the updated input and shutdown path and record console model/kernel.
 
 ### X2 — Xbox platform layer
 - Add platform abstractions for memory, files, timing, threads, input and logging. The initial input mapping and a standalone little-endian memory helper now have host-side tests; neither is yet integrated into the full runtime.
