@@ -52,6 +52,8 @@ cmake --build build/xbox360 --parallel
 
 Expected output: `build/xbox360/mksm_xbox360_smoke.xex`.
 
+A GitHub Actions workflow builds this target on updates to the `xbox360/**` branch family or on a pull request. It uploads the XEX as the `mksm-xbox360-smoke-xex` artifact when the build succeeds. The artifact is a smoke-test title, not the game.
+
 ## Hardware test
 
 Copy the XEX to a folder on the RGH/JTAG console using Aurora's FTP service, then launch it from the dashboard's file browser. The screen should show a solid 720p background; press Back on the controller to exit. The title writes `mksm_xbox360_smoke.log` beside the XEX; retain the log and the exact console/kernel details with the test report.
