@@ -52,12 +52,13 @@ int main()
 
     const std::array<uint8_t, 0> empty{};
     const std::array<uint8_t, 3> invalid{};
+    std::array<uint8_t, 3> invalidWrite{};
     uint32_t sentinel = 0xDEADBEEFu;
     assert(!readLittleEndian(std::span<const uint8_t>(empty), 0u, sentinel));
     assert(sentinel == 0xDEADBEEFu);
     assert(!readLittleEndian(std::span<const uint8_t>(invalid), 0u, sentinel));
     assert(sentinel == 0xDEADBEEFu);
-    assert(!writeLittleEndian(std::span<uint8_t>(const_cast<std::array<uint8_t, 3>&>(invalid)), 0u, 1u));
+    assert(!writeLittleEndian(std::span<uint8_t>(invalidWrite), 0u, 1u));
 
     return 0;
 }
