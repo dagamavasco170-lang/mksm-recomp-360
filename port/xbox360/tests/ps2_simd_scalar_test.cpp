@@ -137,6 +137,23 @@ int main()
     assert(readLane<std::uint32_t>(addSaturatingUnsignedLanes<std::uint32_t>(unsigned32a, unsigned32b), 0u) == 0xFFFFFFFFu);
     assert(readLane<std::uint32_t>(subtractSaturatingUnsignedLanes<std::uint32_t>(unsigned32a, unsigned32b), 1u) == 0u);
 
+    // PMADDH: four signed halfword dot-products become four wrapping words.
+    Vector128 maddA{}, maddB{};
+    writeLane<std::uint16_t>(maddA, 0u, 0x8000u);
+    writeLane<std::uint16_t>(maddA, 1u, 0x8000u);
+    writeLane<std::uint16_t>(maddB, 0u, 0x8000u);
+    writeLane<std::uint16_t>(maddB, 1u, 0x8000u);
+    writeLane<std::uint16_t>(maddA, 2u, 1u);
+    writeLane<std::uint16_t>(maddA, 3u, 3u);
+    writeLane<std::uint16_t>(maddB, 2u, 2u);
+    writeLane<std::uint16_t>(maddB, 3u, 4u);
+    const auto madd = multiplyAddSigned16Pairs(maddA, maddB);
+    assert(readLane<std::uint32_t>(madd, 0u) == 0x80000000u); // MADDWD overflow edge
+    assert(readLane<std::uint32_t>(madd, 1u) == 14u);
+    const std::uint64_t maddAccumulated = accumulateSigned32Lanes(0u, madd);
+    assert(maddAccumulated == 0xFFFFFFFF8000000Eu);
+    assert(accumulateSigned32Lanes(0xFFFFFFFFFFFFFFF0ull, madd) == 0xFFFFFFFFFFFFFFFEull);
+
     // Variable shifts use the low five bits of each count.
     a = {}; b = {};
     writeLane<std::uint32_t>(a, 0u, 0x80000000u);

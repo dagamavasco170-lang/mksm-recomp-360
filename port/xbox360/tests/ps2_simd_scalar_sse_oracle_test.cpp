@@ -174,6 +174,17 @@ int main()
         checkIntegerVectorPair<std::uint8_t>(a, b);
         checkIntegerVectorPair<std::uint16_t>(a, b);
         checkIntegerVectorPair<std::uint32_t>(a, b);
+        const __m128i pairProducts = _mm_madd_epi16(toNative(a), toNative(b));
+        expectEqual(multiplyAddSigned16Pairs(a, b), pairProducts);
+        alignas(16) std::int32_t pairWords[4]{};
+        _mm_storeu_si128(reinterpret_cast<__m128i *>(pairWords), pairProducts);
+        const std::uint64_t initialAccumulator =
+            0xA5A55A5A11223344ull ^ static_cast<std::uint64_t>(iteration);
+        std::uint64_t referenceAccumulator = initialAccumulator;
+        for (const std::int32_t word : pairWords)
+            referenceAccumulator += static_cast<std::uint64_t>(static_cast<std::int64_t>(word));
+        assert(accumulateSigned32Lanes(initialAccumulator,
+                                       multiplyAddSigned16Pairs(a, b)) == referenceAccumulator);
         expectEqual(packSigned32To16(a, b),
                     _mm_packs_epi32(toNative(a), toNative(b)));
     }

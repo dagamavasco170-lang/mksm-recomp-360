@@ -50,6 +50,10 @@ Implemented and host-tested operations:
 
 The host tests check selected normal and boundary values. The SSE2 differential test compares 4,096 deterministic vector pairs across 8-, 16- and 32-bit lanes, including signed saturation for bytes/halfwords and unsigned saturation for bytes/words. The Xbox smoke title also executes a subset of signed-byte and unsigned-byte/word saturation checks. These tests validate only the covered operations and vectors; they are not a proof of the full MMI instruction set.
 
+## PMADDH scalar reference slice
+
+The portable helper `multiplyAddSigned16Pairs` now models the current `_mm_madd_epi16` reference as four adjacent signed-halfword pair products summed into wrapping 32-bit lanes. `accumulateSigned32Lanes` sign-extends those lanes into a 64-bit HI:LO-style accumulator with defined modulo-2^64 behavior. Host tests compare the helper directly with SSE2 over 4,096 deterministic vector pairs and include the `-32768 * -32768 + -32768 * -32768` wraparound edge. The smoke title includes a small target-side PMADDH/accumulator probe. This is a reference slice only; it is not wired into the full runtime or generated game code.
+
 ## Gaps that remain
 
 The scalar layer is not a drop-in replacement for all 99 source symbols. Important missing areas include:

@@ -271,6 +271,40 @@ template <typename Lane>
 {
     return subtractSaturatingSignedLanes<std::uint32_t>(a, b);
 }
+ 
+// PS2 PMADDH reference: multiply adjacent signed 16-bit lanes, add each pair,
+// and return the four 32-bit two's-complement results. The exceptional pair
+// (-32768 * -32768) + (-32768 * -32768) intentionally wraps to 0x80000000,
+// matching the packed MADD instruction's 32-bit result lane.
+[[nodiscard]] constexpr Vector128 multiplyAddSigned16Pairs(const Vector128 &a,
+                                                             const Vector128 &b) noexcept
+{
+    Vector128 result{};
+    for (std::size_t lane = 0; lane < 4u; ++lane)
+    {
+        const std::int64_t a0 = detail::asSigned(readLane<std::uint16_t>(a, lane * 2u));
+        const std::int64_t a1 = detail::asSigned(readLane<std::uint16_t>(a, lane * 2u + 1u));
+        const std::int64_t b0 = detail::asSigned(readLane<std::uint16_t>(b, lane * 2u));
+        const std::int64_t b1 = detail::asSigned(readLane<std::uint16_t>(b, lane * 2u + 1u));
+        const std::int64_t pairSum = (a0 * b0) + (a1 * b1);
+        writeLane<std::uint32_t>(result, lane, static_cast<std::uint32_t>(pairSum));
+    }
+    return result;
+}
+
+// Sign-extend four 32-bit lanes and add them to a 64-bit HI:LO-style
+// accumulator. Unsigned arithmetic gives defined modulo-2^64 wraparound.
+[[nodiscard]] constexpr std::uint64_t accumulateSigned32Lanes(
+    std::uint64_t accumulator, const Vector128 &values) noexcept
+{
+    for (std::size_t lane = 0; lane < 4u; ++lane)
+    {
+        const std::int32_t signedValue =
+            detail::asSigned(readLane<std::uint32_t>(values, lane));
+        accumulator += static_cast<std::uint64_t>(static_cast<std::int64_t>(signedValue));
+    }
+    return accumulator;
+}
 
 [[nodiscard]] constexpr Vector128 shiftLeftVariable32(const Vector128 &v,
                                                        const Vector128 &counts) noexcept
