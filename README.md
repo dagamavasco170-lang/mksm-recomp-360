@@ -17,7 +17,7 @@ An experimental native-PC recompilation project for **Mortal Kombat: Shaolin Mon
 
 This fork is preparing a native PowerPC/Xenos build using [xSDK](https://github.com/xenosworks/xsdk). The initial C++20 smoke-title source is in `port/xbox360/`; it is intended to validate XEX packaging, C++ runtime features, 720p GPU presentation and controller input before the game runtime is integrated.
 
-**There is no playable Xbox 360 build yet, and the smoke title has not been built or tested on hardware.** See the [port roadmap](docs/xbox360/PORT_PLAN.md), [source audit](docs/xbox360/SOURCE_AUDIT.md), [SDK evaluation](docs/xbox360/SDK_EVALUATION.md) and [build/test instructions](port/xbox360/README.md).
+**There is no playable Xbox 360 game build yet.** CI has built the isolated smoke XEX, and a user-provided console log records startup, passing C++20 runtime checks and 720p display initialization. A newer diagnostic/controller build passed CI but still needs a repeat console run. The smoke title does not include the game runtime or PS2 graphics renderer. See the [port roadmap](docs/xbox360/PORT_PLAN.md), [source audit](docs/xbox360/SOURCE_AUDIT.md), [SIMD compatibility audit](docs/xbox360/SIMD_COMPATIBILITY.md), [SDK evaluation](docs/xbox360/SDK_EVALUATION.md) and [build/test instructions](port/xbox360/README.md).
 
 ## What is included
 
