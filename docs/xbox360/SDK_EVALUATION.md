@@ -2,7 +2,7 @@
 
 ## Decision
 
-Use **[xenosworks/xsdk](https://github.com/xenosworks/xsdk)** as the preferred first target SDK, subject to a smoke build and a real-console launch. Keep the original XDK/BT3 build route as a reference only; do not make the proprietary Microsoft SDK a project dependency unless a concrete xSDK gap requires it.
+Use **[xenosworks/xsdk](https://github.com/xenosworks/xsdk)** as the preferred first target SDK. The smoke build passed CI and a user-provided console log records startup, C++20 runtime checks and display initialization; see [the smoke report](HARDWARE_SMOKE_2026-11-22.md). Keep the original XDK/BT3 build route as a reference only; do not make the proprietary Microsoft SDK a project dependency unless a concrete xSDK gap requires it.
 
 This is a better fit for MKSM Recomp than the legacy XDK compiler path because the current project requires C++20 and xSDK documents a C++23 runtime.
 
