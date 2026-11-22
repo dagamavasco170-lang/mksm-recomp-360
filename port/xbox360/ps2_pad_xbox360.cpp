@@ -19,7 +19,7 @@ ps2::pad::State translateGamepad(const GamepadSnapshot &input) noexcept
     using namespace ps2::pad;
 
     State state{};
-    state.connected = true;
+    state.connected = input.connected;
 
     state.buttons[South] = (input.buttons & PadA) != 0u;
     state.buttons[East] = (input.buttons & PadB) != 0u;
@@ -77,6 +77,7 @@ bool PSPadBackend::readState(int port, int slot, uint8_t *data, size_t size)
     const uint32_t result = XamInputGetState(static_cast<uint32_t>(port), 0u, &input);
     if (result == ERROR_SUCCESS)
     {
+        snapshot.connected = true;
         snapshot.buttons = input.gamepad.buttons;
         snapshot.leftTrigger = input.gamepad.left_trigger;
         snapshot.rightTrigger = input.gamepad.right_trigger;
