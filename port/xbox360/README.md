@@ -11,6 +11,7 @@ The first target is a **C++20 smoke title**, not the game yet. It tests:
 - XAM controller polling translated into the project's existing 32-byte PS2 pad report, including buttons, triggers and stick axes.
 - Per-title logging.
 - A host-run unit test for disconnected/neutral reports, face-button mapping, shoulders, D-pad, triggers and signed stick extremes.
+- Explicit little-endian guest-memory helpers for 8/16/32/64-bit values and raw 128-bit byte blocks, with wrapped-address tests.
 
 It draws a solid background only. It does not load the retail game, render the PS2 GS, or contain any game data. The initial XEX build passed GitHub Actions, and a user-provided console log dated 2026-11-22 records startup, passing C++20 runtime checks, successful 1280x720 display initialization and process exit status 0. See [the hardware smoke report](../../docs/xbox360/HARDWARE_SMOKE_2026-11-22.md).
 
@@ -65,4 +66,4 @@ Unsigned xSDK titles require RGH/JTAG. They do not run on an unmodified retail c
 
 ## What comes next
 
-With initial launch/display verified, finish validating the XAM input/ABI smoke build, then address the PowerPC SIMD and endian-safe memory compatibility layers before integrating runtime services, audio and the GS-to-Xenos renderer. Keep host-side recompilation/generation separate from the PowerPC target build. See [the port roadmap](../../docs/xbox360/PORT_PLAN.md), [the source audit](../../docs/xbox360/SOURCE_AUDIT.md) and [the SDK evaluation](../../docs/xbox360/SDK_EVALUATION.md).
+With initial launch/display verified, finish validating the XAM input/ABI smoke build, then address the PowerPC SIMD and endian-safe memory compatibility layers before integrating runtime services, audio and the GS-to-Xenos renderer. Keep host-side recompilation/generation separate from the PowerPC target build. See [the port roadmap](../../docs/xbox360/PORT_PLAN.md), [the source audit](../../docs/xbox360/SOURCE_AUDIT.md), [the guest-memory groundwork](../../docs/xbox360/GUEST_MEMORY.md), [the SIMD compatibility audit](../../docs/xbox360/SIMD_COMPATIBILITY.md) and [the SDK evaluation](../../docs/xbox360/SDK_EVALUATION.md).
