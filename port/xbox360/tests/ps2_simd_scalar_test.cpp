@@ -158,6 +158,7 @@ int main()
     a = {}; b = {};
     writeLane<std::uint32_t>(a, 1u, 0x12345678u);
     writeLane<std::uint32_t>(b, 1u, 0x12345678u);
+    writeLane<std::uint32_t>(b, 0u, 1u); // Keep lane 0 unequal; lane 1 must match.
     const auto equal = compareEqualLanes<std::uint32_t>(a, b);
     assert(readLane<std::uint32_t>(equal, 1u) == 0xFFFFFFFFu);
     assert(readLane<std::uint32_t>(equal, 0u) == 0u);
