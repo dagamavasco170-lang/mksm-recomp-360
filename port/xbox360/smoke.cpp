@@ -72,7 +72,6 @@ bool checkCpp20Runtime()
            *published == 2u &&
            workerValue.load(std::memory_order_acquire) == 0x360u &&
            !normalizedPath.empty() &&
-           checkGuestMemoryEndian() &&
            ps2::xbox360::encodePs2Pad(ps2::xbox360::GamepadSnapshot{})[1] == 0x73u;
 }
 
@@ -170,6 +169,13 @@ int main()
         return 2;
     }
 
-    xsdk_log_write("MKSM smoke: C++20 runtime and little-endian guest memory checks passed");
+    if (!checkGuestMemoryEndian())
+    {
+        xsdk_log_write("MKSM smoke: little-endian guest memory check failed");
+        return 3;
+    }
+
+    xsdk_log_write("MKSM smoke: C++20 runtime checks passed");
+    xsdk_log_write("MKSM smoke: little-endian guest memory check passed");
     return runTitle();
 }
