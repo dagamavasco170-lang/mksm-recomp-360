@@ -54,9 +54,21 @@ bool checkScalarMmi()
     writeLane<uint32_t>(rhs, 0u, 1u);
     const auto sum = addLanes<uint32_t>(lhs, rhs);
     const auto unpack = interleaveLow<uint32_t>(lhs, rhs);
+    Vector128 shiftCounts{};
+    writeLane<uint32_t>(shiftCounts, 0u, 1u);
+    const auto shifted = shiftRightLogicalVariable32(lhs, shiftCounts);
+    Vector128 saturationLhs{};
+    Vector128 saturationRhs{};
+    writeLane<uint32_t>(saturationLhs, 0u, 0x7FFFFFFFu);
+    writeLane<uint32_t>(saturationRhs, 0u, 1u);
+    const auto saturated = addSaturatingSigned32(saturationLhs, saturationRhs);
+    const auto packed = packEvenLanes<uint32_t>(lhs, rhs);
     return readLane<uint32_t>(sum, 0u) == 0u &&
            readLane<uint32_t>(unpack, 0u) == 1u &&
-           readLane<uint32_t>(unpack, 1u) == 0xFFFFFFFFu;
+           readLane<uint32_t>(unpack, 1u) == 0xFFFFFFFFu &&
+           readLane<uint32_t>(shifted, 0u) == 0x7FFFFFFFu &&
+           readLane<uint32_t>(saturated, 0u) == 0x7FFFFFFFu &&
+           readLane<uint32_t>(packed, 0u) == 1u;
 }
 
 bool checkCpp20Runtime()

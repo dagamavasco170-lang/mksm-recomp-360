@@ -48,3 +48,18 @@ Artifact:
 - GitHub artifact expiry: 2026-12-06.
 
 This confirms the smoke bootstrap only. The XEX draws a solid background and contains no game runtime or proprietary game data.
+
+
+## Follow-on scalar SIMD build — run #80
+
+GitHub Actions [run #80](https://github.com/dagamavasco170-lang/mksm-recomp-360/actions/runs/45071614201) completed successfully at commit accb60339ea50ec8e74aa1d9a627c81c39b17202. It passed the host controller, guest-memory and scalar SIMD unit tests; rebuilt the pinned PowerPC toolchain and xSDK runtime; compiled the smoke title; and uploaded a new XEX.
+
+Artifact:
+- Name: mksm-xbox360-smoke-xex
+- Artifact ID: 14773879485
+- XEX file size inside ZIP: 1,806,336 bytes
+- ZIP size: 683,117 bytes
+- ZIP SHA-256: 66a19a5c4f5c11e9850ed4a7041886dbbd243bd4bbdf96c52a8f8774b2a80f9c
+- Artifact expiry: 2026-12-06.
+
+Run #80 compiles and executes an additional scalar SIMD probe before entering the display loop. The new probe's physical execution is not yet confirmed; the supplied console log above applies to run #76 only.

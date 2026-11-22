@@ -17,7 +17,7 @@ It draws a solid background only. It does not load the retail game, render the P
 
 The revised run #76 XEX has now been tested on the physical console. The supplied log records ABI, C++20 and little-endian guest-memory checks, 1280×720 presentation, the Xbox Back → PS2 Select event, 122 presented frames and clean shutdown (exit 0). See [the hardware report](../../docs/xbox360/HARDWARE_SMOKE_2026-11-22.md).
 
-The first scalar PS2 packed-vector reference now covers wrapping 8/16/32-bit lane arithmetic, logic, equality masks and low/high interleave. Host tests exercise the same header, and the smoke XEX compiles and runs a small target-side probe. This is not yet an SSE replacement or a VMX128 backend; the full runtime remains outside the Xbox target.
+The scalar PS2 packed-vector reference now also covers signed comparisons, min/max, absolute value, saturating 32-bit arithmetic, variable shifts, saturating 32-to-16 packing and even-lane packing. The expanded host tests run in CI; run #80 also compiled a smoke XEX with a target-side probe for a subset. This is not yet an SSE replacement or a VMX128 backend; the full runtime remains outside the Xbox target.
 
 ## Preferred SDK
 
@@ -62,7 +62,7 @@ A GitHub Actions workflow builds this target on updates to the `xbox360/**` bran
 
 ## Hardware test
 
-Copy the XEX to a folder on the RGH/JTAG console using Aurora's FTP service, then launch it from the dashboard's file browser. The screen should show a solid 720p background. The target source reads controller 1 through the XAM adapter, converts it into the same 32-byte PS2 pad report used by the runtime, and exits when Xbox Back arrives as the PS2 Select bit. CI run #76 compiled this path into the XEX; the actual XAM button behavior still requires verification on hardware. The title writes `mksm_xbox360_smoke.log` beside the XEX; retain the log and the exact console/kernel details with the test report.
+Copy the XEX to a folder on the RGH/JTAG console using Aurora's FTP service, then launch it from the dashboard's file browser. The screen should show a solid 720p background. The target source reads controller 1 through the XAM adapter, converts it into the same 32-byte PS2 pad report used by the runtime, and exits when Xbox Back arrives as the PS2 Select bit. The run #76 controller path was confirmed on hardware; the newer run #80 XEX also includes scalar SIMD probes and requires its own console retest. The title writes `mksm_xbox360_smoke.log` beside the XEX; retain the log and the exact console/kernel details with the test report.
 
 Unsigned xSDK titles require RGH/JTAG. They do not run on an unmodified retail console.
 

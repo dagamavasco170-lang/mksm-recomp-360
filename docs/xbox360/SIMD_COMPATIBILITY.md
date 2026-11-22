@@ -8,17 +8,21 @@ A targeted inventory found 71 distinct _mm_* operation names (167 references) in
 
 The existing code uses x86 intrinsic types, headers and semantics for two different PS2 workloads: packed integer MMI operations and four-lane floating-point VU helpers. The Xbox 360 target is 32-bit big-endian PowerPC; the current x86 vector types cannot be assumed to exist or preserve guest lane order there.
 
-## First scalar reference slice
+## Scalar reference coverage
 
-The new port/xbox360/ps2_simd_scalar.h introduces a game-data-free 128-bit scalar reference representation. It stores bytes in PS2 guest-address order and defines lane zero as the least-significant lane, independent of the host CPU's native endianness.
+The game-data-free reference is implemented in `port/xbox360/ps2_simd_scalar.h`. It stores bytes in PS2 guest-address order and defines lane zero as the least-significant lane, independent of host endianness.
 
-The initial tested subset contains:
-- Wrapping add and subtract for unsigned 8-, 16- and 32-bit lanes.
+Implemented and host-tested operations:
+- Wrapping add/subtract for unsigned 8-, 16- and 32-bit lanes.
 - Bitwise AND, OR, XOR and NOR.
-- Equality comparison masks (all ones for equal lanes, zero otherwise).
-- Low/high lane interleave in the same argument order as the current PS2_PEXT* SSE macros.
+- Equality masks and signed greater-than comparisons for 8-, 16- and 32-bit lanes.
+- Signed min/max and two's-complement absolute value for 8-, 16- and 32-bit lanes.
+- Signed saturating 32-bit add/subtract using widened scalar intermediates.
+- Variable 32-bit logical left, logical right and arithmetic right shifts; counts follow the current helper's low-five-bit rule.
+- Saturating 32-to-16-bit packing.
+- Even-lane packing (PPACB/H/W ordering) and low/high interleave (PEXT* ordering).
 
-Host unit tests cover arithmetic wraparound, logical masks, lane equality, byte order and interleave order. The Xbox smoke target also compiles and executes a small scalar-vector probe so the same reference code is exercised by the pinned PowerPC toolchain and physical smoke run.
+The host unit test covers normal values and boundary cases. The Xbox smoke target executes a subset of the same scalar operations in the PowerPC build. These tests validate only this implemented subset; they do not prove compatibility for the entire MMI instruction set.
 
 ## Important limits
 
