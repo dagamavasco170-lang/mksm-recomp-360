@@ -2,6 +2,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <ranges>
@@ -42,13 +43,14 @@ bool checkCpp20Runtime()
     const std::filesystem::path gamePath("game:/MortalKombatShaolinMonks");
     const auto normalizedPath = gamePath.lexically_normal();
     const auto elapsed = std::chrono::steady_clock::now().time_since_epoch();
+    const auto published = shared.load(std::memory_order_acquire);
+    (void)elapsed;
 
     return values[0] == 1u &&
-           shared.load(std::memory_order_acquire) &&
-           *shared.load(std::memory_order_acquire) == 2u &&
+           published &&
+           *published == 2u &&
            workerValue.load(std::memory_order_acquire) == 0x360u &&
-           !normalizedPath.empty() &&
-           elapsed.count() >= 0;
+           !normalizedPath.empty();
 }
 
 int runTitle()
