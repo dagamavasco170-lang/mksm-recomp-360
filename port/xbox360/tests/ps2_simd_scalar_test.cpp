@@ -101,20 +101,26 @@ int main()
     writeLane<std::uint8_t>(sat8b, 0u, 0x01u);
     writeLane<std::uint8_t>(sat8a, 1u, 0x80u);
     writeLane<std::uint8_t>(sat8b, 1u, 0xFFu);
+    writeLane<std::uint8_t>(sat8a, 2u, 0x80u);
+    writeLane<std::uint8_t>(sat8b, 2u, 0x01u);
     assert(readLane<std::uint8_t>(addSaturatingSignedLanes<std::uint8_t>(sat8a, sat8b), 0u) == 0x7Fu);
     assert(readLane<std::uint8_t>(addSaturatingSignedLanes<std::uint8_t>(sat8a, sat8b), 1u) == 0x80u);
     assert(readLane<std::uint8_t>(subtractSaturatingSignedLanes<std::uint8_t>(sat8a, sat8b), 0u) == 0x7Eu);
-    assert(readLane<std::uint8_t>(subtractSaturatingSignedLanes<std::uint8_t>(sat8a, sat8b), 1u) == 0x80u);
+    assert(readLane<std::uint8_t>(subtractSaturatingSignedLanes<std::uint8_t>(sat8a, sat8b), 1u) == 0x81u);
+    assert(readLane<std::uint8_t>(subtractSaturatingSignedLanes<std::uint8_t>(sat8a, sat8b), 2u) == 0x80u);
 
     Vector128 sat16a{}, sat16b{};
     writeLane<std::uint16_t>(sat16a, 0u, 0x7FFFu);
     writeLane<std::uint16_t>(sat16b, 0u, 0x0001u);
     writeLane<std::uint16_t>(sat16a, 1u, 0x8000u);
     writeLane<std::uint16_t>(sat16b, 1u, 0xFFFFu);
+    writeLane<std::uint16_t>(sat16a, 2u, 0x8000u);
+    writeLane<std::uint16_t>(sat16b, 2u, 0x0001u);
     assert(readLane<std::uint16_t>(addSaturatingSignedLanes<std::uint16_t>(sat16a, sat16b), 0u) == 0x7FFFu);
     assert(readLane<std::uint16_t>(addSaturatingSignedLanes<std::uint16_t>(sat16a, sat16b), 1u) == 0x8000u);
     assert(readLane<std::uint16_t>(subtractSaturatingSignedLanes<std::uint16_t>(sat16a, sat16b), 0u) == 0x7FFEu);
-    assert(readLane<std::uint16_t>(subtractSaturatingSignedLanes<std::uint16_t>(sat16a, sat16b), 1u) == 0x8000u);
+    assert(readLane<std::uint16_t>(subtractSaturatingSignedLanes<std::uint16_t>(sat16a, sat16b), 1u) == 0x8001u);
+    assert(readLane<std::uint16_t>(subtractSaturatingSignedLanes<std::uint16_t>(sat16a, sat16b), 2u) == 0x8000u);
 
     Vector128 unsigned8a{}, unsigned8b{};
     writeLane<std::uint8_t>(unsigned8a, 0u, 0xFEu);
