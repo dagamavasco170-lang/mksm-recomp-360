@@ -62,12 +62,26 @@ bool checkScalarMmi()
     writeLane<uint32_t>(saturationLhs, 0u, 0x7FFFFFFFu);
     writeLane<uint32_t>(saturationRhs, 0u, 1u);
     const auto saturated = addSaturatingSigned32(saturationLhs, saturationRhs);
+    Vector128 signedByteA{}, signedByteB{};
+    writeLane<uint8_t>(signedByteA, 0u, 0x7Fu);
+    writeLane<uint8_t>(signedByteB, 0u, 1u);
+    const auto saturatedByte = addSaturatingSignedLanes<uint8_t>(signedByteA, signedByteB);
+    Vector128 unsignedByteA{}, unsignedByteB{};
+    writeLane<uint8_t>(unsignedByteA, 0u, 0xFFu);
+    writeLane<uint8_t>(unsignedByteB, 0u, 1u);
+    const auto saturatedUnsignedByte = addSaturatingUnsignedLanes<uint8_t>(unsignedByteA, unsignedByteB);
+    const auto unsignedWordSum = addSaturatingUnsignedLanes<uint32_t>(lhs, rhs);
+    const auto unsignedWordDifference = subtractSaturatingUnsignedLanes<uint32_t>(rhs, lhs);
     const auto packed = packEvenLanes<uint32_t>(lhs, rhs);
     return readLane<uint32_t>(sum, 0u) == 0u &&
            readLane<uint32_t>(unpack, 0u) == 1u &&
            readLane<uint32_t>(unpack, 1u) == 0xFFFFFFFFu &&
            readLane<uint32_t>(shifted, 0u) == 0x7FFFFFFFu &&
            readLane<uint32_t>(saturated, 0u) == 0x7FFFFFFFu &&
+           readLane<uint8_t>(saturatedByte, 0u) == 0x7Fu &&
+           readLane<uint8_t>(saturatedUnsignedByte, 0u) == 0xFFu &&
+           readLane<uint32_t>(unsignedWordSum, 0u) == 0xFFFFFFFFu &&
+           readLane<uint32_t>(unsignedWordDifference, 0u) == 0u &&
            readLane<uint32_t>(packed, 0u) == 1u;
 }
 

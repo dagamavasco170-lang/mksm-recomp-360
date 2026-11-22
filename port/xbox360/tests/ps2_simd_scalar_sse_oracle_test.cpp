@@ -124,6 +124,32 @@ void checkIntegerVectorPair(const Vector128 &a, const Vector128 &b) noexcept
     expectEqual(minSigned<Lane>(a, b), minimum);
     expectEqual(maxSigned<Lane>(a, b), maximum);
     expectEqual(absoluteSigned<Lane>(a), absolute);
+    if constexpr (std::is_same_v<Lane, std::uint8_t>)
+    {
+        expectEqual(addSaturatingSignedLanes<Lane>(a, b), _mm_adds_epi8(na, nb));
+        expectEqual(subtractSaturatingSignedLanes<Lane>(a, b), _mm_subs_epi8(na, nb));
+        expectEqual(addSaturatingUnsignedLanes<Lane>(a, b), _mm_adds_epu8(na, nb));
+        expectEqual(subtractSaturatingUnsignedLanes<Lane>(a, b), _mm_subs_epu8(na, nb));
+    }
+    else if constexpr (std::is_same_v<Lane, std::uint16_t>)
+    {
+        expectEqual(addSaturatingSignedLanes<Lane>(a, b), _mm_adds_epi16(na, nb));
+        expectEqual(subtractSaturatingSignedLanes<Lane>(a, b), _mm_subs_epi16(na, nb));
+    }
+    if constexpr (std::is_same_v<Lane, std::uint32_t>)
+    {
+        const __m128i signBias = _mm_set1_epi32(INT32_MIN);
+        const __m128i sum = _mm_add_epi32(na, nb);
+        const __m128i overflow = _mm_cmpgt_epi32(_mm_xor_si128(na, signBias),
+                                                  _mm_xor_si128(sum, signBias));
+        const __m128i unsignedSum = _mm_or_si128(sum, overflow);
+        const __m128i difference = _mm_sub_epi32(na, nb);
+        const __m128i underflow = _mm_cmpgt_epi32(_mm_xor_si128(nb, signBias),
+                                                   _mm_xor_si128(na, signBias));
+        const __m128i unsignedDifference = _mm_andnot_si128(underflow, difference);
+        expectEqual(addSaturatingUnsignedLanes<Lane>(a, b), unsignedSum);
+        expectEqual(subtractSaturatingUnsignedLanes<Lane>(a, b), unsignedDifference);
+    }
     expectEqual(interleaveLow<Lane>(a, b), refUnpackLowReversed<Lane>(na, nb));
     expectEqual(interleaveHigh<Lane>(a, b), refUnpackHighReversed<Lane>(na, nb));
 }

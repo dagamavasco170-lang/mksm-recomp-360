@@ -184,40 +184,92 @@ template <typename Lane>
     return r;
 }
 
+template <typename Lane>
+[[nodiscard]] constexpr Vector128 addSaturatingSignedLanes(const Vector128 &a,
+                                                           const Vector128 &b) noexcept
+{
+    static_assert(isSupportedLane<Lane>);
+    using Signed = detail::SignedLaneT<Lane>;
+    Vector128 r{};
+    constexpr std::size_t count = 16u / sizeof(Lane);
+    constexpr std::int64_t minimum = std::numeric_limits<Signed>::min();
+    constexpr std::int64_t maximum = std::numeric_limits<Signed>::max();
+    for (std::size_t i = 0; i < count; ++i)
+    {
+        const std::int64_t lhs = detail::asSigned(readLane<Lane>(a, i));
+        const std::int64_t rhs = detail::asSigned(readLane<Lane>(b, i));
+        const std::int64_t value = lhs + rhs;
+        const auto clamped = value > maximum ? maximum : (value < minimum ? minimum : value);
+        writeLane<Lane>(r, i, std::bit_cast<Lane>(static_cast<Signed>(clamped)));
+    }
+    return r;
+}
+
+template <typename Lane>
+[[nodiscard]] constexpr Vector128 subtractSaturatingSignedLanes(const Vector128 &a,
+                                                                const Vector128 &b) noexcept
+{
+    static_assert(isSupportedLane<Lane>);
+    using Signed = detail::SignedLaneT<Lane>;
+    Vector128 r{};
+    constexpr std::size_t count = 16u / sizeof(Lane);
+    constexpr std::int64_t minimum = std::numeric_limits<Signed>::min();
+    constexpr std::int64_t maximum = std::numeric_limits<Signed>::max();
+    for (std::size_t i = 0; i < count; ++i)
+    {
+        const std::int64_t lhs = detail::asSigned(readLane<Lane>(a, i));
+        const std::int64_t rhs = detail::asSigned(readLane<Lane>(b, i));
+        const std::int64_t value = lhs - rhs;
+        const auto clamped = value > maximum ? maximum : (value < minimum ? minimum : value);
+        writeLane<Lane>(r, i, std::bit_cast<Lane>(static_cast<Signed>(clamped)));
+    }
+    return r;
+}
+
+template <typename Lane>
+[[nodiscard]] constexpr Vector128 addSaturatingUnsignedLanes(const Vector128 &a,
+                                                             const Vector128 &b) noexcept
+{
+    static_assert(isSupportedLane<Lane>);
+    Vector128 r{};
+    constexpr std::size_t count = 16u / sizeof(Lane);
+    constexpr std::uint64_t maximum = std::numeric_limits<Lane>::max();
+    for (std::size_t i = 0; i < count; ++i)
+    {
+        const std::uint64_t value =
+            static_cast<std::uint64_t>(readLane<Lane>(a, i)) +
+            static_cast<std::uint64_t>(readLane<Lane>(b, i));
+        writeLane<Lane>(r, i, static_cast<Lane>(value > maximum ? maximum : value));
+    }
+    return r;
+}
+
+template <typename Lane>
+[[nodiscard]] constexpr Vector128 subtractSaturatingUnsignedLanes(const Vector128 &a,
+                                                                  const Vector128 &b) noexcept
+{
+    static_assert(isSupportedLane<Lane>);
+    Vector128 r{};
+    constexpr std::size_t count = 16u / sizeof(Lane);
+    for (std::size_t i = 0; i < count; ++i)
+    {
+        const Lane lhs = readLane<Lane>(a, i);
+        const Lane rhs = readLane<Lane>(b, i);
+        writeLane<Lane>(r, i, lhs < rhs ? Lane{0} : static_cast<Lane>(lhs - rhs));
+    }
+    return r;
+}
+
 [[nodiscard]] constexpr Vector128 addSaturatingSigned32(const Vector128 &a,
                                                          const Vector128 &b) noexcept
 {
-    Vector128 r{};
-    for (std::size_t i = 0; i < 4u; ++i)
-    {
-        const std::int64_t n =
-            static_cast<std::int64_t>(detail::asSigned(readLane<std::uint32_t>(a, i))) +
-            static_cast<std::int64_t>(detail::asSigned(readLane<std::uint32_t>(b, i)));
-        const auto clamped = n > std::numeric_limits<std::int32_t>::max()
-                               ? std::numeric_limits<std::int32_t>::max()
-                               : (n < std::numeric_limits<std::int32_t>::min()
-                                      ? std::numeric_limits<std::int32_t>::min() : n);
-        writeLane(r, i, std::bit_cast<std::uint32_t>(static_cast<std::int32_t>(clamped)));
-    }
-    return r;
+    return addSaturatingSignedLanes<std::uint32_t>(a, b);
 }
 
 [[nodiscard]] constexpr Vector128 subtractSaturatingSigned32(const Vector128 &a,
                                                               const Vector128 &b) noexcept
 {
-    Vector128 r{};
-    for (std::size_t i = 0; i < 4u; ++i)
-    {
-        const std::int64_t n =
-            static_cast<std::int64_t>(detail::asSigned(readLane<std::uint32_t>(a, i))) -
-            static_cast<std::int64_t>(detail::asSigned(readLane<std::uint32_t>(b, i)));
-        const auto clamped = n > std::numeric_limits<std::int32_t>::max()
-                               ? std::numeric_limits<std::int32_t>::max()
-                               : (n < std::numeric_limits<std::int32_t>::min()
-                                      ? std::numeric_limits<std::int32_t>::min() : n);
-        writeLane(r, i, std::bit_cast<std::uint32_t>(static_cast<std::int32_t>(clamped)));
-    }
-    return r;
+    return subtractSaturatingSignedLanes<std::uint32_t>(a, b);
 }
 
 [[nodiscard]] constexpr Vector128 shiftLeftVariable32(const Vector128 &v,

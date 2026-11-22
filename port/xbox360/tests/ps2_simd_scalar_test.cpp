@@ -95,6 +95,42 @@ int main()
     assert(readLane<std::uint32_t>(satSub, 0u) == 0x80000000u);
     assert(readLane<std::uint32_t>(satSub, 1u) == 0x7FFFFFFFu);
 
+    // Saturating signed byte/halfword arithmetic and unsigned byte/word arithmetic.
+    Vector128 sat8a{}, sat8b{};
+    writeLane<std::uint8_t>(sat8a, 0u, 0x7Fu);
+    writeLane<std::uint8_t>(sat8b, 0u, 0x01u);
+    writeLane<std::uint8_t>(sat8a, 1u, 0x80u);
+    writeLane<std::uint8_t>(sat8b, 1u, 0xFFu);
+    assert(readLane<std::uint8_t>(addSaturatingSignedLanes<std::uint8_t>(sat8a, sat8b), 0u) == 0x7Fu);
+    assert(readLane<std::uint8_t>(addSaturatingSignedLanes<std::uint8_t>(sat8a, sat8b), 1u) == 0x80u);
+    assert(readLane<std::uint8_t>(subtractSaturatingSignedLanes<std::uint8_t>(sat8a, sat8b), 0u) == 0x7Eu);
+    assert(readLane<std::uint8_t>(subtractSaturatingSignedLanes<std::uint8_t>(sat8a, sat8b), 1u) == 0x80u);
+
+    Vector128 sat16a{}, sat16b{};
+    writeLane<std::uint16_t>(sat16a, 0u, 0x7FFFu);
+    writeLane<std::uint16_t>(sat16b, 0u, 0x0001u);
+    writeLane<std::uint16_t>(sat16a, 1u, 0x8000u);
+    writeLane<std::uint16_t>(sat16b, 1u, 0xFFFFu);
+    assert(readLane<std::uint16_t>(addSaturatingSignedLanes<std::uint16_t>(sat16a, sat16b), 0u) == 0x7FFFu);
+    assert(readLane<std::uint16_t>(addSaturatingSignedLanes<std::uint16_t>(sat16a, sat16b), 1u) == 0x8000u);
+    assert(readLane<std::uint16_t>(subtractSaturatingSignedLanes<std::uint16_t>(sat16a, sat16b), 0u) == 0x7FFEu);
+    assert(readLane<std::uint16_t>(subtractSaturatingSignedLanes<std::uint16_t>(sat16a, sat16b), 1u) == 0x8000u);
+
+    Vector128 unsigned8a{}, unsigned8b{};
+    writeLane<std::uint8_t>(unsigned8a, 0u, 0xFEu);
+    writeLane<std::uint8_t>(unsigned8b, 0u, 0x02u);
+    writeLane<std::uint8_t>(unsigned8a, 1u, 0x01u);
+    writeLane<std::uint8_t>(unsigned8b, 1u, 0x02u);
+    assert(readLane<std::uint8_t>(addSaturatingUnsignedLanes<std::uint8_t>(unsigned8a, unsigned8b), 0u) == 0xFFu);
+    assert(readLane<std::uint8_t>(subtractSaturatingUnsignedLanes<std::uint8_t>(unsigned8a, unsigned8b), 1u) == 0u);
+
+    Vector128 unsigned32a{}, unsigned32b{};
+    writeLane<std::uint32_t>(unsigned32a, 0u, 0xFFFFFFFFu);
+    writeLane<std::uint32_t>(unsigned32b, 0u, 1u);
+    writeLane<std::uint32_t>(unsigned32b, 1u, 1u);
+    assert(readLane<std::uint32_t>(addSaturatingUnsignedLanes<std::uint32_t>(unsigned32a, unsigned32b), 0u) == 0xFFFFFFFFu);
+    assert(readLane<std::uint32_t>(subtractSaturatingUnsignedLanes<std::uint32_t>(unsigned32a, unsigned32b), 1u) == 0u);
+
     // Variable shifts use the low five bits of each count.
     a = {}; b = {};
     writeLane<std::uint32_t>(a, 0u, 0x80000000u);
