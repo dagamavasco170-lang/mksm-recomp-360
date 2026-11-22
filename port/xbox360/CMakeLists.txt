@@ -7,7 +7,13 @@ if(NOT XSDK)
         "Configure with the xSDK toolchain: -DCMAKE_TOOLCHAIN_FILE=<xsdk>/cmake/xsdk.cmake")
 endif()
 
-add_executable(mksm_xbox360_smoke smoke.cpp)
+add_executable(mksm_xbox360_smoke
+    smoke.cpp
+    ps2_pad_xbox360.cpp
+)
+target_include_directories(mksm_xbox360_smoke PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../ps2xRuntime/include"
+)
 target_compile_features(mksm_xbox360_smoke PRIVATE cxx_std_20)
 target_compile_options(mksm_xbox360_smoke PRIVATE -Wall -Wextra -Werror)
 
