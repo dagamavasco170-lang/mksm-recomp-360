@@ -16,7 +16,7 @@ This validates the bootstrap title only. The log does not explicitly identify a 
 
 ## Source baseline and constraints
 
-See [the initial source/build-graph audit](SOURCE_AUDIT.md) for verified CMake targets, language requirements and current platform dependencies. The PowerPC-specific SIMD blocker is documented in [SIMD_COMPATIBILITY.md](SIMD_COMPATIBILITY.md).
+See [the initial source/build-graph audit](SOURCE_AUDIT.md) for verified CMake targets, language requirements and current platform dependencies. The PowerPC-specific SIMD blocker is documented in [SIMD_COMPATIBILITY.md](SIMD_COMPATIBILITY.md), and the first endian-safe RDRAM helper is described in [GUEST_MEMORY.md](GUEST_MEMORY.md).
 
 - Base project: this repository's PS2 recompilation of the NTSC-U retail release, executable `SLUS_210.87`.
 - Required retail executable SHA-256: `b1ed99d81b07969553ed2f9afaad4caed1bbeb637d53a369f4dafca8eedd2ab2`.
@@ -35,7 +35,7 @@ Keep the existing desktop build as the correctness/reference backend. Add an iso
 |---|---|---|
 | Recompiled game code | Generate/compile the retail EE translation for 32-bit big-endian PowerPC | Compiler language support, ABI, floating-point behavior and generated-code size |
 | EE runtime | Port the minimum runtime helpers, exceptions, threads, DMA and EE state used by generated code | Existing runtime assumes desktop C++20 facilities |
-| Guest memory | Explicit Xbox-safe arena/address translation for EE RAM, scratchpad and mapped regions | Fixed PS2 virtual addresses conflict with Xbox 360 process mappings |
+| Guest memory | An isolated little-endian read/write helper and wrapped-buffer tests now exist; next add explicit Xbox-safe arena/address translation for EE RAM, scratchpad and mapped regions | Full address translation, aliases, I/O regions and correct PS2 little-endian/128-bit semantics |
 | GS graphics | New adapter from the project's GS command/state model to xSDK's native Xenos GPU API | PS2 GS blending, depth, texture formats, CLUTs, transfers and effects |
 | IOP/services | Port the required SIF/RPC, sound and file services incrementally | Threading, audio decoder and filesystem dependencies |
 | Audio | xSDK PCM output initially; evaluate FAudio-xenon for mixing | Timing, resampling, ADPCM and streaming |
@@ -74,7 +74,7 @@ If xSDK fails the C++20 smoke build, stop and investigate a specific missing fea
 **Acceptance:** CI packages the smoke XEX and a console run records title startup, C++20 checks, display initialization, explicit Back-button exit and clean shutdown. The first four checks are recorded in the 2026-11-22 log; explicit exit reason and console model/kernel remain to be captured with the revised diagnostic build.
 
 ### X2 — Xbox platform layer
-- Add platform abstractions for memory, files, timing, threads, input and logging. The initial input slice and its host-side mapping tests now exist.
+- Add platform abstractions for memory, files, timing, threads, input and logging. The initial input mapping and a standalone little-endian memory helper now have host-side tests; neither is yet integrated into the full runtime.
 - Keep Xbox-specific code in `port/xbox360/` and guarded target build definitions.
 - Add game-data-free unit tests for portable logic.
 
