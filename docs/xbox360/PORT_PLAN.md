@@ -16,7 +16,7 @@ This validates the bootstrap title only. The log does not explicitly identify a 
 
 ## Source baseline and constraints
 
-See [the initial source/build-graph audit](SOURCE_AUDIT.md) for verified CMake targets, language requirements and current platform dependencies.
+See [the initial source/build-graph audit](SOURCE_AUDIT.md) for verified CMake targets, language requirements and current platform dependencies. The PowerPC-specific SIMD blocker is documented in [SIMD_COMPATIBILITY.md](SIMD_COMPATIBILITY.md).
 
 - Base project: this repository's PS2 recompilation of the NTSC-U retail release, executable `SLUS_210.87`.
 - Required retail executable SHA-256: `b1ed99d81b07969553ed2f9afaad4caed1bbeb637d53a369f4dafca8eedd2ab2`.
@@ -39,7 +39,7 @@ Keep the existing desktop build as the correctness/reference backend. Add an iso
 | GS graphics | New adapter from the project's GS command/state model to xSDK's native Xenos GPU API | PS2 GS blending, depth, texture formats, CLUTs, transfers and effects |
 | IOP/services | Port the required SIF/RPC, sound and file services incrementally | Threading, audio decoder and filesystem dependencies |
 | Audio | xSDK PCM output initially; evaluate FAudio-xenon for mixing | Timing, resampling, ADPCM and streaming |
-| Input | xSDK XAM controller input with Start/Back and analog/digital mapping | Button equivalence and pressure-sensitive PS2 inputs |
+| Input | Initial XAM adapter maps Xbox buttons, triggers and sticks into the shared 32-byte PS2 pad report; host unit tests cover the mapping | Hardware retest, second port, vibration and PS2 pressure-sensitive buttons |
 | Files/save | xSDK POSIX-style files and `std::filesystem` | PS2 memory-card layout and robust save migration |
 | Packaging | xSDK ELF-to-XEX2 packaging and title metadata suitable for Aurora | Title metadata and unsigned XEX support is limited to RGH/JTAG |
 
@@ -49,7 +49,7 @@ The preferred route is now [xSDK](https://github.com/xenosworks/xsdk), not the l
 
 The first target is a small C++20 smoke title in `port/xbox360/`. It exercises the exact language facilities visible in the current source (ranges, span, atomic shared pointers, filesystem and threads), opens Xenos GPU presentation at 720p, logs to a file and exits with the controller's Back button.
 
-The smoke title is now cross-compiled into an XEX by CI, and the supplied console log records a successful title start, C++20 checks and display initialization. The original log does not prove the exact controller exit path; repeat the updated diagnostic build and record console model/kernel to complete the X1 evidence. This remains an infrastructure test, not a game build.
+The smoke title is cross-compiled into an XEX by CI, and the supplied console log records a successful title start, C++20 checks and display initialization. The XAM-to-PS2 pad adapter is now compiled into the smoke title; the Xbox Back button exits through the mapped PS2 Select bit. A host-side test covers the shared mapping logic. The adapter has not yet been verified on the console; repeat the latest build and record console model/kernel. This remains an infrastructure test, not a game build.
 
 Keep the target toolchain scoped to `port/xbox360/`. The top-level compiler/analyzer and retail source-generation tools must run on the host; do not apply the PowerPC CMake toolchain to the whole repository. Build the generated game/runtime sources separately after the host-side generation stage.
 
@@ -74,7 +74,7 @@ If xSDK fails the C++20 smoke build, stop and investigate a specific missing fea
 **Acceptance:** CI packages the smoke XEX and a console run records title startup, C++20 checks, display initialization, explicit Back-button exit and clean shutdown. The first four checks are recorded in the 2026-11-22 log; explicit exit reason and console model/kernel remain to be captured with the revised diagnostic build.
 
 ### X2 — Xbox platform layer
-- Add platform abstractions for memory, files, timing, threads, input and logging.
+- Add platform abstractions for memory, files, timing, threads, input and logging. The initial input slice and its host-side mapping tests now exist.
 - Keep Xbox-specific code in `port/xbox360/` and guarded target build definitions.
 - Add game-data-free unit tests for portable logic.
 
