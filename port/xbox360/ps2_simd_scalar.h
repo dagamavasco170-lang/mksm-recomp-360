@@ -190,7 +190,10 @@ template <typename Lane>
         const std::int64_t n =
             static_cast<std::int64_t>(detail::asSigned(readLane<std::uint32_t>(a, i))) +
             static_cast<std::int64_t>(detail::asSigned(readLane<std::uint32_t>(b, i)));
-        const auto clamped = n > INT32_MAX ? INT32_MAX : (n < INT32_MIN ? INT32_MIN : n);
+        const auto clamped = n > std::numeric_limits<std::int32_t>::max()
+                               ? std::numeric_limits<std::int32_t>::max()
+                               : (n < std::numeric_limits<std::int32_t>::min()
+                                      ? std::numeric_limits<std::int32_t>::min() : n);
         writeLane(r, i, std::bit_cast<std::uint32_t>(static_cast<std::int32_t>(clamped)));
     }
     return r;
@@ -215,9 +218,6 @@ template <typename Lane>
                                                        const Vector128 &counts) noexcept
 {
     Vector128 r{};
-    for (std::size_t i = 0; i < 4u; ++i)
-        writeLane(r, i, readLane<std::uint32_t>(v, i) &
-                        (std::uint32_t{0xFFFFFFFFu}) << 0u); // overwritten below
     for (std::size_t i = 0; i < 4u; ++i)
     {
         const auto n = readLane<std::uint32_t>(counts, i) & 0x1Fu;
@@ -260,7 +260,10 @@ template <typename Lane>
         const auto lhs = detail::asSigned(readLane<std::uint32_t>(a, i));
         const auto rhs = detail::asSigned(readLane<std::uint32_t>(b, i));
         const auto clamp = [](std::int32_t n) constexpr {
-            return n > INT16_MAX ? INT16_MAX : (n < INT16_MIN ? INT16_MIN : n);
+            return n > std::numeric_limits<std::int16_t>::max()
+                       ? std::numeric_limits<std::int16_t>::max()
+                       : (n < std::numeric_limits<std::int16_t>::min()
+                              ? std::numeric_limits<std::int16_t>::min() : n);
         };
         writeLane(r, i, std::bit_cast<std::uint16_t>(static_cast<std::int16_t>(clamp(lhs))));
         writeLane(r, i + 4u, std::bit_cast<std::uint16_t>(static_cast<std::int16_t>(clamp(rhs))));
