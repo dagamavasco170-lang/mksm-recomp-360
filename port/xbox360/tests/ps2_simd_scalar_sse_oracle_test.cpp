@@ -104,7 +104,13 @@ void checkIntegerVectorPair(const Vector128 &a, const Vector128 &b) noexcept
     const __m128i greater = refGreaterSigned<Lane>(na, nb);
     const __m128i zero = _mm_setzero_si128();
     const __m128i sign = refGreaterSigned<Lane>(zero, na);
-    const __m128i absolute = _mm_sub_epi8(_mm_xor_si128(na, sign), sign);
+    __m128i absolute{};
+    if constexpr (std::is_same_v<Lane, std::uint8_t>)
+        absolute = _mm_sub_epi8(_mm_xor_si128(na, sign), sign);
+    else if constexpr (std::is_same_v<Lane, std::uint16_t>)
+        absolute = _mm_sub_epi16(_mm_xor_si128(na, sign), sign);
+    else
+        absolute = _mm_sub_epi32(_mm_xor_si128(na, sign), sign);
 
     expectEqual(addLanes<Lane>(a, b), refAdd<Lane>(na, nb));
     expectEqual(subtractLanes<Lane>(a, b), refSubtract<Lane>(na, nb));
