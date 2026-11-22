@@ -176,7 +176,10 @@ template <typename Lane>
     for (std::size_t i = 0; i < count; ++i)
     {
         const Lane raw = readLane<Lane>(v, i);
-        writeLane(r, i, detail::asSigned(raw) < 0 ? Lane{0} - raw : raw);
+        const Lane absolute = detail::asSigned(raw) < 0
+                                  ? static_cast<Lane>(Lane{0} - raw)
+                                  : raw;
+        writeLane<Lane>(r, i, absolute);
     }
     return r;
 }
