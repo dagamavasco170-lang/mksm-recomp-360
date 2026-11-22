@@ -46,7 +46,7 @@ jobs:
         run: |
           cd "$HOME/xsdk"
           PREFIX="$HOME/xsdk-gcc" WORK="$HOME/xsdk-gcc-work" JOBS="$(nproc)" \
-            tools/toolchain/build.sh
+            bash tools/toolchain/build.sh
 
       - name: Build xSDK runtime and host tools
         run: |
