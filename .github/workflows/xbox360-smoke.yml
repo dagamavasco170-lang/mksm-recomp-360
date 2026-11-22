@@ -1,0 +1,65 @@
+name: Xbox 360 smoke XEX
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "port/xbox360/**"
+      - "docs/xbox360/**"
+      - ".github/workflows/xbox360-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-smoke-xex:
+    name: Build native Xbox 360 smoke XEX
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out MKSM Recomp
+        uses: actions/checkout@v4
+
+      - name: Install xSDK build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential bison flex texinfo libgmp-dev libmpfr-dev libmpc-dev \
+            curl xz-utils patch python3 cmake ninja-build git
+
+      - name: Check out pinned xSDK
+        env:
+          XSDK_COMMIT: 9e6de98f6b5d737bce0fecd2864edae94bdd2637
+        run: |
+          git clone https://github.com/xenosworks/xsdk.git "$HOME/xsdk"
+          git -C "$HOME/xsdk" checkout "$XSDK_COMMIT"
+
+      - name: Build PowerPC toolchain
+        run: |
+          cd "$HOME/xsdk"
+          PREFIX="$HOME/xsdk-gcc" WORK="$HOME/xsdk-gcc-work" JOBS="$(nproc)" \
+            tools/toolchain/build.sh
+
+      - name: Build xSDK runtime and host tools
+        run: |
+          cd "$HOME/xsdk"
+          make -j"$(nproc)"
+
+      - name: Configure Xbox 360 smoke title
+        run: |
+          cmake -S port/xbox360 -B build/xbox360 -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$HOME/xsdk/cmake/xsdk.cmake" \
+            -DXSDK_TOOLCHAIN="$HOME/xsdk-gcc" \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+      - name: Build Xbox 360 smoke XEX
+        run: cmake --build build/xbox360 --parallel
+
+      - name: Upload smoke XEX
+        uses: actions/upload-artifact@v4
+        with:
+          name: mksm-xbox360-smoke-xex
+          path: build/xbox360/mksm_xbox360_smoke.xex
+          if-no-files-found: error
+          retention-days: 14
