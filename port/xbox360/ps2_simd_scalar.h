@@ -208,7 +208,10 @@ template <typename Lane>
         const std::int64_t n =
             static_cast<std::int64_t>(detail::asSigned(readLane<std::uint32_t>(a, i))) -
             static_cast<std::int64_t>(detail::asSigned(readLane<std::uint32_t>(b, i)));
-        const auto clamped = n > INT32_MAX ? INT32_MAX : (n < INT32_MIN ? INT32_MIN : n);
+        const auto clamped = n > std::numeric_limits<std::int32_t>::max()
+                               ? std::numeric_limits<std::int32_t>::max()
+                               : (n < std::numeric_limits<std::int32_t>::min()
+                                      ? std::numeric_limits<std::int32_t>::min() : n);
         writeLane(r, i, std::bit_cast<std::uint32_t>(static_cast<std::int32_t>(clamped)));
     }
     return r;
