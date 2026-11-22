@@ -26,7 +26,27 @@ The log also states that no net_log.txt was present beside the XEX, so the log w
 
 ## Result
 
-**The revised smoke title passed its recorded console launch, ABI, C++20, guest-memory endian probe, display, controller mapping and clean Back-button shutdown checks.** This closes the hardware evidence gap left by the first log and verifies the run #76 XEX behavior recorded by the user.
+**The run #76 smoke title passed its recorded console launch, ABI, C++20, guest-memory endian probe, display, controller mapping and clean Back-button shutdown checks. The follow-on run #80 XEX was also executed on the console; its additional scalar PS2 packed-vector check passed, along with the previously verified functions.
+
+## Follow-on console run — run #80 XEX
+
+The third user-provided console log, uploaded on 2026-11-22 as mksm_xbox360_smoke(2).log, records:
+
+- XEX launched from \\Device\\Mass1\\mksm_xbox360_smoke.xex; the log path is game:\\mksm_xbox360_smoke.log.
+- Target ABI check: 32-bit big-endian PowerPC.
+- C++20 runtime checks passed.
+- Explicit little-endian guest-memory probe passed.
+- Scalar PS2 packed-vector checks passed on the target.
+- Display opened at 1280×720; the display path reported scaling to 1920×1080 output.
+- XAM-to-PS2 controller adapter initialized for player 1.
+- Xbox Back was received as PS2 Select.
+- 439 frames were presented; shutdown reason was Back; exit code was 0.
+- Final process status was 0.
+- The log was written locally; no adjacent net_log.txt was present for network collection.
+
+The additional scalar packed-vector line matches the check added to the run #80 smoke executable. The supplied log does not embed a build ID, so the association is based on that unique probe and the documented run #80 source/build contents.
+
+**Result: run #80's scalar SIMD probe and the complete smoke path passed on the physical console.** This validates only the operations explicitly exercised by the scalar probe, not the whole PS2 MMI/VU instruction set or the full game runtime.
 
 ## Remaining evidence gap
 
@@ -63,3 +83,17 @@ Artifact:
 - Artifact expiry: 2026-12-06.
 
 Run #80 compiles and executes an additional scalar SIMD probe before entering the display loop. The new probe's physical execution is not yet confirmed; the supplied console log above applies to run #76 only.
+
+
+## CI build evidence — run #80
+
+GitHub Actions [run #80](https://github.com/dagamavasco170-lang/mksm-recomp-360/actions/runs/45071614201) completed successfully at commit accb60339ea50ec8e74aa1d9a627c81c39b17202. It passed the host controller, guest-memory and scalar SIMD tests; rebuilt the pinned PowerPC toolchain and xSDK runtime; compiled the smoke title; and uploaded the XEX.
+
+Artifact:
+- Name: mksm-xbox360-smoke-xex
+- Artifact ID: 14773879485
+- ZIP size: 683,117 bytes
+- ZIP SHA-256: 66a19a5c4f5c11e9850ed4a7041886dbbd243bd4bbdf96c52a8f8774b2a80f9c
+- Artifact expiry: 2026-12-06.
+
+The console log confirms that the XEX containing the scalar PS2 packed-vector probe ran through 439 frames and shut down cleanly after Back. The artifact contains the smoke title only; no game runtime or proprietary game data.

@@ -10,9 +10,9 @@ This document is a plan and a record of verified constraints. It does not claim 
 
 ## Latest smoke result (2026-11-22)
 
-The revised smoke XEX from GitHub Actions run #76 was run on the physical console. The uploaded log records the 32-bit big-endian PowerPC ABI check, C++20 runtime checks, the little-endian guest-memory probe, 1280×720 display initialization, XAM controller initialization, Xbox Back received as PS2 Select, 122 presented frames and clean shutdown with exit code 0. The log does not identify the console model/revision or dashboard/kernel version.
+The run #80 smoke XEX was run on the physical console. The uploaded log records the 32-bit big-endian PowerPC ABI check, C++20 runtime checks, the little-endian guest-memory probe, scalar PS2 packed-vector probe, 1280×720 display initialization, XAM controller initialization, Xbox Back received as PS2 Select, 439 presented frames and clean shutdown with exit code 0. The log does not identify the console model/revision or dashboard/kernel version.
 
-This validates the bootstrap title only. It draws a solid background and contains no PS2 EE game execution, PS2 GS rendering, audio, saves or gameplay. See [the hardware report](HARDWARE_SMOKE_2026-11-22.md).
+This validates the bootstrap title and the explicitly exercised scalar SIMD slice only. It draws a solid background and contains no PS2 EE game execution, PS2 GS rendering, audio, saves or gameplay. See [the hardware report](HARDWARE_SMOKE_2026-11-22.md).
 
 ## Source baseline and constraints
 
@@ -49,7 +49,7 @@ The preferred route is now [xSDK](https://github.com/xenosworks/xsdk), not the l
 
 The first target is a small C++20 smoke title in `port/xbox360/`. It exercises the exact language facilities visible in the current source (ranges, span, atomic shared pointers, filesystem and threads), opens Xenos GPU presentation at 720p, maps XAM input to the project's PS2 pad report and includes compile-time checks for a 32-bit big-endian target ABI.
 
-The run #76 smoke XEX and its XAM-to-PS2 pad adapter were compiled by CI and exercised on the physical console. The supplied log confirms the 32-bit big-endian ABI, C++20 checks, little-endian guest-memory probe, display, Back-to-Select mapping and clean shutdown. The scalar PS2 packed-vector reference now covers a broader host-tested subset of arithmetic, comparisons, saturation, shifts, packing and interleave. CI run #80 compiled and packaged a smoke XEX that executes a subset on the PowerPC target; this newer XEX still requires a physical-console retest. This is infrastructure groundwork, not a game build.
+The run #80 smoke XEX, XAM-to-PS2 pad adapter, endian probe and scalar PS2 packed-vector probe were compiled by CI and exercised on the physical console. The supplied log confirms the 32-bit big-endian ABI, C++20 checks, little-endian guest-memory probe, scalar packed-vector probe, display, Back-to-Select mapping and clean shutdown after 439 frames. The scalar PS2 packed-vector reference covers a host-tested subset of arithmetic, comparisons, saturation, shifts, packing and interleave; the target probe exercises only a subset of those operations. This is infrastructure groundwork, not a game build.
 
 Keep the target toolchain scoped to `port/xbox360/`. The top-level compiler/analyzer and retail source-generation tools must run on the host; do not apply the PowerPC CMake toolchain to the whole repository. Build the generated game/runtime sources separately after the host-side generation stage.
 
@@ -71,7 +71,7 @@ If xSDK fails the C++20 smoke build, stop and investigate a specific missing fea
 - Package the smoke title with a development Title ID and name.
 - Launch it from Aurora on an RGH/JTAG console and capture the build log and console result.
 
-**Acceptance:** CI packages the smoke XEX and a console run records title startup, C++20/guest-memory checks, display initialization, explicit Back-button exit and clean shutdown. These functional checks are now recorded in the revised run #76 console log. Console model/revision and dashboard/kernel metadata remain to be captured in a later compatibility test.
+**Acceptance:** CI packages the smoke XEX and a console run records title startup, C++20/guest-memory and scalar SIMD checks, display initialization, explicit Back-button exit and clean shutdown. These checks are now recorded in the run #80 console log. Console model/revision and dashboard/kernel metadata remain to be captured in a later compatibility test.
 
 ### X2 — Xbox platform layer
 - Add platform abstractions for memory, files, timing, threads, input and logging. The initial input mapping and a standalone little-endian memory helper now have host-side tests; neither is yet integrated into the full runtime.
