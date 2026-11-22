@@ -7,6 +7,7 @@ This inventory records the focused source scan that expanded the original audit.
 - 11 production files inspected for _mm_* identifiers.
 - 611 textual occurrences of _mm_* identifiers.
 - 99 distinct _mm_*-prefixed names across the first ten files (three are project-local custom helper wrappers rather than standard Intel intrinsics).
+- A new scalar MMI saturation slice now covers signed and unsigned saturating add/subtract for 8-, 16- and 32-bit lanes.
 - __m128i and __m128 types appear in runtime and recompiler source.
 - One additional _mm_blendv_ps reference is present in a test file and excluded from production totals.
 
@@ -46,3 +47,15 @@ The existing Xbox smoke project compiles neither the complete recompiler nor the
 - Add deterministic scalar-versus-SSE differential tests before replacing any implementation.
 - Prioritize MMI integer operations separately from VU floating-point semantics.
 - Keep generated game code and proprietary game data out of the audit artifact.
+
+
+## Follow-on scalar MMI saturation slice
+
+The Xbox branch now includes generic scalar saturating add/subtract helpers for signed and unsigned 8-, 16- and 32-bit lanes. The host unit tests exercise byte/halfword signed boundaries and byte/word unsigned overflow/underflow. The SSE2 differential test compares:
+
+- Signed byte saturation against _mm_adds_epi8 / _mm_subs_epi8.
+- Signed halfword saturation against _mm_adds_epi16 / _mm_subs_epi16.
+- Unsigned byte saturation against _mm_adds_epu8 / _mm_subs_epu8.
+- Unsigned word saturation against the same biased signed-compare reference used by the current runtime helpers.
+
+The XEX smoke probe additionally checks signed byte saturation and unsigned byte/word saturation on target. A new CI run and physical console retest are still required for this expanded set.

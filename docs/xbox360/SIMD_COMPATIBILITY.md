@@ -42,17 +42,17 @@ Implemented and host-tested operations:
 - Bitwise AND, OR, XOR and NOR.
 - Equality masks and signed greater-than comparisons for 8-, 16- and 32-bit lanes.
 - Signed min/max and two's-complement absolute value for 8-, 16- and 32-bit lanes.
-- Signed saturating 32-bit add/subtract using widened scalar intermediates.
+- Signed saturating 8-, 16- and 32-bit lane add/subtract using widened scalar intermediates.
+- Unsigned saturating 8-, 16- and 32-bit lane add/subtract.
 - Variable 32-bit logical left, logical right and arithmetic right shifts; counts follow the helper's low-five-bit rule.
 - Saturating 32-to-16-bit packing.
 - Even-lane packing (PPACB/H/W reference ordering) and low/high interleave (PEXT* reference ordering).
 
-The host tests check selected normal and boundary values. The run #80 Xbox smoke title executes a smaller scalar packed-vector probe, and the user-provided console log confirms that probe passed on hardware. There is not yet a broad differential suite comparing every scalar primitive against the current x86 implementation.
+The host tests check selected normal and boundary values. The SSE2 differential test compares 4,096 deterministic vector pairs across 8-, 16- and 32-bit lanes, including signed saturation for bytes/halfwords and unsigned saturation for bytes/words. The Xbox smoke title also executes a subset of signed-byte and unsigned-byte/word saturation checks. These tests validate only the covered operations and vectors; they are not a proof of the full MMI instruction set.
 
 ## Gaps that remain
 
 The scalar layer is not a drop-in replacement for all 99 source symbols. Important missing areas include:
-- Signed/unsigned saturating 8- and 16-bit arithmetic.
 - Packed multiply and multiply-accumulate variants.
 - Byte/word/dword shuffle controls and byte-mask blend semantics.
 - 64-bit lane operations, vector insert/extract variants and complete load/store adapters.

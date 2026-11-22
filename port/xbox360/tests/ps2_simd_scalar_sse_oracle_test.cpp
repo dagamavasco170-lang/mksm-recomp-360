@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <type_traits>
 
 using ps2::xbox360::simd::Vector128;
@@ -138,7 +139,7 @@ void checkIntegerVectorPair(const Vector128 &a, const Vector128 &b) noexcept
     }
     if constexpr (std::is_same_v<Lane, std::uint32_t>)
     {
-        const __m128i signBias = _mm_set1_epi32(INT32_MIN);
+        const __m128i signBias = _mm_set1_epi32(std::numeric_limits<std::int32_t>::min());
         const __m128i sum = _mm_add_epi32(na, nb);
         const __m128i overflow = _mm_cmpgt_epi32(_mm_xor_si128(na, signBias),
                                                   _mm_xor_si128(sum, signBias));
