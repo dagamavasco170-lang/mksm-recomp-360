@@ -6,7 +6,13 @@ Produce an **Xbox 360-native homebrew build** of Mortal Kombat: Shaolin Monks fo
 
 This follows the broad engineering method demonstrated by the native BT3 Xbox 360 port: recompile the original game's program for the Xbox 360 PowerPC CPU and provide Xbox-specific graphics, audio, input, memory, file and system layers. It is **not** a PS2 emulator packaged for Xbox 360.
 
-This document is a plan and a record of verified constraints. It does not claim that a Shaolin Monks Xbox 360 executable exists yet.
+This document is a plan and a record of verified constraints. It does not claim that a Shaolin Monks Xbox 360 game executable exists yet.
+
+## Latest smoke result (2026-11-22)
+
+The xSDK smoke XEX was built successfully by GitHub Actions. A user-provided console log records title startup, passing C++20 runtime checks, 1280x720 display initialization (scaled by the display path to 1920x1080 output), and process exit status 0. See [the hardware smoke report](HARDWARE_SMOKE_2026-11-22.md).
+
+This validates the bootstrap title only. The log does not explicitly identify a Back-button event or shutdown reason, and it omits console model/kernel details. The smoke title has been instrumented to record those events and to return a nonzero status for presentation/close failures; that revised build still needs a repeat run. No game code or PS2 GS rendering has run on Xbox as part of this test.
 
 ## Source baseline and constraints
 
@@ -43,7 +49,7 @@ The preferred route is now [xSDK](https://github.com/xenosworks/xsdk), not the l
 
 The first target is a small C++20 smoke title in `port/xbox360/`. It exercises the exact language facilities visible in the current source (ranges, span, atomic shared pointers, filesystem and threads), opens Xenos GPU presentation at 720p, logs to a file and exits with the controller's Back button.
 
-The smoke title is only source code at this point. It has **not** yet been cross-compiled or run on the console. The first hardware acceptance gate remains an actual XEX launch from Aurora.
+The smoke title is now cross-compiled into an XEX by CI, and the supplied console log records a successful title start, C++20 checks and display initialization. The original log does not prove the exact controller exit path; repeat the updated diagnostic build and record console model/kernel to complete the X1 evidence. This remains an infrastructure test, not a game build.
 
 Keep the target toolchain scoped to `port/xbox360/`. The top-level compiler/analyzer and retail source-generation tools must run on the host; do not apply the PowerPC CMake toolchain to the whole repository. Build the generated game/runtime sources separately after the host-side generation stage.
 
@@ -65,7 +71,7 @@ If xSDK fails the C++20 smoke build, stop and investigate a specific missing fea
 - Package the smoke title with a development Title ID and name.
 - Launch it from Aurora on an RGH/JTAG console and capture the build log and console result.
 
-**Acceptance:** the smoke XEX appears and launches on real hardware. A successful PC cross-compile alone is not enough.
+**Acceptance:** CI packages the smoke XEX and a console run records title startup, C++20 checks, display initialization, explicit Back-button exit and clean shutdown. The first four checks are recorded in the 2026-11-22 log; explicit exit reason and console model/kernel remain to be captured with the revised diagnostic build.
 
 ### X2 — Xbox platform layer
 - Add platform abstractions for memory, files, timing, threads, input and logging.
