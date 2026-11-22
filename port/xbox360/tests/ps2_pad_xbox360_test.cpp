@@ -16,6 +16,7 @@ int main()
     assert(neutral[6] == 128u && neutral[7] == 128u);
 
     GamepadSnapshot input{};
+    input.connected = true;
     input.buttons = PadBack | PadStart | PadLeftThumb | PadRightThumb |
                     PadLeftShoulder | PadRightShoulder | PadDpadUp | PadDpadRight |
                     PadA | PadB | PadX | PadY;
@@ -42,8 +43,8 @@ int main()
 
     GamepadSnapshot disconnected{};
     const auto disconnectedState = translateGamepad(disconnected);
-    assert(disconnectedState.connected);
-    disconnectedState.connected = false; // The runtime neutral packet is still all buttons released.
-    (void)encodePs2Pad(disconnected, 1);
+    assert(!disconnectedState.connected);
+    const auto disconnectedPacket = encodePs2Pad(disconnected, 1);
+    assert((uint16_t(disconnectedPacket[2]) | (uint16_t(disconnectedPacket[3]) << 8u)) == 0xFFFFu);
     return 0;
 }
