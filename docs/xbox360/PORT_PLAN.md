@@ -16,8 +16,10 @@ See [the initial source/build-graph audit](SOURCE_AUDIT.md) for verified CMake t
 - Required retail executable SHA-256: `b1ed99d81b07969553ed2f9afaad4caed1bbeb637d53a369f4dafca8eedd2ab2`.
 - Current public runtime status is still experimental: the opening sequence can reach scene drawing, but first-stage geometry/camera output is badly corrupted and controllable gameplay has not been established. See [STATUS.md](../STATUS.md).
 - The desktop runtime currently uses C++20 and desktop-oriented dependencies, including raylib. Those assumptions must not leak into the Xbox target.
-- The Xbox 360 XDK/toolchain is proprietary and is not included in this repository. Each developer must obtain it independently under the applicable licence. Never commit SDK binaries, headers, libraries, credentials, game images, extracted game data, or generated game translations.
-- The BT3 port is a technical reference, not a source-code drop-in. Its game code, renderer, runtime and build assumptions differ from this project's C++20 recompiler/runtime.
+- Preferred target SDK: [xenosworks/xsdk](https://github.com/xenosworks/xsdk), evaluated in [SDK_EVALUATION.md](SDK_EVALUATION.md). Its GCC 15.3 / C++23 toolchain, native XEX packer and Xenos/system APIs are a closer fit for this C++20 project than the legacy XDK route.
+- The initial xSDK integration is pinned to commit `9e6de98f6b5d737bce0fecd2864edae94bdd2637`. The repository keeps xSDK external; it is not vendored.
+- The Microsoft XDK is proprietary and is not included. It is not required by the preferred path; only consider it later if xSDK has a demonstrated gap. Never commit SDK binaries, headers, libraries, credentials, game images, extracted game data, or generated game translations.
+- The BT3 port remains a technical reference for the native recompilation method, hardware constraints and acceptance discipline, not a source-code or toolchain drop-in.
 
 ## Architecture target
 
@@ -28,27 +30,24 @@ Keep the existing desktop build as the correctness/reference backend. Add an iso
 | Recompiled game code | Generate/compile the retail EE translation for 32-bit big-endian PowerPC | Compiler language support, ABI, floating-point behavior and generated-code size |
 | EE runtime | Port the minimum runtime helpers, exceptions, threads, DMA and EE state used by generated code | Existing runtime assumes desktop C++20 facilities |
 | Guest memory | Explicit Xbox-safe arena/address translation for EE RAM, scratchpad and mapped regions | Fixed PS2 virtual addresses conflict with Xbox 360 process mappings |
-| GS graphics | New Xenos/Direct3D 9 backend that consumes the project's GS command/state model | PS2 GS blending, depth, texture formats, CLUTs, transfers and effects |
+| GS graphics | New adapter from the project's GS command/state model to xSDK's native Xenos GPU API | PS2 GS blending, depth, texture formats, CLUTs, transfers and effects |
 | IOP/services | Port the required SIF/RPC, sound and file services incrementally | Threading, audio decoder and filesystem dependencies |
-| Audio | Xbox-native audio output, initially effects before streamed music/movie audio | Timing, resampling, ADPCM and streaming |
-| Input | Xbox 360 controller API with Start/Back and analog/digital mapping | Button equivalence and pressure-sensitive PS2 inputs |
-| Files/save | Xbox filesystem paths and a documented save container | PS2 memory-card layout and robust save migration |
-| Packaging | XDK-linked XEX/title metadata suitable for Aurora | Title metadata and signing/runtime requirements |
+| Audio | xSDK PCM output initially; evaluate FAudio-xenon for mixing | Timing, resampling, ADPCM and streaming |
+| Input | xSDK XAM controller input with Start/Back and analog/digital mapping | Button equivalence and pressure-sensitive PS2 inputs |
+| Files/save | xSDK POSIX-style files and `std::filesystem` | PS2 memory-card layout and robust save migration |
+| Packaging | xSDK ELF-to-XEX2 packaging and title metadata suitable for Aurora | Title metadata and unsigned XEX support is limited to RGH/JTAG |
 
 ### Toolchain feasibility gate
 
-Before porting large portions of the runtime, prove that the selected Xbox toolchain can compile and link a small program using the exact language subset and runtime facilities required by the current source.
+The preferred route is now [xSDK](https://github.com/xenosworks/xsdk), not the legacy Microsoft XDK compiler. Its public documentation reports GCC 15.3, binutils 2.47 and newlib 4.6 for `powerpc-xsdk-elf`, plus a C++23 runtime with exceptions, RTTI, threads, atomics, chrono and filesystem. It also provides CMake helpers to package an ELF as a XEX2 title.
 
-The BT3 port's documented XDK flow uses an older PowerPC compiler and converts much of its game code to C89-compatible source. This project is different: its runtime and generated translations are C++20. Do not assume BT3's compiler flags or C89 conversion scripts will compile this code unchanged.
+The first target is a small C++20 smoke title in `port/xbox360/`. It exercises the exact language facilities visible in the current source (ranges, span, atomic shared pointers, filesystem and threads), opens Xenos GPU presentation at 720p, logs to a file and exits with the controller's Back button.
 
-The first investigation must compare:
-1. Xbox compiler language level and standard-library availability.
-2. Whether generated C++ can be reduced to a supported subset without changing semantics.
-3. Whether a supported alternative PowerPC toolchain can produce an XEX that runs on RGH/JTAG hardware.
-4. Exception, RTTI, threading, allocation, filesystem and floating-point requirements.
-5. Final executable format, imports and XEX packaging.
+The smoke title is only source code at this point. It has **not** yet been cross-compiled or run on the console. The first hardware acceptance gate remains an actual XEX launch from Aurora.
 
-If this gate fails, stop and revise the architecture before attempting a full port.
+Keep the target toolchain scoped to `port/xbox360/`. The top-level compiler/analyzer and retail source-generation tools must run on the host; do not apply the PowerPC CMake toolchain to the whole repository. Build the generated game/runtime sources separately after the host-side generation stage.
+
+If xSDK fails the C++20 smoke build, stop and investigate a specific missing feature before changing the shared runtime. Do not fall back to copying old XDK flags or converting the entire project to C89 without a measured reason.
 
 ## Milestones and acceptance criteria
 
@@ -58,15 +57,15 @@ If this gate fails, stop and revise the architecture before attempting a full po
 - Identify all C++20 features and runtime services that block the Xbox toolchain.
 - Record the exact toolchain version and reproducible build commands without distributing it.
 
-**Acceptance:** a source/dependency matrix and a documented, technically supported toolchain choice.
+**Acceptance:** source/dependency matrix, xSDK evaluation and a reproducible C++20 smoke XEX build.
 
 ### X1 — Minimal native XEX
-- Build a minimal program with the selected toolchain.
-- Package it with a unique development Title ID, title name and original project icon.
-- Launch it from Aurora on an RGH/JTAG console.
-- Capture the build log, console result and exact toolchain version.
+- Build `port/xbox360/` with the pinned xSDK toolchain.
+- Verify C++20 library features, Xenos presentation, controller input and logging.
+- Package the smoke title with a development Title ID and name.
+- Launch it from Aurora on an RGH/JTAG console and capture the build log and console result.
 
-**Acceptance:** the test executable appears and launches on real hardware. A successful PC cross-compile alone is not enough.
+**Acceptance:** the smoke XEX appears and launches on real hardware. A successful PC cross-compile alone is not enough.
 
 ### X2 — Xbox platform layer
 - Add platform abstractions for memory, files, timing, threads, input and logging.
