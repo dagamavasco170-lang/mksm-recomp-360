@@ -152,7 +152,7 @@ int main()
     assert(readLane<std::uint32_t>(madd, 1u) == 14u);
     const std::uint64_t maddAccumulated = accumulateSigned32Lanes(0u, madd);
     assert(maddAccumulated == 0xFFFFFFFF8000000Eu);
-    assert(accumulateSigned32Lanes(0xFFFFFFFFFFFFFFF0ull, madd) == 0xFFFFFFFFFFFFFFFEull);
+    assert(accumulateSigned32Lanes(0xFFFFFFFFFFFFFFF0ull, madd) == 0xFFFFFFFF7FFFFFFEull);
 
     // Variable shifts use the low five bits of each count.
     a = {}; b = {};
