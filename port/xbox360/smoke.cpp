@@ -78,31 +78,48 @@ int runTitle()
 
     xsdk_log_write("MKSM smoke: display opened at %ux%u", static_cast<unsigned>(width), static_cast<unsigned>(height));
 
+    uint32_t presentedFrames = 0u;
+    int exitCode = 0;
+    bool backPressed = false;
+
     for (;;)
     {
         INPUT_STATE input{};
         if (XamInputGetState(0u, 0u, &input) == ERROR_SUCCESS &&
             (input.gamepad.buttons & INPUT_GAMEPAD_BACK) != 0u)
+        {
+            backPressed = true;
+            xsdk_log_write("MKSM smoke: Back pressed");
             break;
+        }
 
         uint32_t backBufferAddress = 0u;
         status = xsdk_present_begin(&backBufferAddress, kBeginTimeoutMs);
         if (!NT_SUCCESS(status))
         {
             xsdk_log_write("MKSM smoke: present_begin failed: 0x%08X", static_cast<unsigned>(status));
+            exitCode = 1;
             break;
         }
 
         xsdk_gpu_resolve(backBufferAddress, width, height, kClearArgb);
         xsdk_present_end();
+        ++presentedFrames;
     }
 
     xsdk_present_close();
     status = xsdk_gpu_close();
     if (!NT_SUCCESS(status))
+    {
         xsdk_log_write("MKSM smoke: xsdk_gpu_close failed: 0x%08X", static_cast<unsigned>(status));
+        exitCode = 1;
+    }
 
-    return 0;
+    xsdk_log_write("MKSM smoke: presented %u frames; shutdown=%s; exit=%d",
+                   static_cast<unsigned>(presentedFrames),
+                   backPressed ? "Back" : "error",
+                   exitCode);
+    return exitCode;
 }
 } // namespace
 
