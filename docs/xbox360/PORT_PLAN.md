@@ -10,6 +10,8 @@ This document is a plan and a record of verified constraints. It does not claim 
 
 ## Source baseline and constraints
 
+See [the initial source/build-graph audit](SOURCE_AUDIT.md) for verified CMake targets, language requirements and current platform dependencies.
+
 - Base project: this repository's PS2 recompilation of the NTSC-U retail release, executable `SLUS_210.87`.
 - Required retail executable SHA-256: `b1ed99d81b07969553ed2f9afaad4caed1bbeb637d53a369f4dafca8eedd2ab2`.
 - Current public runtime status is still experimental: the opening sequence can reach scene drawing, but first-stage geometry/camera output is badly corrupted and controllable gameplay has not been established. See [STATUS.md](../STATUS.md).
