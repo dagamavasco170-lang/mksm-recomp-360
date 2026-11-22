@@ -10,6 +10,7 @@ endif()
 add_executable(mksm_xbox360_smoke
     smoke.cpp
     ps2_pad_xbox360.cpp
+    ps2_pad_mapping.cpp
 )
 target_include_directories(mksm_xbox360_smoke PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/../../ps2xRuntime/include"
