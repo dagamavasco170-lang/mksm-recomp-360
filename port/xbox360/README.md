@@ -13,9 +13,11 @@ The first target is a **C++20 smoke title**, not the game yet. It tests:
 - A host-run unit test for disconnected/neutral reports, face-button mapping, shoulders, D-pad, triggers and signed stick extremes.
 - Explicit little-endian guest-memory helpers for 8/16/32/64-bit values and raw 128-bit byte blocks, with wrapped-address tests.
 
-It draws a solid background only. It does not load the retail game, render the PS2 GS, or contain any game data. The initial XEX build passed GitHub Actions, and a user-provided console log dated 2026-11-22 records startup, passing C++20 runtime checks, successful 1280x720 display initialization and process exit status 0. See [the hardware smoke report](../../docs/xbox360/HARDWARE_SMOKE_2026-11-22.md).
+It draws a solid background only. It does not load the retail game, render the PS2 GS, or contain any game data.
 
-The revised smoke XEX from GitHub Actions run #76 includes the XAM-to-PS2 adapter and the explicit target ABI assertions. CI passed the portable controller and guest-memory tests, compiled the PowerPC target and uploaded the XEX. The new artifact has not yet been run on the physical console, so the actual XAM Back-to-PS2-Select exit path and clean-shutdown log remain unverified. See the [run #76 build report](../../docs/xbox360/BUILD_2026-11-22_RUN76.md).
+The revised run #76 XEX has now been tested on the physical console. The supplied log records ABI, C++20 and little-endian guest-memory checks, 1280×720 presentation, the Xbox Back → PS2 Select event, 122 presented frames and clean shutdown (exit 0). See [the hardware report](../../docs/xbox360/HARDWARE_SMOKE_2026-11-22.md).
+
+The first scalar PS2 packed-vector reference now covers wrapping 8/16/32-bit lane arithmetic, logic, equality masks and low/high interleave. Host tests exercise the same header, and the smoke XEX compiles and runs a small target-side probe. This is not yet an SSE replacement or a VMX128 backend; the full runtime remains outside the Xbox target.
 
 ## Preferred SDK
 
@@ -66,4 +68,4 @@ Unsigned xSDK titles require RGH/JTAG. They do not run on an unmodified retail c
 
 ## What comes next
 
-The latest XAM/ABI/endian smoke build is now CI-verified; the next gate is its repeat test on the console. After that, address the PowerPC SIMD and full guest-memory compatibility layers before integrating runtime services, audio and the GS-to-Xenos renderer. Keep host-side recompilation/generation separate from the PowerPC target build. See [the port roadmap](../../docs/xbox360/PORT_PLAN.md), [the source audit](../../docs/xbox360/SOURCE_AUDIT.md), [the guest-memory groundwork](../../docs/xbox360/GUEST_MEMORY.md), [the SIMD compatibility audit](../../docs/xbox360/SIMD_COMPATIBILITY.md) and [the SDK evaluation](../../docs/xbox360/SDK_EVALUATION.md).
+The revised XAM/ABI/endian smoke build has passed its recorded console run. The next software gate is to expand the scalar SIMD reference and build a full guest-memory/address-translation layer before integrating runtime services, audio and the GS-to-Xenos renderer. Keep host-side recompilation/generation separate from the PowerPC target build. See [the port roadmap](../../docs/xbox360/PORT_PLAN.md), [the source audit](../../docs/xbox360/SOURCE_AUDIT.md), [the guest-memory groundwork](../../docs/xbox360/GUEST_MEMORY.md), [the SIMD compatibility audit](../../docs/xbox360/SIMD_COMPATIBILITY.md) and [the SDK evaluation](../../docs/xbox360/SDK_EVALUATION.md).

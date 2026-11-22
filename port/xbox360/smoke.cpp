@@ -19,6 +19,7 @@
 
 #include "ps2_guest_memory.h"
 #include "ps2_pad_xbox360.h"
+#include "ps2_simd_scalar.h"
 #include "runtime/ps2_pad.h"
 
 static_assert(sizeof(void *) == 4u, "Xbox 360 target must use a 32-bit pointer ABI");
@@ -42,6 +43,20 @@ bool checkGuestMemoryEndian()
     return ps2::xbox360::guest_memory::readLittleEndian(
                std::span<const uint8_t>(probe), 14u, decoded) &&
            decoded == 0x01000F0Eu;
+}
+
+bool checkScalarMmi()
+{
+    using namespace ps2::xbox360::simd;
+    Vector128 lhs{};
+    Vector128 rhs{};
+    writeLane<uint32_t>(lhs, 0u, 0xFFFFFFFFu);
+    writeLane<uint32_t>(rhs, 0u, 1u);
+    const auto sum = addLanes<uint32_t>(lhs, rhs);
+    const auto unpack = interleaveLow<uint32_t>(lhs, rhs);
+    return readLane<uint32_t>(sum, 0u) == 0u &&
+           readLane<uint32_t>(unpack, 0u) == 1u &&
+           readLane<uint32_t>(unpack, 1u) == 0xFFFFFFFFu;
 }
 
 bool checkCpp20Runtime()
@@ -175,7 +190,14 @@ int main()
         return 3;
     }
 
+    if (!checkScalarMmi())
+    {
+        xsdk_log_write("MKSM smoke: scalar PS2 packed-vector check failed");
+        return 4;
+    }
+
     xsdk_log_write("MKSM smoke: C++20 runtime checks passed");
     xsdk_log_write("MKSM smoke: little-endian guest memory check passed");
+    xsdk_log_write("MKSM smoke: scalar PS2 packed-vector checks passed");
     return runTitle();
 }

@@ -53,6 +53,11 @@ jobs:
             port/xbox360/tests/ps2_guest_memory_test.cpp \
             -o build/host-tests/ps2_guest_memory_test
           ./build/host-tests/ps2_guest_memory_test
+          c++ -std=c++20 -Wall -Wextra -Werror \
+            -Iport/xbox360 \
+            port/xbox360/tests/ps2_simd_scalar_test.cpp \
+            -o build/host-tests/ps2_simd_scalar_test
+          ./build/host-tests/ps2_simd_scalar_test
 
       - name: Check out pinned xSDK
         env:

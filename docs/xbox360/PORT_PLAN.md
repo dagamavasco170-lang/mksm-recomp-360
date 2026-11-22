@@ -10,9 +10,9 @@ This document is a plan and a record of verified constraints. It does not claim 
 
 ## Latest smoke result (2026-11-22)
 
-The initial xSDK smoke XEX was built and run on the console; the user-provided log records title startup, passing C++20 runtime checks, 1280x720 display initialization (scaled by the display path to 1920x1080 output), and process exit status 0. The revised XEX from GitHub Actions run #76 also compiles successfully with controller mapping, guest-memory probes and 32-bit big-endian ABI assertions; its artifact details are in [BUILD_2026-11-22_RUN76.md](BUILD_2026-11-22_RUN76.md).
+The revised smoke XEX from GitHub Actions run #76 was run on the physical console. The uploaded log records the 32-bit big-endian PowerPC ABI check, C++20 runtime checks, the little-endian guest-memory probe, 1280×720 display initialization, XAM controller initialization, Xbox Back received as PS2 Select, 122 presented frames and clean shutdown with exit code 0. The log does not identify the console model/revision or dashboard/kernel version.
 
-This validates the bootstrap title only. The original log does not explicitly identify a Back-button event or shutdown reason and omits console model/kernel details. Run #76 passed CI, but the revised artifact still needs a repeat console run to verify XAM input and the updated shutdown diagnostics. No game code or PS2 GS rendering has run on Xbox as part of this test.
+This validates the bootstrap title only. It draws a solid background and contains no PS2 EE game execution, PS2 GS rendering, audio, saves or gameplay. See [the hardware report](HARDWARE_SMOKE_2026-11-22.md).
 
 ## Source baseline and constraints
 
@@ -39,7 +39,7 @@ Keep the existing desktop build as the correctness/reference backend. Add an iso
 | GS graphics | New adapter from the project's GS command/state model to xSDK's native Xenos GPU API | PS2 GS blending, depth, texture formats, CLUTs, transfers and effects |
 | IOP/services | Port the required SIF/RPC, sound and file services incrementally | Threading, audio decoder and filesystem dependencies |
 | Audio | xSDK PCM output initially; evaluate FAudio-xenon for mixing | Timing, resampling, ADPCM and streaming |
-| Input | Initial XAM adapter maps Xbox buttons, triggers and sticks into the shared 32-byte PS2 pad report; host unit tests cover the mapping | Hardware retest, second port, vibration and PS2 pressure-sensitive buttons |
+| Input | XAM adapter maps Xbox buttons, triggers and sticks into the shared 32-byte PS2 pad report; host tests and a physical Back-to-Select test passed | Second port, vibration and PS2 pressure-sensitive buttons |
 | Files/save | xSDK POSIX-style files and `std::filesystem` | PS2 memory-card layout and robust save migration |
 | Packaging | xSDK ELF-to-XEX2 packaging and title metadata suitable for Aurora | Title metadata and unsigned XEX support is limited to RGH/JTAG |
 
@@ -49,7 +49,7 @@ The preferred route is now [xSDK](https://github.com/xenosworks/xsdk), not the l
 
 The first target is a small C++20 smoke title in `port/xbox360/`. It exercises the exact language facilities visible in the current source (ranges, span, atomic shared pointers, filesystem and threads), opens Xenos GPU presentation at 720p, maps XAM input to the project's PS2 pad report and includes compile-time checks for a 32-bit big-endian target ABI.
 
-The original smoke title is cross-compiled into an XEX by CI, and the supplied console log records a successful title start, C++20 checks and display initialization. The XAM-to-PS2 pad adapter is now wired into the smoke target; source routes Xbox Back through the PS2 Select bit. A host-side test covers the shared mapping logic and passed in the push workflow for commit `786b6145eeb75aa93489120218c3bbc626b0bc75`. The PowerPC/XEX build of the adapter and compile-time ABI assertions has not yet completed, and the new XEX still needs a console retest. This remains an infrastructure test, not a game build.
+The run #76 smoke XEX and its XAM-to-PS2 pad adapter have now been compiled by CI and exercised on the physical console. The supplied log confirms the 32-bit big-endian ABI, C++20 checks, little-endian guest-memory probe, display, Back-to-Select mapping and clean shutdown. A first scalar PS2 packed-vector reference has also been added under port/xbox360/ps2_simd_scalar.h; the host CI test and target-side probe check its initial wrapping arithmetic, byte order and unpack semantics. This is infrastructure groundwork, not a game build.
 
 Keep the target toolchain scoped to `port/xbox360/`. The top-level compiler/analyzer and retail source-generation tools must run on the host; do not apply the PowerPC CMake toolchain to the whole repository. Build the generated game/runtime sources separately after the host-side generation stage.
 
@@ -71,7 +71,7 @@ If xSDK fails the C++20 smoke build, stop and investigate a specific missing fea
 - Package the smoke title with a development Title ID and name.
 - Launch it from Aurora on an RGH/JTAG console and capture the build log and console result.
 
-**Acceptance:** CI packages the smoke XEX and a console run records title startup, C++20/guest-memory checks, display initialization, explicit Back-button exit and clean shutdown. The initial log records title startup, C++20 checks and display initialization. Run #76 passed the host tests and PowerPC/XEX build; the revised XEX still needs a physical run to verify the updated input and shutdown path and record console model/kernel.
+**Acceptance:** CI packages the smoke XEX and a console run records title startup, C++20/guest-memory checks, display initialization, explicit Back-button exit and clean shutdown. These functional checks are now recorded in the revised run #76 console log. Console model/revision and dashboard/kernel metadata remain to be captured in a later compatibility test.
 
 ### X2 — Xbox platform layer
 - Add platform abstractions for memory, files, timing, threads, input and logging. The initial input mapping and a standalone little-endian memory helper now have host-side tests; neither is yet integrated into the full runtime.
