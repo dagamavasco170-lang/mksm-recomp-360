@@ -17,6 +17,7 @@
 #include "xsdk/present.h"
 #include "xsdk/splash.h"
 
+#include "ps2_guest_memory.h"
 #include "ps2_pad_xbox360.h"
 #include "runtime/ps2_pad.h"
 
@@ -30,6 +31,18 @@ constexpr uint32_t kClearArgb = 0xFF182840u;
 constexpr uint32_t kBuffers = 2u;
 constexpr uint32_t kSwapInterval = 1u;
 constexpr uint32_t kBeginTimeoutMs = 5000u;
+
+bool checkGuestMemoryEndian()
+{
+    std::array<uint8_t, 16> probe{};
+    for (size_t i = 0; i < probe.size(); ++i)
+        probe[i] = static_cast<uint8_t>(i);
+
+    uint32_t decoded = 0u;
+    return ps2::xbox360::guest_memory::readLittleEndian(
+               std::span<const uint8_t>(probe), 14u, decoded) &&
+           decoded == 0x01000F0Eu;
+}
 
 bool checkCpp20Runtime()
 {
@@ -59,6 +72,7 @@ bool checkCpp20Runtime()
            *published == 2u &&
            workerValue.load(std::memory_order_acquire) == 0x360u &&
            !normalizedPath.empty() &&
+           checkGuestMemoryEndian() &&
            ps2::xbox360::encodePs2Pad(ps2::xbox360::GamepadSnapshot{})[1] == 0x73u;
 }
 
@@ -156,6 +170,6 @@ int main()
         return 2;
     }
 
-    xsdk_log_write("MKSM smoke: C++20 runtime checks passed");
+    xsdk_log_write("MKSM smoke: C++20 runtime and little-endian guest memory checks passed");
     return runTitle();
 }
