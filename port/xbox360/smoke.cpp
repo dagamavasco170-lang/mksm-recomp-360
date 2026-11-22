@@ -16,6 +16,9 @@
 #include "xsdk/present.h"
 #include "xsdk/splash.h"
 
+#include "ps2_pad_xbox360.h"
+#include "runtime/ps2_pad.h"
+
 namespace
 {
 constexpr uint32_t kClearArgb = 0xFF182840u;
@@ -50,7 +53,8 @@ bool checkCpp20Runtime()
            published &&
            *published == 2u &&
            workerValue.load(std::memory_order_acquire) == 0x360u &&
-           !normalizedPath.empty();
+           !normalizedPath.empty() &&
+           ps2::xbox360::encodePs2Pad(ps2::xbox360::GamepadSnapshot{})[1] == 0x73u;
 }
 
 int runTitle()
@@ -77,6 +81,10 @@ int runTitle()
     }
 
     xsdk_log_write("MKSM smoke: display opened at %ux%u", static_cast<unsigned>(width), static_cast<unsigned>(height));
+    xsdk_log_write("MKSM smoke: XAM-to-PS2 controller adapter ready (player 1)");
+
+    PSPadBackend ps2PadBackend;
+    std::array<uint8_t, 32> ps2PadReport{};
 
     uint32_t presentedFrames = 0u;
     int exitCode = 0;
@@ -84,12 +92,21 @@ int runTitle()
 
     for (;;)
     {
-        INPUT_STATE input{};
-        if (XamInputGetState(0u, 0u, &input) == ERROR_SUCCESS &&
-            (input.gamepad.buttons & INPUT_GAMEPAD_BACK) != 0u)
+        if (!ps2PadBackend.readState(0, 0, ps2PadReport.data(), ps2PadReport.size()))
+        {
+            xsdk_log_write("MKSM smoke: PS2 pad adapter rejected player 1 report");
+            exitCode = 1;
+            break;
+        }
+
+        const uint16_t ps2Buttons =
+            static_cast<uint16_t>(ps2PadReport[2]) |
+            (static_cast<uint16_t>(ps2PadReport[3]) << 8u);
+        // The shared PS2 pad profile maps Xbox Back to the PS2 Select bit (active low).
+        if ((ps2Buttons & 0x0001u) == 0u)
         {
             backPressed = true;
-            xsdk_log_write("MKSM smoke: Back pressed");
+            xsdk_log_write("MKSM smoke: Xbox Back received as PS2 Select");
             break;
         }
 
