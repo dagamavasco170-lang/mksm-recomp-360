@@ -40,7 +40,7 @@ Sources: [xsdk README](https://github.com/xenosworks/xsdk), [getting started](ht
 | XEX packaging | `xsdk_add_xex`, `elf2xex.py` | Title metadata and release packaging |
 | GPU presentation | `xsdk_present_*` | GS framebuffer and presentation adapter |
 | PS2 GS renderer | Xenos GPU, textures and shaders | Translate GS state, texture formats, transfers, blending and raster rules |
-| Gamepad | `XamInputGetState` | Map PS2 pad protocol and pressure/analog values |
+| Gamepad | `XamInputGetState` | Initial adapter maps XAM buttons, triggers and sticks to the common PS2 32-byte pad report; pressure-sensitive values and vibration are not implemented |
 | Audio output | `xsdk_audio_*` | Replace raylib callback path with a bounded PCM feeder |
 | Files/save | POSIX files and `std::filesystem` | Map retail game paths and PS2 memory-card/save semantics |
 | Threads/synchronization | pthreads and `std::thread` | Audit scheduler priorities and timing behavior |
