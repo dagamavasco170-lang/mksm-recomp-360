@@ -97,7 +97,6 @@ __m128i refUnpackHighReversed(__m128i a, __m128i b) noexcept
         return _mm_unpackhi_epi32(b, a);
 }
 
-template <typename Lane>
 void checkPmaddhAgainstSse2(const Vector128 &rs,
                               const Vector128 &rt,
                               const Vector128 &initialHi,
@@ -158,6 +157,7 @@ void checkPmaddhAgainstSse2(const Vector128 &rs,
     assert(actual.lo.bytes == expectedLo.bytes);
 }
 
+template <typename Lane>
 void checkIntegerVectorPair(const Vector128 &a, const Vector128 &b) noexcept
 {
     const __m128i na = toNative(a);
