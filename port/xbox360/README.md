@@ -8,8 +8,9 @@ The first target is a **C++20 smoke title**, not the game yet. It tests:
 
 - xSDK's C++ standard-library facilities used by the project: ranges, span, atomic shared pointers, filesystem and threads.
 - Xenos GPU initialization and 720p presentation.
-- Controller polling and clean exit with Back.
+- XAM controller polling translated into the project's existing 32-byte PS2 pad report, including buttons, triggers and stick axes.
 - Per-title logging.
+- A host-run unit test for disconnected/neutral reports, face-button mapping, shoulders, D-pad, triggers and signed stick extremes.
 
 It draws a solid background only. It does not load the retail game, render the PS2 GS, or contain any game data. The initial XEX build passed GitHub Actions, and a user-provided console log dated 2026-11-22 records startup, passing C++20 runtime checks, successful 1280x720 display initialization and process exit status 0. See [the hardware smoke report](../../docs/xbox360/HARDWARE_SMOKE_2026-11-22.md).
 
@@ -58,7 +59,7 @@ A GitHub Actions workflow builds this target on updates to the `xbox360/**` bran
 
 ## Hardware test
 
-Copy the XEX to a folder on the RGH/JTAG console using Aurora's FTP service, then launch it from the dashboard's file browser. The screen should show a solid 720p background; press Back on the controller to exit. The title writes `mksm_xbox360_smoke.log` beside the XEX; retain the log and the exact console/kernel details with the test report.
+Copy the XEX to a folder on the RGH/JTAG console using Aurora's FTP service, then launch it from the dashboard's file browser. The screen should show a solid 720p background; press Back on controller 1 to exit (the Xbox Back button is mapped to the PS2 Select bit by the adapter). The title writes `mksm_xbox360_smoke.log` beside the XEX; retain the log and the exact console/kernel details with the test report.
 
 Unsigned xSDK titles require RGH/JTAG. They do not run on an unmodified retail console.
 
