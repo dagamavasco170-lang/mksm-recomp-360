@@ -49,9 +49,9 @@ int main()
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(9),0)==25u);
 
     // Not-taken branch still executes its delay slot and continues sequentially.
-    const beqNotTaken=(4u<<26)|(1u<<21)|(2u<<16)|2u;
-    const notTakenDelay=(9u<<26)|(3u<<21)|(10u<<16)|3u;
-    const notTakenNext=(9u<<26)|(3u<<21)|(11u<<16)|4u;
+    const std::uint32_t beqNotTaken=(4u<<26)|(1u<<21)|(2u<<16)|2u;
+    const std::uint32_t notTakenDelay=(9u<<26)|(3u<<21)|(10u<<16)|3u;
+    const std::uint32_t notTakenNext=(9u<<26)|(3u<<21)|(11u<<16)|4u;
     assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0x60u,beqNotTaken));
     assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0x64u,notTakenDelay));
     assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0x68u,notTakenNext));
