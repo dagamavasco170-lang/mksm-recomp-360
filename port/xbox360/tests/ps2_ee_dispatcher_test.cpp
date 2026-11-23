@@ -140,7 +140,7 @@ int main()
     assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0xF8u,bltzalTarget));
     cpu.pc=0xF0u; ps2::xbox360::simd::writeLane<std::uint32_t>(one,0,0xFFFFFFFFu); cpu.writeGpr(1,one);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0xF4u);
-    assert(ps2::xbox::simd::readLane<std::uint32_t>(cpu.readGpr(31),0)==0xF8u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(31),0)==0xF8u);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0xF8u);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed);
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(21),0)==31u);
