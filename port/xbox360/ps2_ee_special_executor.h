@@ -43,6 +43,41 @@ enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
     case SpecialOperation::Srl:
         simd::writeLane<std::uint32_t>(result, 0, simd::readLane<std::uint32_t>(rt, 0) >> d.sa);
         break;
+    case SpecialOperation::Sllv:
+        simd::writeLane<std::uint32_t>(result, 0,
+            simd::readLane<std::uint32_t>(rt, 0) <<
+            (simd::readLane<std::uint32_t>(rs, 0) & 0x1Fu));
+        break;
+    case SpecialOperation::Srlv:
+        simd::writeLane<std::uint32_t>(result, 0,
+            simd::readLane<std::uint32_t>(rt, 0) >>
+            (simd::readLane<std::uint32_t>(rs, 0) & 0x1Fu));
+        break;
+    case SpecialOperation::Srav:
+    {
+        const auto value = simd::detail::asSigned(simd::readLane<std::uint32_t>(rt, 0));
+        const auto shift = simd::readLane<std::uint32_t>(rs, 0) & 0x1Fu;
+        simd::writeLane<std::uint32_t>(result, 0,
+            static_cast<std::uint32_t>(static_cast<std::int32_t>(value >> shift)));
+        break;
+    }
+    case SpecialOperation::Addu:
+        simd::writeLane<std::uint32_t>(result, 0,
+            simd::readLane<std::uint32_t>(rs, 0) + simd::readLane<std::uint32_t>(rt, 0));
+        break;
+    case SpecialOperation::Subu:
+        simd::writeLane<std::uint32_t>(result, 0,
+            simd::readLane<std::uint32_t>(rs, 0) - simd::readLane<std::uint32_t>(rt, 0));
+        break;
+    case SpecialOperation::Slt:
+        simd::writeLane<std::uint32_t>(result, 0,
+            simd::detail::asSigned(simd::readLane<std::uint32_t>(rs, 0)) <
+            simd::detail::asSigned(simd::readLane<std::uint32_t>(rt, 0)) ? 1u : 0u);
+        break;
+    case SpecialOperation::Sltu:
+        simd::writeLane<std::uint32_t>(result, 0,
+            simd::readLane<std::uint32_t>(rs, 0) < simd::readLane<std::uint32_t>(rt, 0) ? 1u : 0u);
+        break;
     case SpecialOperation::Sra:
     {
         const auto value = simd::detail::asSigned(simd::readLane<std::uint32_t>(rt, 0));
