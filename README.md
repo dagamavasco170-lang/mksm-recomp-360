@@ -14,10 +14,15 @@ An experimental native-PC recompilation project for **Mortal Kombat: Shaolin Mon
 
 
 ## Experimental Xbox 360 RGH/JTAG port
+## Experimental Xbox 360 RGH/JTAG port
 
-This fork is preparing a native PowerPC/Xenos build using [xSDK](https://github.com/xenosworks/xsdk). The initial C++20 smoke-title source is in `port/xbox360/`; it is intended to validate XEX packaging, C++ runtime features, 720p GPU presentation and controller input before the game runtime is integrated.
+This fork is preparing a native PowerPC/Xenos build using [xSDK](https://github.com/xenosworks/xsdk). The initial C++20 smoke-title source is in `port/xbox360/`; it validates XEX packaging, runtime features, 720p GPU presentation and controller input before the game runtime is integrated.
 
-**There is no playable Xbox 360 game build yet.** The latest smoke XEX (run #76) now compiles the XAM-to-PS2 controller adapter, passes the host controller/memory tests, and compiles explicit 32-bit big-endian ABI checks. The new artifact was identified as an Xbox 360 executable and its SHA-256 was verified; it still needs a repeat run on the physical console. The original user-provided console log proves only the earlier title startup, C++20 checks and 720p display initialization. The smoke title does not include the game runtime or PS2 graphics renderer. The endian-safe guest-memory helper is not yet integrated into the runtime. See the [latest build report](docs/xbox360/BUILD_2026-11-22_RUN76.md), [port roadmap](docs/xbox360/PORT_PLAN.md), [source audit](docs/xbox360/SOURCE_AUDIT.md), [SIMD compatibility audit](docs/xbox360/SIMD_COMPATIBILITY.md), [SDK evaluation](docs/xbox360/SDK_EVALUATION.md) and [build/test instructions](port/xbox360/README.md).
+**There is no playable Xbox 360 game build yet.** CI run #106 successfully built the smoke XEX, including the portable SIMD differential test and the pinned xSDK toolchain. The latest physical-console evidence is run #80, which records startup, ABI/memory/SIMD probes, display and controller behavior, 439 frames and clean exit. Run #106 is CI evidence—not a new console test. The smoke title does not contain the MKSM game runtime or PS2 GS renderer, and the guest-memory helper is not integrated into the runtime.
+
+Engineering references are [Tenkaichi3Decomp](https://github.com/z3xox/Tenkaichi3Decomp) for reconstruction/code organization and [BT3XBx](https://github.com/Lucas-Tito/bt3xbx) for Xbox-specific port architecture and hardware-validation practices. Reuse boundaries and licensing checks are documented in [REFERENCES.md](docs/xbox360/REFERENCES.md).
+
+See the [port roadmap](docs/xbox360/PORT_PLAN.md), [source audit](docs/xbox360/SOURCE_AUDIT.md), [SIMD compatibility audit](docs/xbox360/SIMD_COMPATIBILITY.md), [SDK evaluation](docs/xbox360/SDK_EVALUATION.md) and [build/test instructions](port/xbox360/README.md).
 
 ## What is included
 
