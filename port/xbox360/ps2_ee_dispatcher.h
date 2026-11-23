@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ps2_ee_instruction_decode.h"
+#include "ps2_ee_immediate_executor.h"
 #include "ps2_ee_load_store_executor.h"
 #include "ps2_ee_special_executor.h"
 #include "ps2_guest_memory.h"
@@ -35,6 +36,14 @@ struct StepResult
             return {StepStatus::Unsupported, word, decoded};
         const auto status = executeSpecial(state, decoded);
         return {status == ExecuteStatus::Executed ? StepStatus::Executed : StepStatus::Unsupported,
+                word, decoded};
+    }
+
+    if (decoded.opcode == 0x09u || decoded.opcode == 0x0Cu ||
+        decoded.opcode == 0x0Du || decoded.opcode == 0x0Eu || decoded.opcode == 0x0Fu)
+    {
+        const auto status = executeImmediate(state, decoded);
+        return {status == ImmediateStatus::Executed ? StepStatus::Executed : StepStatus::Unsupported,
                 word, decoded};
     }
 
