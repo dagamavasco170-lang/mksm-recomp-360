@@ -44,6 +44,36 @@ int main()
     assert(executeSpecial(state, sraDecoded) == ExecuteStatus::Executed);
     assert(simd::readLane<std::uint32_t>(state.gpr[8], 0) == 0xF8000000u);
 
+    simd::writeLane<std::uint32_t>(state.gpr[2], 0, 0x00000010u);
+    auto adduDecoded = decodeInstruction(encodeSpecial(1, 2, 9, 0, 0x21));
+    assert(executeSpecial(state, adduDecoded) == ExecuteStatus::Executed);
+    assert(simd::readLane<std::uint32_t>(state.gpr[9], 0) == 0x12345688u);
+
+    auto subuDecoded = decodeInstruction(encodeSpecial(1, 2, 10, 0, 0x23));
+    assert(executeSpecial(state, subuDecoded) == ExecuteStatus::Executed);
+    assert(simd::readLane<std::uint32_t>(state.gpr[10], 0) == 0x12345668u);
+
+    simd::writeLane<std::uint32_t>(state.gpr[1], 0, 0xFFFFFFFFu);
+    simd::writeLane<std::uint32_t>(state.gpr[2], 0, 1u);
+    auto sltDecoded = decodeInstruction(encodeSpecial(1, 2, 11, 0, 0x2A));
+    assert(executeSpecial(state, sltDecoded) == ExecuteStatus::Executed);
+    assert(simd::readLane<std::uint32_t>(state.gpr[11], 0) == 1u);
+    auto sltuDecoded = decodeInstruction(encodeSpecial(1, 2, 12, 0, 0x2B));
+    assert(executeSpecial(state, sltuDecoded) == ExecuteStatus::Executed);
+    assert(simd::readLane<std::uint32_t>(state.gpr[12], 0) == 0u);
+
+    simd::writeLane<std::uint32_t>(state.gpr[1], 0, 3u);
+    simd::writeLane<std::uint32_t>(state.gpr[2], 0, 0x10u);
+    auto sllvDecoded = decodeInstruction(encodeSpecial(1, 2, 13, 0, 0x04));
+    assert(executeSpecial(state, sllvDecoded) == ExecuteStatus::Executed);
+    assert(simd::readLane<std::uint32_t>(state.gpr[13], 0) == 0x80u);
+    auto srlvDecoded = decodeInstruction(encodeSpecial(1, 2, 14, 0, 0x06));
+    assert(executeSpecial(state, srlvDecoded) == ExecuteStatus::Executed);
+    assert(simd::readLane<std::uint32_t>(state.gpr[14], 0) == 2u);
+    auto sravDecoded = decodeInstruction(encodeSpecial(1, 2, 15, 0, 0x07));
+    assert(executeSpecial(state, sravDecoded) == ExecuteStatus::Executed);
+    assert(simd::readLane<std::uint32_t>(state.gpr[15], 0) == 2u);
+
     auto unsupported = decodeInstruction(encodeSpecial(1, 2, 7, 0, 0x21)); // ADDU
     const auto pcBefore = state.pc;
     const auto retiredBefore = state.retiredInstructions;
