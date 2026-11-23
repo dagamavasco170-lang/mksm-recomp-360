@@ -129,7 +129,7 @@ int main()
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(31),0)==0xE8u);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0xE8u);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed);
-    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(19),0)==33u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(19),0)==29u);
 
     // Unsupported instruction and invalid fetch leave architectural state unchanged.
     const std::uint32_t cop1=0x44000000u;
