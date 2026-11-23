@@ -97,59 +97,45 @@ __m128i refUnpackHighReversed(__m128i a, __m128i b) noexcept
         return _mm_unpackhi_epi32(b, a);
 }
 
-void checkPmaddhAgainstSse2(const Vector128 &rs,
-                              const Vector128 &rt,
-                              const Vector128 &initialHi,
-                              const Vector128 &initialLo) noexcept
+void checkPmaddhAgainstManual(const Vector128 &rs,
+                               const Vector128 &rt,
+                               const Vector128 &initialHi,
+                               const Vector128 &initialLo) noexcept
 {
-    const __m128i nrs = toNative(rs);
-    const __m128i nrt = toNative(rt);
-    const __m128i evenMask = _mm_setr_epi16(-1, 0, -1, 0, -1, 0, -1, 0);
-    const __m128i oddMask  = _mm_setr_epi16(0, -1, 0, -1, 0, -1, 0, -1);
-    const __m128i evenProductsVector = _mm_madd_epi16(nrs, _mm_and_si128(nrt, evenMask));
-    const __m128i oddProductsVector = _mm_madd_epi16(nrs, _mm_and_si128(nrt, oddMask));
-    alignas(16) std::int32_t evenProducts[4]{};
-    alignas(16) std::int32_t oddProducts[4]{};
-    _mm_storeu_si128(reinterpret_cast<__m128i *>(evenProducts), evenProductsVector);
-    _mm_storeu_si128(reinterpret_cast<__m128i *>(oddProducts), oddProductsVector);
+    // Independent per-product map transcribed from the EE Core manual's PMADDH
+    // operation table: products 0/1 accumulate into LO words 0/1, products
+    // 2/3 into HI words 0/1, products 4/5 into LO words 2/3, and products
+    // 6/7 into HI words 2/3. Avoid reusing the implementation's branch logic.
+    struct AccumulatorTarget { bool high; std::uint8_t lane; };
+    constexpr std::array<AccumulatorTarget, 8> targets{{
+        {false, 0}, {false, 1}, {true, 0}, {true, 1},
+        {false, 2}, {false, 3}, {true, 2}, {true, 3},
+    }};
+    constexpr std::array<AccumulatorTarget, 4> destinationTargets{{
+        {false, 0}, {true, 0}, {false, 2}, {true, 2},
+    }};
 
     Vector128 expectedHi = initialHi;
     Vector128 expectedLo = initialLo;
-    for (std::size_t product = 0; product < 8u; ++product)
+    for (std::size_t product = 0; product < targets.size(); ++product)
     {
-        const std::int32_t productValue =
-            (product & 1u) ? oddProducts[product / 2u] : evenProducts[product / 2u];
-        const std::uint32_t productBits = static_cast<std::uint32_t>(productValue);
-        if (product < 2u)
-        {
-            const auto sum = readLane<std::uint32_t>(expectedLo, product) + productBits;
-            writeLane<std::uint32_t>(expectedLo, product, sum);
-        }
-        else if (product < 4u)
-        {
-            const std::size_t lane = product - 2u;
-            const auto sum = readLane<std::uint32_t>(expectedHi, lane) + productBits;
-            writeLane<std::uint32_t>(expectedHi, lane, sum);
-        }
-        else if (product < 6u)
-        {
-            const std::size_t lane = product - 2u;
-            const auto sum = readLane<std::uint32_t>(expectedLo, lane) + productBits;
-            writeLane<std::uint32_t>(expectedLo, lane, sum);
-        }
-        else
-        {
-            const std::size_t lane = product - 4u;
-            const auto sum = readLane<std::uint32_t>(expectedHi, lane) + productBits;
-            writeLane<std::uint32_t>(expectedHi, lane, sum);
-        }
+        const std::int32_t lhs = static_cast<std::int16_t>(readLane<std::uint16_t>(rs, product));
+        const std::int32_t rhs = static_cast<std::int16_t>(readLane<std::uint16_t>(rt, product));
+        const std::uint32_t productBits = static_cast<std::uint32_t>(lhs * rhs);
+        const auto target = targets[product];
+        Vector128 &accumulator = target.high ? expectedHi : expectedLo;
+        const std::uint32_t sum = readLane<std::uint32_t>(accumulator, target.lane) + productBits;
+        writeLane<std::uint32_t>(accumulator, target.lane, sum);
     }
 
     Vector128 expectedDestination{};
-    writeLane<std::uint32_t>(expectedDestination, 0u, readLane<std::uint32_t>(expectedLo, 0u));
-    writeLane<std::uint32_t>(expectedDestination, 1u, readLane<std::uint32_t>(expectedHi, 0u));
-    writeLane<std::uint32_t>(expectedDestination, 2u, readLane<std::uint32_t>(expectedLo, 2u));
-    writeLane<std::uint32_t>(expectedDestination, 3u, readLane<std::uint32_t>(expectedHi, 2u));
+    for (std::size_t lane = 0; lane < destinationTargets.size(); ++lane)
+    {
+        const auto target = destinationTargets[lane];
+        const Vector128 &accumulator = target.high ? expectedHi : expectedLo;
+        writeLane<std::uint32_t>(expectedDestination, lane,
+                                 readLane<std::uint32_t>(accumulator, target.lane));
+    }
 
     const auto actual = pmaddh(rs, rt, initialHi, initialLo);
     assert(actual.destination.bytes == expectedDestination.bytes);
@@ -234,7 +220,7 @@ int main()
         checkIntegerVectorPair<std::uint8_t>(a, b);
         checkIntegerVectorPair<std::uint16_t>(a, b);
         checkIntegerVectorPair<std::uint32_t>(a, b);
-        checkPmaddhAgainstSse2(a, b, b, a);
+        checkPmaddhAgainstManual(a, b, b, a);
         expectEqual(packSigned32To16(a, b),
                     _mm_packs_epi32(toNative(a), toNative(b)));
     }
@@ -246,7 +232,7 @@ int main()
     writeLane<std::uint16_t>(edgeA, 7u, 0x8000u);
     writeLane<std::uint16_t>(edgeB, 7u, 0x8000u);
     writeLane<std::uint32_t>(edgeLo, 0u, 0x7FFFFFFFu);
-    checkPmaddhAgainstSse2(edgeA, edgeB, edgeHi, edgeLo);
+    checkPmaddhAgainstManual(edgeA, edgeB, edgeHi, edgeLo);
 
     return 0;
 }
