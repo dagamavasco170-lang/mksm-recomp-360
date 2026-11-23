@@ -70,6 +70,7 @@ jobs:
             port/xbox360/tests/ps2_ee_instruction_decode_test.cpp \
             -o build/host-tests/ps2_ee_instruction_decode_test
           ./build/host-tests/ps2_ee_instruction_decode_test
+          # Decoder now includes SPECIAL funct and MMI subfamily coverage.
 
       - name: Differential-test scalar SIMD against the host SSE2 reference
         run: |
