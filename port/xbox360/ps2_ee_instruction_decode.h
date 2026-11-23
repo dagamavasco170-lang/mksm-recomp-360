@@ -18,6 +18,15 @@ enum class InstructionKind : std::uint8_t
     BranchImmediate
 };
 
+
+enum class SpecialOperation : std::uint8_t
+{
+    Unknown, Sll, Srl, Sra, Sllv, Srlv, Srav, Jr, Jalr, Movz, Movn,
+    Syscall, Break, Sync, Mfhi, Mthi, Mflo, Mtlo, Mult, Multu, Div, Divu,
+    Add, Addu, Sub, Subu, And, Or, Xor, Nor, Slt, Sltu, Dsll, Dsrl, Dsra
+};
+enum class MmiSubfamily : std::uint8_t { Unknown, Mmi, Mmi0, Mmi2, Mmi1, Mmi3 };
+
 struct DecodedInstruction
 {
     std::uint32_t raw{};
@@ -30,6 +39,8 @@ struct DecodedInstruction
     std::uint16_t immediate{};
     std::uint32_t target{};
     InstructionKind kind{InstructionKind::Unsupported};
+    SpecialOperation special{SpecialOperation::Unknown};
+    MmiSubfamily mmiSubfamily{MmiSubfamily::Unknown};
 
     [[nodiscard]] constexpr bool isRecognized() const noexcept
     {
@@ -49,6 +60,61 @@ struct DecodedInstruction
     d.funct = static_cast<std::uint8_t>(word & 0x3Fu);
     d.immediate = static_cast<std::uint16_t>(word & 0xFFFFu);
     d.target = word & 0x03FFFFFFu;
+
+
+    if (d.opcode == 0x00)
+    {
+        switch (d.funct)
+        {
+        case 0x00: d.special = SpecialOperation::Sll; break;
+        case 0x02: d.special = SpecialOperation::Srl; break;
+        case 0x03: d.special = SpecialOperation::Sra; break;
+        case 0x04: d.special = SpecialOperation::Sllv; break;
+        case 0x06: d.special = SpecialOperation::Srlv; break;
+        case 0x07: d.special = SpecialOperation::Srav; break;
+        case 0x08: d.special = SpecialOperation::Jr; break;
+        case 0x09: d.special = SpecialOperation::Jalr; break;
+        case 0x0A: d.special = SpecialOperation::Movz; break;
+        case 0x0B: d.special = SpecialOperation::Movn; break;
+        case 0x0C: d.special = SpecialOperation::Syscall; break;
+        case 0x0D: d.special = SpecialOperation::Break; break;
+        case 0x0F: d.special = SpecialOperation::Sync; break;
+        case 0x10: d.special = SpecialOperation::Mfhi; break;
+        case 0x11: d.special = SpecialOperation::Mthi; break;
+        case 0x12: d.special = SpecialOperation::Mflo; break;
+        case 0x13: d.special = SpecialOperation::Mtlo; break;
+        case 0x18: d.special = SpecialOperation::Mult; break;
+        case 0x19: d.special = SpecialOperation::Multu; break;
+        case 0x1A: d.special = SpecialOperation::Div; break;
+        case 0x1B: d.special = SpecialOperation::Divu; break;
+        case 0x20: d.special = SpecialOperation::Add; break;
+        case 0x21: d.special = SpecialOperation::Addu; break;
+        case 0x22: d.special = SpecialOperation::Sub; break;
+        case 0x23: d.special = SpecialOperation::Subu; break;
+        case 0x24: d.special = SpecialOperation::And; break;
+        case 0x25: d.special = SpecialOperation::Or; break;
+        case 0x26: d.special = SpecialOperation::Xor; break;
+        case 0x27: d.special = SpecialOperation::Nor; break;
+        case 0x2A: d.special = SpecialOperation::Slt; break;
+        case 0x2B: d.special = SpecialOperation::Sltu; break;
+        case 0x38: d.special = SpecialOperation::Dsll; break;
+        case 0x3A: d.special = SpecialOperation::Dsrl; break;
+        case 0x3B: d.special = SpecialOperation::Dsra; break;
+        default: break;
+        }
+    }
+    if (d.opcode == 0x1C)
+    {
+        switch (d.funct)
+        {
+        case 0x00: d.mmiSubfamily = MmiSubfamily::Mmi; break;
+        case 0x08: d.mmiSubfamily = MmiSubfamily::Mmi0; break;
+        case 0x09: d.mmiSubfamily = MmiSubfamily::Mmi2; break;
+        case 0x28: d.mmiSubfamily = MmiSubfamily::Mmi1; break;
+        case 0x29: d.mmiSubfamily = MmiSubfamily::Mmi3; break;
+        default: break;
+        }
+    }
 
     switch (d.opcode)
     {
