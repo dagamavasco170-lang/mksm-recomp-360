@@ -79,6 +79,10 @@ jobs:
             port/xbox360/tests/ps2_ee_load_store_executor_test.cpp \
             -o build/host-tests/ps2_ee_load_store_executor_test
           ./build/host-tests/ps2_ee_load_store_executor_test
+          c++ -std=c++20 -Wall -Wextra -Werror -Iport/xbox360 \
+            port/xbox360/tests/ps2_ee_branch_delay_test.cpp \
+            -o build/host-tests/ps2_ee_branch_delay_test
+          ./build/host-tests/ps2_ee_branch_delay_test
 
       - name: Differential-test scalar SIMD against the host SSE2 reference
         run: |
