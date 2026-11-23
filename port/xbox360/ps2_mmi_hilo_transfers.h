@@ -4,9 +4,10 @@
 
 namespace ps2::xbox360::mmi
 {
-// MMI HI/LO transfer operations move the complete 128-bit register bank.
-// The guest GPR is represented as the same byte-defined Vector128, avoiding
-// host-endian or x86 register assumptions.
+// PS2 EE MMI PMFHI/PMFLO and PMTHI/PMTLO move complete 128-bit banks.
+// Semantics are documented in the EE Core Instruction Set Manual (PMFHI/PMFLO,
+// PMTHI/PMTLO). The byte-defined Vector128 avoids host-endian assumptions.
+// These helpers model transfers only; decoder/context integration is separate.
 [[nodiscard]] constexpr simd::Vector128 mfhi(const HiLoState &state) noexcept
 {
     return state.hi;
@@ -26,4 +27,11 @@ constexpr void mtlo(HiLoState &state, const simd::Vector128 &source) noexcept
 {
     state.lo = source;
 }
+
+
+// Names matching the PS2 instruction manual, kept as explicit aliases.
+[[nodiscard]] constexpr simd::Vector128 pmfhi(const HiLoState &state) noexcept { return mfhi(state); }
+[[nodiscard]] constexpr simd::Vector128 pmflo(const HiLoState &state) noexcept { return mflo(state); }
+constexpr void pmthi(HiLoState &state, const simd::Vector128 &source) noexcept { mthi(state, source); }
+constexpr void pmtlo(HiLoState &state, const simd::Vector128 &source) noexcept { mtlo(state, source); }
 } // namespace ps2::xbox360::mmi
