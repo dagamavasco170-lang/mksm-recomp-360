@@ -17,6 +17,8 @@ struct CpuState
     mmi::HiLoState hilo{};
     std::uint32_t pc{};
     std::uint64_t retiredInstructions{};
+    bool branchDelayPending{};
+    std::uint32_t branchTarget{};
 
     [[nodiscard]] constexpr const simd::Vector128 &readGpr(std::size_t index) const noexcept
     {
@@ -33,6 +35,21 @@ struct CpuState
     constexpr void advancePc(std::uint32_t amount = 4u) noexcept
     {
         pc += amount;
+    }
+
+    constexpr void scheduleBranch(std::uint32_t target) noexcept
+    {
+        branchTarget = target;
+        branchDelayPending = true;
+    }
+
+    constexpr void finishDelaySlot(bool wasDelaySlot) noexcept
+    {
+        if (wasDelaySlot && branchDelayPending)
+        {
+            pc = branchTarget;
+            branchDelayPending = false;
+        }
     }
 
     constexpr void recordRetiredInstruction() noexcept
