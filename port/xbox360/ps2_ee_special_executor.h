@@ -12,8 +12,7 @@ enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
 // First conservative SPECIAL execution slice. It intentionally excludes control flow,
 // memory, trapping arithmetic, and 64-bit operations until their EE semantics and
 // delay-slot behavior are modeled explicitly.
-[[nodiscard]] constexpr ExecuteStatus executeSpecial(const CpuState &input,
-                                                     CpuState &state,
+[[nodiscard]] constexpr ExecuteStatus executeSpecial(CpuState &state,
                                                      const DecodedInstruction &d) noexcept
 {
     if (d.kind != InstructionKind::Special)
@@ -59,7 +58,6 @@ enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
         state.writeGpr(d.rd, result);
     state.advancePc();
     state.recordRetiredInstruction();
-    (void)input; // Kept in the signature for future transactional execution/error handling.
     return ExecuteStatus::Executed;
 }
 } // namespace ps2::xbox360::ee
