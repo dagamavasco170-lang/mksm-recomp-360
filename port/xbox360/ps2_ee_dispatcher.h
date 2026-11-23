@@ -38,7 +38,7 @@ struct StepResult { StepStatus status{StepStatus::Unsupported}; std::uint32_t in
     // Branch-in-delay behavior is EE-specific and not yet modeled; fail atomically.
     if (wasDelaySlot && (d.kind == InstructionKind::BranchImmediate ||
         (d.kind == InstructionKind::Special &&
-         (d.special == SpecialOperation::Jr || d.special == SpecialOperation::Jalr)))
+         (d.special == SpecialOperation::Jr || d.special == SpecialOperation::Jalr))))
         return {StepStatus::Unsupported, word, d};
 
     if (d.kind == InstructionKind::BranchImmediate)
