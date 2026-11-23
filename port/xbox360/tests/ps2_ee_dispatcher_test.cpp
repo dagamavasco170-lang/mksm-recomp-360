@@ -30,10 +30,10 @@ int main()
     cpu.writeGpr(1,one); cpu.writeGpr(2,one); cpu.pc=0x24u;
     result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0x28u&&cpu.branchDelayPending);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0x30u&&!cpu.branchDelayPending);
-    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(4),0)==12u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(4),0)==21u);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0x34u);
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(5),0)==0u);
-    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(6),0)==7u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(6),0)==23u);
 
     // JR delays its transfer and JALR writes the return address (PC+8).
     const std::uint32_t jr=(7u<<21)|8u;
@@ -46,7 +46,7 @@ int main()
     result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0x38u&&cpu.branchDelayPending);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0x50u&&!cpu.branchDelayPending);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed);
-    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(9),0)==9u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(9),0)==25u);
 
     // Unsupported instruction and invalid fetch leave architectural state unchanged.
     const std::uint32_t cop1=0x44000000u;
