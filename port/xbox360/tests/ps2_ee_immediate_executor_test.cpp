@@ -21,11 +21,11 @@ int main()
         (0x0Eu<<26)|(2u<<21)|(3u<<16)|0xFFFFu
     };
     for (std::size_t i=0;i<code.size();++i)
-        assert(guest_memory::writeLittleEndian(mem,cpu.pc+static_cast<std::uint32_t>(i*4),code[i]));
+        assert(ps2::xbox360::guest_memory::writeLittleEndian(mem,cpu.pc+static_cast<std::uint32_t>(i*4),code[i]));
     for (unsigned i=0;i<code.size();++i)
         assert(step(cpu,mem).status==StepStatus::Executed);
-    assert(simd::readLane<std::uint32_t>(cpu.readGpr(1),0)==0x12345678u);
-    assert(simd::readLane<std::uint32_t>(cpu.readGpr(2),0)==0x12345677u);
-    assert(simd::readLane<std::uint32_t>(cpu.readGpr(3),0)==0x1234A988u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(1),0)==0x12345678u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(2),0)==0x12345677u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(3),0)==0x1234A988u);
     assert(cpu.pc==0x50u && cpu.retiredInstructions==4u);
 }
