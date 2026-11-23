@@ -75,7 +75,7 @@ int main()
     assert(executeSpecial(state, sravDecoded) == ExecuteStatus::Executed);
     assert(simd::readLane<std::uint32_t>(state.gpr[15], 0) == 2u);
 
-    auto unsupported = decodeInstruction(encodeSpecial(1, 2, 7, 0, 0x21)); // ADDU
+    auto unsupported = decodeInstruction(encodeSpecial(1, 2, 7, 0, 0x20)); // ADD (trapping, intentionally unsupported)
     const auto pcBefore = state.pc;
     const auto retiredBefore = state.retiredInstructions;
     assert(executeSpecial(state, unsupported) == ExecuteStatus::Unsupported);
