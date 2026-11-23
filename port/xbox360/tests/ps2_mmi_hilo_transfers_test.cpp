@@ -16,21 +16,25 @@ int main()
         gprLo.bytes[i] = static_cast<std::uint8_t>(0xF0u - i);
     }
 
-    mthi(state, gprHi);
-    mtlo(state, gprLo);
-    assert(mfhi(state).bytes == gprHi.bytes);
-    assert(mflo(state).bytes == gprLo.bytes);
+    // Manual-named instruction aliases must preserve all 128 bits.
+    pmthi(state, gprHi);
+    pmtlo(state, gprLo);
+    assert(pmfhi(state).bytes == gprHi.bytes);
+    assert(pmflo(state).bytes == gprLo.bytes);
 
-    // Writes and reads are full-width and bank-independent.
-    Vector128 replacement{};
+    // Replacing HI must not alter LO, and vice versa.
+    Vector128 replacementHi{}, replacementLo{};
     for (std::size_t i = 0; i < 16; ++i)
-        replacement.bytes[i] = static_cast<std::uint8_t>(0xA5u ^ i);
-    mthi(state, replacement);
-    assert(mfhi(state).bytes == replacement.bytes);
-    assert(mflo(state).bytes == gprLo.bytes);
+    {
+        replacementHi.bytes[i] = static_cast<std::uint8_t>(0xA5u ^ i);
+        replacementLo.bytes[i] = static_cast<std::uint8_t>(0x5Au + i);
+    }
+    pmthi(state, replacementHi);
+    assert(pmfhi(state).bytes == replacementHi.bytes);
+    assert(pmflo(state).bytes == gprLo.bytes);
 
-    mtlo(state, replacement);
-    assert(mflo(state).bytes == replacement.bytes);
-    assert(mfhi(state).bytes == replacement.bytes);
+    pmtlo(state, replacementLo);
+    assert(pmflo(state).bytes == replacementLo.bytes);
+    assert(pmfhi(state).bytes == replacementHi.bytes);
     return 0;
 }
