@@ -51,6 +51,11 @@ jobs:
             port/xbox360/tests/ps2_simd_scalar_test.cpp \
             -o build/host-tests/ps2_simd_scalar_test
           ./build/host-tests/ps2_simd_scalar_test
+          c++ -std=c++20 -Wall -Wextra -Werror \
+            -Iport/xbox360 \
+            port/xbox360/tests/ps2_mmi_hilo_state_test.cpp \
+            -o build/host-tests/ps2_mmi_hilo_state_test
+          ./build/host-tests/ps2_mmi_hilo_state_test
 
       - name: Differential-test scalar SIMD against the host SSE2 reference
         run: |
