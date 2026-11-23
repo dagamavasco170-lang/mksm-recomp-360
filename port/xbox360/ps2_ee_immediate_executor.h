@@ -4,6 +4,7 @@
 #include "ps2_ee_instruction_decode.h"
 
 #include <cstdint>
+#include <bit>
 
 namespace ps2::xbox360::ee
 {
