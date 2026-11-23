@@ -115,6 +115,8 @@ int main()
     result=step(cpu,ram); assert(result.status==StepStatus::Unsupported);
     assert(cpu.pc==nestedPc&&cpu.retiredInstructions==nestedRetired&&cpu.branchDelayPending);
 
+    // Reset the intentionally preserved pending branch after the unsupported nested-branch case.
+    cpu.branchDelayPending=false; cpu.branchTarget=0u;
     // BGEZAL links only when the branch is taken and preserves the delay slot.
     const std::uint32_t bgezal=(1u<<26)|(1u<<21)|(0x11u<<16)|1u;
     const std::uint32_t bgezalDelay=(9u<<26)|(3u<<21)|(18u<<16)|12u;
