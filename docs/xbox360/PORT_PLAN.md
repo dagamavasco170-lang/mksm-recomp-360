@@ -25,7 +25,8 @@ See [the initial source/build-graph audit](SOURCE_AUDIT.md) for verified CMake t
 - Preferred target SDK: [xenosworks/xsdk](https://github.com/xenosworks/xsdk), evaluated in [SDK_EVALUATION.md](SDK_EVALUATION.md). Its GCC 15.3 / C++23 toolchain, native XEX packer and Xenos/system APIs are a closer fit for this C++20 project than the legacy XDK route.
 - The initial xSDK integration is pinned to commit `9e6de98f6b5d737bce0fecd2864edae94bdd2637`. The repository keeps xSDK external; it is not vendored.
 - The Microsoft XDK is proprietary and is not included. It is not required by the preferred path; only consider it later if xSDK has a demonstrated gap. Never commit SDK binaries, headers, libraries, credentials, game images, extracted game data, or generated game translations.
-- The BT3 port remains a technical reference for the native recompilation method, hardware constraints and acceptance discipline, not a source-code or toolchain drop-in.
+- The two technical references are documented in [REFERENCES.md](REFERENCES.md): [Tenkaichi3Decomp](https://github.com/z3xox/Tenkaichi3Decomp) for code reconstruction/organization and [BT3XBx](https://github.com/Lucas-Tito/bt3xbx) for native Xbox 360 architecture, platform layers and hardware validation. Treat them as study references, not code/toolchain drop-ins; check file-level provenance and license obligations before adapting code.
+- CI run #106 built the smoke XEX successfully after the SIMD oracle test fix. This is a CI build result, not a new physical-console run; run #80 remains the latest hardware evidence.
 
 ## Architecture target
 
