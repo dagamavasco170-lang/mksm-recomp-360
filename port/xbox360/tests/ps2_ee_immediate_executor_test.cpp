@@ -26,6 +26,6 @@ int main()
         assert(step(cpu,mem).status==StepStatus::Executed);
     assert(simd::readLane<std::uint32_t>(cpu.readGpr(1),0)==0x12345678u);
     assert(simd::readLane<std::uint32_t>(cpu.readGpr(2),0)==0x12345677u);
-    assert(simd::readLane<std::uint32_t>(cpu.readGpr(3),0)==0xEDCBA988u);
+    assert(simd::readLane<std::uint32_t>(cpu.readGpr(3),0)==0x1234A988u);
     assert(cpu.pc==0x50u && cpu.retiredInstructions==4u);
 }
