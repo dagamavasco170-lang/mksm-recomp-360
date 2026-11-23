@@ -33,14 +33,25 @@ int main()
     assert(ram[32] == 0xEF && ram[33] == 0xCD && ram[34] == 0xAB && ram[35] == 0x89);
     assert(cpu.pc == 4 && cpu.retiredInstructions == 1);
 
+    simd::Vector128 prior{};
+    prior.bytes[8] = 0x5A;
+    cpu.writeGpr(3, prior);
     assert(executeLoadStore(cpu, ins(0x23, 1, 3, 0), ram) == LoadStoreStatus::Executed);
     assert(simd::readLane<std::uint32_t>(cpu.readGpr(3), 0) == 0x89ABCDEFu);
+    assert(simd::readLane<std::uint32_t>(cpu.readGpr(3), 1) == 0xFFFFFFFFu);
+    assert(cpu.readGpr(3).bytes[8] == 0x5A);
+
+    assert(executeLoadStore(cpu, ins(0x27, 1, 6, 0), ram) == LoadStoreStatus::Executed);
+    assert(simd::readLane<std::uint32_t>(cpu.readGpr(6), 0) == 0x89ABCDEFu);
+    assert(simd::readLane<std::uint32_t>(cpu.readGpr(6), 1) == 0u);
 
     ram[40] = 0x80;
     assert(executeLoadStore(cpu, ins(0x20, 1, 4, 8), ram) == LoadStoreStatus::Executed);
     assert(simd::readLane<std::uint32_t>(cpu.readGpr(4), 0) == 0xFFFFFF80u);
+    assert(simd::readLane<std::uint32_t>(cpu.readGpr(4), 1) == 0xFFFFFFFFu);
     assert(executeLoadStore(cpu, ins(0x24, 1, 5, 8), ram) == LoadStoreStatus::Executed);
     assert(simd::readLane<std::uint32_t>(cpu.readGpr(5), 0) == 0x80u);
+    assert(simd::readLane<std::uint32_t>(cpu.readGpr(5), 1) == 0u);
 
     const auto oldPc = cpu.pc;
     const auto oldRetired = cpu.retiredInstructions;
