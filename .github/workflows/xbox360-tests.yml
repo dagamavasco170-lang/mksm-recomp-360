@@ -20,12 +20,26 @@ permissions:
   contents: read
 
 jobs:
-  host-tests:
+  controller-tests:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Compile and run portable tests
+      - name: Compile and run controller tests
+        run: |
+          set -euo pipefail
+          mkdir -p build/host-tests
+          c++ -std=c++20 -Wall -Wextra -Werror -Ips2xRuntime/include -Iport/xbox360 \
+            port/xbox360/tests/ps2_pad_xbox360_test.cpp port/xbox360/ps2_pad_mapping.cpp \
+            -o build/host-tests/ps2_pad_xbox360_test
+          build/host-tests/ps2_pad_xbox360_test
+
+  ee-core-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and run EE core tests
         run: |
           set -euo pipefail
           mkdir -p build/host-tests
@@ -35,10 +49,7 @@ jobs:
             c++ -std=c++20 -Wall -Wextra -Werror "$@" -o "build/host-tests/$name"
             "build/host-tests/$name"
           }
-          compile_run ps2_pad_xbox360_test -Ips2xRuntime/include -Iport/xbox360 \
-            port/xbox360/tests/ps2_pad_xbox360_test.cpp port/xbox360/ps2_pad_mapping.cpp
           compile_run ps2_guest_memory_test -Iport/xbox360 port/xbox360/tests/ps2_guest_memory_test.cpp
-          compile_run ps2_simd_scalar_test -Iport/xbox360 port/xbox360/tests/ps2_simd_scalar_test.cpp
           compile_run ps2_mmi_hilo_state_test -Iport/xbox360 port/xbox360/tests/ps2_mmi_hilo_state_test.cpp
           compile_run ps2_mmi_hilo_transfers_test -Iport/xbox360 port/xbox360/tests/ps2_mmi_hilo_transfers_test.cpp
           compile_run ps2_ee_cpu_state_test -Iport/xbox360 port/xbox360/tests/ps2_ee_cpu_state_test.cpp
@@ -48,5 +59,19 @@ jobs:
           compile_run ps2_ee_branch_delay_test -Iport/xbox360 port/xbox360/tests/ps2_ee_branch_delay_test.cpp
           compile_run ps2_ee_dispatcher_test -Iport/xbox360 port/xbox360/tests/ps2_ee_dispatcher_test.cpp
           compile_run ps2_ee_immediate_executor_test -Iport/xbox360 port/xbox360/tests/ps2_ee_immediate_executor_test.cpp
-          compile_run ps2_simd_scalar_sse_oracle_test -msse2 -Iport/xbox360 \
-            port/xbox360/tests/ps2_simd_scalar_sse_oracle_test.cpp
+
+  simd-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and run SIMD tests
+        run: |
+          set -euo pipefail
+          mkdir -p build/host-tests
+          c++ -std=c++20 -Wall -Wextra -Werror -Iport/xbox360 \
+            port/xbox360/tests/ps2_simd_scalar_test.cpp -o build/host-tests/ps2_simd_scalar_test
+          build/host-tests/ps2_simd_scalar_test
+          c++ -std=c++20 -Wall -Wextra -Werror -msse2 -Iport/xbox360 \
+            port/xbox360/tests/ps2_simd_scalar_sse_oracle_test.cpp -o build/host-tests/ps2_simd_scalar_sse_oracle_test
+          build/host-tests/ps2_simd_scalar_sse_oracle_test
