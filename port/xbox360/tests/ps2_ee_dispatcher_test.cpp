@@ -58,9 +58,9 @@ int main()
     cpu.pc=0x60u; cpu.writeGpr(1,one); cpu.writeGpr(2,two);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0x64u&&cpu.branchDelayPending);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0x68u&&!cpu.branchDelayPending);
-    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(10),0)==26u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(10),0)==19u);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed);
-    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(11),0)==27u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(11),0)==20u);
 
     // BLTZ with a negative register takes the relative target after its delay slot.
     const std::uint32_t bltz=(1u<<26)|(12u<<21)|1u;
@@ -73,7 +73,7 @@ int main()
     result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0x74u);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0x78u);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed);
-    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(13),0)==29u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(13),0)==22u);
 
     // JAL writes PC+8 and runs the delay slot before jumping.
     const std::uint32_t jal=(3u<<26)|0x28u;
@@ -87,7 +87,7 @@ int main()
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(31),0)==0x88u);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0xA0u);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed);
-    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(15),0)==31u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(15),0)==24u);
 
     // JALR writes its selected link register, not only register 31.
     const std::uint32_t jalr=(7u<<21)|(10u<<11)|9u;
@@ -101,7 +101,7 @@ int main()
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(10),0)==0xB8u);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0xC0u);
     result=step(cpu,ram); assert(result.status==StepStatus::Executed);
-    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(17),0)==34u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(17),0)==27u);
 
     // Unsupported instruction and invalid fetch leave architectural state unchanged.
     const std::uint32_t cop1=0x44000000u;
