@@ -131,6 +131,20 @@ int main()
     result=step(cpu,ram); assert(result.status==StepStatus::Executed);
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(19),0)==29u);
 
+    // BLTZAL links only for a negative source and executes its delay slot.
+    const std::uint32_t bltzal=(1u<<26)|(1u<<21)|(0x10u<<16)|1u;
+    const std::uint32_t bltzalDelay=(9u<<26)|(3u<<21)|(20u<<16)|14u;
+    const std::uint32_t bltzalTarget=(9u<<26)|(3u<<21)|(21u<<16)|15u;
+    assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0xF0u,bltzal));
+    assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0xF4u,bltzalDelay));
+    assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0xF8u,bltzalTarget));
+    cpu.pc=0xF0u; ps2::xbox360::simd::writeLane<std::uint32_t>(one,0,0xFFFFFFFFu); cpu.writeGpr(1,one);
+    result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0xF4u);
+    assert(ps2::xbox::simd::readLane<std::uint32_t>(cpu.readGpr(31),0)==0xF8u);
+    result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0xF8u);
+    result=step(cpu,ram); assert(result.status==StepStatus::Executed);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(21),0)==31u);
+
     // Unsupported instruction and invalid fetch leave architectural state unchanged.
     const std::uint32_t cop1=0x44000000u;
     assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),cpu.pc,cop1));
