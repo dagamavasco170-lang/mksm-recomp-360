@@ -103,6 +103,32 @@ int main()
     result=step(cpu,ram); assert(result.status==StepStatus::Executed);
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(17),0)==27u);
 
+
+    // Branch-in-delay-slot is rejected without corrupting pending branch state.
+    const std::uint32_t outerBeq=(4u<<26)|(1u<<21)|(1u<<16)|1u;
+    const std::uint32_t nestedBeq=(4u<<26)|(1u<<21)|(1u<<16)|1u;
+    assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0xD0u,outerBeq));
+    assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0xD4u,nestedBeq));
+    cpu.pc=0xD0u; cpu.writeGpr(1,one); cpu.writeGpr(2,one);
+    result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0xD4u&&cpu.branchDelayPending);
+    const auto nestedPc=cpu.pc; const auto nestedRetired=cpu.retiredInstructions;
+    result=step(cpu,ram); assert(result.status==StepStatus::Unsupported);
+    assert(cpu.pc==nestedPc&&cpu.retiredInstructions==nestedRetired&&cpu.branchDelayPending);
+
+    // BGEZAL links only when the branch is taken and preserves the delay slot.
+    const std::uint32_t bgezal=(1u<<26)|(1u<<21)|(0x11u<<16)|1u;
+    const std::uint32_t bgezalDelay=(9u<<26)|(3u<<21)|(18u<<16)|12u;
+    const std::uint32_t bgezalTarget=(9u<<26)|(3u<<21)|(19u<<16)|13u;
+    assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0xE0u,bgezal));
+    assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0xE4u,bgezalDelay));
+    assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0xE8u,bgezalTarget));
+    cpu.pc=0xE0u; ps2::xbox360::simd::writeLane<std::uint32_t>(one,0,1u); cpu.writeGpr(1,one);
+    result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0xE4u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(31),0)==0xE8u);
+    result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.pc==0xE8u);
+    result=step(cpu,ram); assert(result.status==StepStatus::Executed);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(19),0)==33u);
+
     // Unsupported instruction and invalid fetch leave architectural state unchanged.
     const std::uint32_t cop1=0x44000000u;
     assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),cpu.pc,cop1));
