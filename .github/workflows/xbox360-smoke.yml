@@ -17,97 +17,75 @@ permissions:
   contents: read
 
 jobs:
-  build-smoke-xex:
-    name: Build native Xbox 360 smoke XEX
+  host-tests:
+    name: Portable host tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 15
     steps:
       - name: Check out MKSM Recomp
         uses: actions/checkout@v4
 
-      - name: Install xSDK build prerequisites
+      - name: Compile and run portable tests
+        run: |
+          set -euo pipefail
+          mkdir -p build/host-tests
+          compile_run() {
+            local name="$1"
+            shift
+            c++ -std=c++20 -Wall -Wextra -Werror "$@" -o "build/host-tests/$name"
+            "build/host-tests/$name"
+          }
+          compile_run ps2_pad_xbox360_test -Ips2xRuntime/include -Iport/xbox360 \
+            port/xbox360/tests/ps2_pad_xbox360_test.cpp port/xbox360/ps2_pad_mapping.cpp
+          compile_run ps2_guest_memory_test -Iport/xbox360 port/xbox360/tests/ps2_guest_memory_test.cpp
+          compile_run ps2_simd_scalar_test -Iport/xbox360 port/xbox360/tests/ps2_simd_scalar_test.cpp
+          compile_run ps2_mmi_hilo_state_test -Iport/xbox360 port/xbox360/tests/ps2_mmi_hilo_state_test.cpp
+          compile_run ps2_mmi_hilo_transfers_test -Iport/xbox360 port/xbox360/tests/ps2_mmi_hilo_transfers_test.cpp
+          compile_run ps2_ee_cpu_state_test -Iport/xbox360 port/xbox360/tests/ps2_ee_cpu_state_test.cpp
+          compile_run ps2_ee_instruction_decode_test -Iport/xbox360 port/xbox360/tests/ps2_ee_instruction_decode_test.cpp
+          compile_run ps2_ee_special_executor_test -Iport/xbox360 port/xbox360/tests/ps2_ee_special_executor_test.cpp
+          compile_run ps2_ee_load_store_executor_test -Iport/xbox360 port/xbox360/tests/ps2_ee_load_store_executor_test.cpp
+          compile_run ps2_ee_branch_delay_test -Iport/xbox360 port/xbox360/tests/ps2_ee_branch_delay_test.cpp
+          compile_run ps2_ee_dispatcher_test -Iport/xbox360 port/xbox360/tests/ps2_ee_dispatcher_test.cpp
+          compile_run ps2_ee_immediate_executor_test -Iport/xbox360 port/xbox360/tests/ps2_ee_immediate_executor_test.cpp
+          compile_run ps2_simd_scalar_sse_oracle_test -msse2 -Iport/xbox360 \
+            port/xbox360/tests/ps2_simd_scalar_sse_oracle_test.cpp
+
+  build-smoke-xex:
+    name: Build native Xbox 360 smoke XEX
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      XSDK_COMMIT: 9e6de98f6b5d737bce0fecd2864edae94bdd2637
+    steps:
+      - name: Check out MKSM Recomp
+        uses: actions/checkout@v4
+
+      - name: Cache xSDK source and PowerPC toolchain
+        id: xsdk-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/xsdk
+            ~/xsdk-gcc
+          key: xsdk-xbox360-ubuntu24-${{ env.XSDK_COMMIT }}
+
+      - name: Install prerequisites (cache miss only)
+        if: steps.xsdk-cache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             build-essential bison flex texinfo libgmp-dev libmpfr-dev libmpc-dev \
             curl xz-utils patch python3 cmake ninja-build git
 
-      - name: Run portable controller, EE CPU, memory and SIMD tests
-        run: |
-          mkdir -p build/host-tests
-          c++ -std=c++20 -Wall -Wextra -Werror \
-            -Ips2xRuntime/include -Iport/xbox360 \
-            port/xbox360/tests/ps2_pad_xbox360_test.cpp \
-            port/xbox360/ps2_pad_mapping.cpp \
-            -o build/host-tests/ps2_pad_xbox360_test
-          ./build/host-tests/ps2_pad_xbox360_test
-          c++ -std=c++20 -Wall -Wextra -Werror \
-            -Iport/xbox360 \
-            port/xbox360/tests/ps2_guest_memory_test.cpp \
-            -o build/host-tests/ps2_guest_memory_test
-          ./build/host-tests/ps2_guest_memory_test
-          c++ -std=c++20 -Wall -Wextra -Werror \
-            -Iport/xbox360 \
-            port/xbox360/tests/ps2_simd_scalar_test.cpp \
-            -o build/host-tests/ps2_simd_scalar_test
-          ./build/host-tests/ps2_simd_scalar_test
-          c++ -std=c++20 -Wall -Wextra -Werror \
-            -Iport/xbox360 \
-            port/xbox360/tests/ps2_mmi_hilo_state_test.cpp \
-            -o build/host-tests/ps2_mmi_hilo_state_test
-          ./build/host-tests/ps2_mmi_hilo_state_test
-          c++ -std=c++20 -Wall -Wextra -Werror \
-            -Iport/xbox360 \
-            port/xbox360/tests/ps2_mmi_hilo_transfers_test.cpp \
-            -o build/host-tests/ps2_mmi_hilo_transfers_test
-          ./build/host-tests/ps2_mmi_hilo_transfers_test
-          c++ -std=c++20 -Wall -Wextra -Werror \
-            -Iport/xbox360 \
-            port/xbox360/tests/ps2_ee_cpu_state_test.cpp \
-            -o build/host-tests/ps2_ee_cpu_state_test
-          ./build/host-tests/ps2_ee_cpu_state_test
-          c++ -std=c++20 -Wall -Wextra -Werror -Iport/xbox360 \
-            port/xbox360/tests/ps2_ee_instruction_decode_test.cpp \
-            -o build/host-tests/ps2_ee_instruction_decode_test
-          ./build/host-tests/ps2_ee_instruction_decode_test
-          # Decoder includes SPECIAL funct and MMI subfamily coverage; executor tests cover safe arithmetic.
-          c++ -std=c++20 -Wall -Wextra -Werror -Iport/xbox360 \
-            port/xbox360/tests/ps2_ee_special_executor_test.cpp \
-            -o build/host-tests/ps2_ee_special_executor_test
-          ./build/host-tests/ps2_ee_special_executor_test
-          c++ -std=c++20 -Wall -Wextra -Werror -Iport/xbox360 \
-            port/xbox360/tests/ps2_ee_load_store_executor_test.cpp \
-            -o build/host-tests/ps2_ee_load_store_executor_test
-          ./build/host-tests/ps2_ee_load_store_executor_test
-          c++ -std=c++20 -Wall -Wextra -Werror -Iport/xbox360 \
-            port/xbox360/tests/ps2_ee_branch_delay_test.cpp \
-            -o build/host-tests/ps2_ee_branch_delay_test
-          ./build/host-tests/ps2_ee_branch_delay_test
-          c++ -std=c++20 -Wall -Wextra -Werror -Iport/xbox360 \
-            port/xbox360/tests/ps2_ee_dispatcher_test.cpp \
-            -o build/host-tests/ps2_ee_dispatcher_test
-          ./build/host-tests/ps2_ee_dispatcher_test
-          c++ -std=c++20 -Wall -Wextra -Werror -Iport/xbox360 \
-            port/xbox360/tests/ps2_ee_immediate_executor_test.cpp \
-            -o build/host-tests/ps2_ee_immediate_executor_test
-          ./build/host-tests/ps2_ee_immediate_executor_test
-
-      - name: Differential-test scalar SIMD against the host SSE2 reference
-        run: |
-          c++ -std=c++20 -Wall -Wextra -Werror -msse2 \
-            -Iport/xbox360 \
-            port/xbox360/tests/ps2_simd_scalar_sse_oracle_test.cpp \
-            -o build/host-tests/ps2_simd_scalar_sse_oracle_test
-          ./build/host-tests/ps2_simd_scalar_sse_oracle_test
-
-      - name: Check out pinned xSDK
-        env:
-          XSDK_COMMIT: 9e6de98f6b5d737bce0fecd2864edae94bdd2637
+      - name: Check out pinned xSDK (cache miss only)
+        if: steps.xsdk-cache.outputs.cache-hit != 'true'
         run: |
           git clone https://github.com/xenosworks/xsdk.git "$HOME/xsdk"
           git -C "$HOME/xsdk" checkout "$XSDK_COMMIT"
 
-      - name: Build PowerPC toolchain
+      - name: Build PowerPC toolchain (cache miss only)
+        if: steps.xsdk-cache.outputs.cache-hit != 'true'
         run: |
           cd "$HOME/xsdk"
           PREFIX="$HOME/xsdk-gcc" WORK="$HOME/xsdk-gcc-work" JOBS="$(nproc)" \
@@ -123,7 +101,7 @@ jobs:
           cmake -S port/xbox360 -B build/xbox360 -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE="$HOME/xsdk/cmake/xsdk.cmake" \
             -DXSDK_TOOLCHAIN="$HOME/xsdk-gcc" \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo
+            -DCMAKE_BUILD_TYPE=Release
 
       - name: Build Xbox 360 smoke XEX
         run: cmake --build build/xbox360 --parallel
@@ -134,4 +112,4 @@ jobs:
           name: mksm-xbox360-smoke-xex
           path: build/xbox360/mksm_xbox360_smoke.xex
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
