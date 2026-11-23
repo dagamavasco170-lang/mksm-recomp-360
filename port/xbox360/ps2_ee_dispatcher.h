@@ -69,7 +69,7 @@ struct StepResult { StepStatus status{StepStatus::Unsupported}; std::uint32_t in
         }
         if (link && taken) state.writeGpr(31, scalarVector(state.pc + 8u));
         state.advancePc(); state.recordRetiredInstruction();
-        state.scheduleBranch(taken ? branchTarget(state.pc - 4u, d.immediate) : state.pc);
+        state.scheduleBranch(taken ? branchTarget(state.pc - 4u, d.immediate) : state.pc + 4u);
         return {StepStatus::Executed, word, d};
     }
     if (d.kind == InstructionKind::Special &&
