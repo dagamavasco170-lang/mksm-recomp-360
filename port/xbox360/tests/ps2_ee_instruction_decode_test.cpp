@@ -31,6 +31,19 @@ int main()
     const auto l = decodeInstruction(load);
     assert(l.kind == InstructionKind::LoadStore && l.rs == 1 && l.rt == 2 && l.immediate == 4);
 
+
+    // Decode selected SPECIAL functions and MMI subfamily tags.
+    const auto addiu = decodeInstruction((0u << 26) | (3u << 21) | (4u << 16) | 0x21u);
+    assert(addiu.kind == InstructionKind::Special && addiu.special == SpecialOperation::Addu);
+    const auto mfhi = decodeInstruction(0x00000010u);
+    assert(mfhi.special == SpecialOperation::Mfhi);
+    const auto mmi0 = decodeInstruction(0x70000008u);
+    assert(mmi0.kind == InstructionKind::Mmi && mmi0.mmiSubfamily == MmiSubfamily::Mmi0);
+    const auto mmi3 = decodeInstruction(0x70000029u);
+    assert(mmi3.mmiSubfamily == MmiSubfamily::Mmi3);
+    const auto unknownMmi = decodeInstruction(0x7000003Fu);
+    assert(unknownMmi.kind == InstructionKind::Mmi && unknownMmi.mmiSubfamily == MmiSubfamily::Unknown);
+
     // Unknown primary opcode must remain explicitly unsupported.
     const auto unknown = decodeInstruction(0x7C000000u);
     assert(unknown.kind == InstructionKind::Unsupported && !unknown.isRecognized());
