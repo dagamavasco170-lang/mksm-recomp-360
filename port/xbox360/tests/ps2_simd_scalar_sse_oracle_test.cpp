@@ -3,6 +3,7 @@
 #include <emmintrin.h>
 
 #include <array>
+#include <bit>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
@@ -119,8 +120,8 @@ void checkPmaddhAgainstManual(const Vector128 &rs,
     Vector128 expectedLo = initialLo;
     for (std::size_t product = 0; product < targets.size(); ++product)
     {
-        const std::int32_t lhs = static_cast<std::int16_t>(readLane<std::uint16_t>(rs, product));
-        const std::int32_t rhs = static_cast<std::int16_t>(readLane<std::uint16_t>(rt, product));
+        const std::int32_t lhs = std::bit_cast<std::int16_t>(readLane<std::uint16_t>(rs, product));
+        const std::int32_t rhs = std::bit_cast<std::int16_t>(readLane<std::uint16_t>(rt, product));
         const std::uint32_t productBits = static_cast<std::uint32_t>(lhs * rhs);
         const auto target = targets[product];
         Vector128 &accumulator = target.high ? expectedHi : expectedLo;
