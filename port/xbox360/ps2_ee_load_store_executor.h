@@ -77,8 +77,15 @@ enum class LoadStoreStatus : std::uint8_t
         if (!ok)
             return LoadStoreStatus::InvalidMemory;
 
-        simd::Vector128 result{};
-        simd::writeLane<std::uint32_t>(result, 0, value);
+        // EE scalar loads update GPR[rt][63:0], not the upper 64-bit MMI half.
+        // LW/LB/LH sign-extend to 64 bits; unsigned forms zero-extend.
+        const std::uint64_t scalar = signExtend
+            ? static_cast<std::uint64_t>(static_cast<std::int64_t>(
+                  std::bit_cast<std::int32_t>(value)))
+            : static_cast<std::uint64_t>(value);
+        simd::Vector128 result = state.readGpr(d.rt);
+        for (std::size_t byte = 0; byte < sizeof(scalar); ++byte)
+            result.bytes[byte] = static_cast<std::uint8_t>(scalar >> (byte * 8u));
         state.writeGpr(d.rt, result);
     }
     else
