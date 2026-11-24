@@ -4,10 +4,9 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "port/xbox360/CMakeLists.txt"
-      - "port/xbox360/smoke.cpp"
-      - "port/xbox360/ps2_pad_xbox360.cpp"
-      - "port/xbox360/ps2_pad_mapping.cpp"
+      - "port/xbox360/**"
+      - "ps2xRecomp/**"
+      - "ps2xRuntime/include/**"
       - ".github/workflows/xbox360-xex.yml"
   workflow_dispatch:
 
@@ -51,11 +50,23 @@ jobs:
           PREFIX="$HOME/xsdk-gcc" WORK="$HOME/xsdk-gcc-work" JOBS="$(nproc)" bash tools/toolchain/build.sh
       - name: Build xSDK host tools/runtime
         run: cd "$HOME/xsdk" && make -j"$(nproc)"
+      - name: Configure host PS2Recomp code-generation fixture
+        run: |
+          cmake -S . -B build/xbox360-codegen -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPS2X_BUILD_RUNTIME=OFF \
+            -DPS2X_BUILD_ANALYZER=OFF \
+            -DPS2X_BUILD_TEST=OFF \
+            -DPS2X_BUILD_STUDIO=OFF \
+            -DPS2X_BUILD_XBOX360_CODEGEN_PROBE=ON
+      - name: Generate and execute desktop reference function
+        run: cmake --build build/xbox360-codegen --target mksm_xbox360_codegen_probe --parallel 2
       - name: Configure smoke target
         run: |
           cmake -S port/xbox360 -B build/xbox360 -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE="$HOME/xsdk/cmake/xsdk.cmake" \
-            -DXSDK_TOOLCHAIN="$HOME/xsdk-gcc" -DCMAKE_BUILD_TYPE=Release
+            -DXSDK_TOOLCHAIN="$HOME/xsdk-gcc" -DCMAKE_BUILD_TYPE=Release \
+            -DMKSM_XBOX360_GENERATED_DIR="$GITHUB_WORKSPACE/build/xbox360-codegen/xbox360-codegen-probe/generated"
       - name: Build XEX
         run: cmake --build build/xbox360 --parallel
       - name: Upload smoke XEX

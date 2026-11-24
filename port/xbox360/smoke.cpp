@@ -23,6 +23,10 @@
 #include "ps2_simd_scalar.h"
 #include "runtime/ps2_pad.h"
 
+#if defined(MKSM_HAS_GENERATED_RECOMP_PROBE)
+bool checkGeneratedRecompProbe();
+#endif
+
 static_assert(sizeof(void *) == 4u, "Xbox 360 target must use a 32-bit pointer ABI");
 static_assert(std::endian::native == std::endian::big,
               "Xbox 360 target must use the big-endian PowerPC ABI");
@@ -262,6 +266,14 @@ int main()
         xsdk_log_write("MKSM smoke: scalar PS2 packed-vector check failed");
         return 4;
     }
+
+#if defined(MKSM_HAS_GENERATED_RECOMP_PROBE)
+    if (!checkGeneratedRecompProbe())
+    {
+        xsdk_log_write("MKSM smoke: PS2Recomp-generated Xenon probe failed");
+        return 6;
+    }
+#endif
 
     xsdk_log_write("MKSM smoke: C++20 runtime checks passed");
     xsdk_log_write("MKSM smoke: little-endian guest memory check passed");

@@ -47,10 +47,16 @@ A second focused workflow, .github/workflows/xbox360-codegen.yml, sends a scalar
 
 This validates a real generated function on the desktop reference runtime. It does not yet compile or execute that generated function for Xenon, and it deliberately excludes memory/MMIO and MMI instructions from this narrower code-generation gate.
 
+## Xenon generated-code ABI slice
+
+For this first target execution, combined PS2Recomp output can be compiled with \`PS2X_GENERATED_RUNTIME_ABI\`. Its preamble includes \`ps2_generated_runtime_abi.h\` instead of the desktop SSE-based runtime headers. The shim provides a 128-bit GPR storage layout, scalar low-32/low-64 reads, sign-extending 32-bit writes, low-64 writes, and the PC/delay-slot fields touched by the probe.
+
+The XEX workflow generates the fixture on the host first, then feeds the generated C++ source and header into the xSDK PowerPC build. The smoke title calls the generated function and logs its state. This is an intentional ABI seam for a small known subset—not a general compatibility layer. Unsupported emitted operations must remain compile failures or be added only with dedicated semantic tests.
+
 ## What this proves — and does not prove
 
 The host test proves that the currently implemented dispatcher operations produce the documented state on the portable build. The xSDK smoke workflow proves the same source compiles into a 32-bit big-endian PowerPC XEX.
 
 **The cross-target execution result is still pending:** the newly built XEX must be launched on an RGH/JTAG console and its signature compared with the host's 4F63CD2AAFC519CE. A successful XEX build is not proof that the probe ran on Xenon.
 
-The generated-code workflow adds a desktop execution check for a scalar function produced by PS2Recomp. The existing desktop runtime still uses the SSE-based R5900Context ABI, while the Xbox target has a separate experimental CpuState/dispatcher. The next target-side gate is to port the generated-code runtime ABI/helpers to PPC and link this same generated probe into the XEX. The physical Xbox run of the dispatcher trace also remains pending.
+The generated-code workflow adds a desktop execution check for a scalar function produced by PS2Recomp. The smoke XEX now also builds the exact generated C++ function with a deliberately narrow scalar-only Xenon ABI shim and runs it during title startup. The console log should contain `MKSM_RECOMP_XENON_TRACE failures=00000000 pc=CAFE1234 ...`. The shim is limited to low-64-bit GPR accessors plus PC/delay-slot state; it does not implement the complete R5900Context, memory/MMIO, MMI, VU, syscalls, or runtime scheduling. A physical run is still required to establish Xenon execution parity.

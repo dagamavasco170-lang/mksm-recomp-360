@@ -12,9 +12,36 @@ add_executable(mksm_xbox360_smoke
     ps2_pad_xbox360.cpp
     ps2_pad_mapping.cpp
 )
+
 target_include_directories(mksm_xbox360_smoke PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../ps2xRuntime/include"
 )
+
+set(MKSM_XBOX360_GENERATED_DIR "" CACHE PATH
+    "Host-generated PS2Recomp output directory for the scalar Xenon ABI probe")
+if(MKSM_XBOX360_GENERATED_DIR)
+    foreach(required_file IN ITEMS
+            "ps2_recompiled_functions.cpp"
+            "ps2_recompiled_functions.h")
+        if(NOT EXISTS "${MKSM_XBOX360_GENERATED_DIR}/${required_file}")
+            message(FATAL_ERROR
+                "Missing host-generated file: ${MKSM_XBOX360_GENERATED_DIR}/${required_file}")
+        endif()
+    endforeach()
+
+    target_sources(mksm_xbox360_smoke PRIVATE
+        "${MKSM_XBOX360_GENERATED_DIR}/ps2_recompiled_functions.cpp"
+        "ps2_recomp_generated_xenon_probe.cpp"
+    )
+    target_include_directories(mksm_xbox360_smoke PRIVATE
+        "${MKSM_XBOX360_GENERATED_DIR}"
+    )
+    target_compile_definitions(mksm_xbox360_smoke PRIVATE
+        PS2X_GENERATED_RUNTIME_ABI=1
+        MKSM_HAS_GENERATED_RECOMP_PROBE=1
+    )
+endif()
 target_compile_features(mksm_xbox360_smoke PRIVATE cxx_std_20)
 target_compile_options(mksm_xbox360_smoke PRIVATE -Wall -Wextra -Werror)
 
