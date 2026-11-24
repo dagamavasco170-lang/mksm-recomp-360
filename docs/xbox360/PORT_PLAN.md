@@ -46,7 +46,7 @@ Keep the existing desktop build as the correctness/reference backend. Add an iso
 |---|---|---|
 | Recompiled game code | Generate/compile the retail EE translation for 32-bit big-endian PowerPC | Compiler language support, ABI, floating-point behavior and generated-code size |
 | EE runtime | Port the minimum runtime helpers, exceptions, threads, DMA and EE state used by generated code | Existing runtime assumes desktop C++20 facilities |
-| Guest memory | An isolated little-endian read/write helper and wrapped-buffer tests now exist; next add explicit Xbox-safe arena/address translation for EE RAM, scratchpad and mapped regions | Full address translation, aliases, I/O regions and correct PS2 little-endian/128-bit semantics |
+| Guest memory | Little-endian 8/16/32/64-bit generated RDRAM accessors and a 32 MiB wraparound differential probe now exist; next add full address translation and separate mapped-region handlers | TLB, scratchpad, I/O/GS/VU, DMA and 128-bit semantics |
 | GS graphics | New adapter from the project's GS command/state model to xSDK's native Xenos GPU API | PS2 GS blending, depth, texture formats, CLUTs, transfers and effects |
 | IOP/services | Port the required SIF/RPC, sound and file services incrementally | Threading, audio decoder and filesystem dependencies |
 | Audio | xSDK PCM output initially; evaluate FAudio-xenon for mixing | Timing, resampling, ADPCM and streaming |
@@ -85,7 +85,7 @@ If xSDK fails the C++20 smoke build, stop and investigate a specific missing fea
 **Acceptance:** CI packages the smoke XEX and a console run records title startup, C++20/guest-memory and scalar SIMD checks, display initialization, explicit Back-button exit and clean shutdown. These checks are now recorded in the run #80 console log. Console model/revision and dashboard/kernel metadata remain to be captured in a later compatibility test.
 
 ### X2 — Xbox platform layer
-- Add platform abstractions for memory, files, timing, threads, input and logging. The initial input mapping and a standalone little-endian memory helper now have host-side tests; neither is yet integrated into the full runtime.
+- Add platform abstractions for memory, files, timing, threads, input and logging. The initial input mapping and scalar generated-code RDRAM path have host-side tests; the latter is a narrow ABI shim, not yet integrated into the full runtime.
 - Keep Xbox-specific code in `port/xbox360/` and guarded target build definitions.
 - Add game-data-free unit tests for portable logic.
 
@@ -102,6 +102,8 @@ If xSDK fails the C++20 smoke build, stop and investigate a specific missing fea
 **Acceptance:** the same input trace produces identical integer/register/memory state and documented floating-point tolerances on the desktop and Xenon builds. CI compilation alone is not the acceptance test; a console run must capture the state trace and timing. Any JIT experiment has its own hardware gate and must not become the default path without measured benefit.
 
 **Current progress (2026-11-24):** two distinct probes now cover different layers. The game-data-free 17-instruction EE dispatcher program is shared by the portable host test and the Xbox smoke title; host CI passes with signature `4F63CD2AAFC519CE`, `PC=0x48`, 17 retired instructions and zero failure bits. The XEX containing that test builds in CI but still needs a physical-console run. Separately, `.github/workflows/xbox360-codegen.yml` creates a synthetic MIPS ELF, passes it through `PS2Recompiler::initialize/recompile/generateOutput`, compiles the emitted C++, and runs the scalar function on the desktop `R5900Context`. This generated-code probe checks immediate arithmetic, ADDU, a taken BEQ and its delay slot, and JR RA; it reuses the first four instruction words from the dispatcher program. It is **not** yet a Xenon execution test, a full EE/MMI parity test, or a comparison against a retail game translation. The next target-side gate is to port the generated-code runtime ABI/helpers from the desktop SSE-based `R5900Context` to PPC and link this generated probe into the XEX. See [EE_PARITY_TEST.md](EE_PARITY_TEST.md).
+
+**Additional progress (2026-11-24):** the generated-code ABI now implements explicit little-endian 8/16/32/64-bit accesses against a 32 MiB RDRAM view, including masked wraparound and a small set of direct/KSEG windows. The PS2Recomp fixture now exercises `SB/SH/SW/SD`, `LB/LBU/LHU/LW/LD`, with a word store crossing the RDRAM boundary. CI runs the same emitted function against both the desktop reference runtime and the Xenon ABI shim on the host, and the XEX compiles that function for PowerPC. Scratchpad, MMIO, GS/VU regions, 128-bit memory operations, full TLB translation and physical-console execution remain outstanding; this is not yet safe for the retail game translation.
 
 ### X4 — GS renderer
 - Implement command submission, state, textures, CLUTs, framebuffer/depth, blending and transfers.
