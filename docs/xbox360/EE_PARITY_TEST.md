@@ -45,7 +45,7 @@ The host test runs as part of .github/workflows/xbox360-tests.yml. The same runD
 
 A second focused workflow, `.github/workflows/xbox360-codegen.yml`, sends a synthetic little-endian MIPS ELF through the real PS2Recomp pipeline: `PS2Recompiler::initialize/recompile/generateOutput`. The emitted C++ is compiled and executed against the desktop runtime and, separately, against the Xbox generated-runtime ABI shim on the host.
 
-The generated function covers immediate arithmetic, ADDU, a taken BEQ and its delay slot, JR RA, and scalar memory instructions: `SB/SH/SW/SD`, `LB/LBU/LHU/LW/LD`. Its `SW` begins at `0x01FFFFFF`, testing little-endian byte order while wrapping across the 32 MiB RDRAM boundary. Both runners compare the generated register results and the memory bytes written. The XEX workflow compiles the same generated C++ for Xenon.
+The generated function covers immediate arithmetic, ADDU, a taken BEQ and its delay slot, JR RA, and scalar memory instructions: `SB/SH/SW/SD`, `LB/LBU/LHU/LW/LD`. Its aligned `SW` targets the final aligned RDRAM word at `0x01FFFFF8`; an aligned `SD` at `0x02000000` verifies the 32 MiB RDRAM mirror at offset zero, followed by byte/halfword checks through the same alias. The probe avoids architecturally unaligned word/doubleword accesses. Both runners compare the generated register results and the memory bytes written. The XEX workflow compiles the same generated C++ for Xenon.
 
 ## Xenon generated-code ABI slice
 
