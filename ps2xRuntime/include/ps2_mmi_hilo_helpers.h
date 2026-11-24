@@ -131,6 +131,84 @@ constexpr void pmtlo(HiLoState &state, const Vector128 &source) noexcept
               state.lo.words[2], state.hi.words[2]}}};
 }
 
+// PMFHL.UW selects the upper word of each 64-bit HI/LO bank pair.
+[[nodiscard]] constexpr Vector128 pmfhlUw(const HiLoState &state) noexcept
+{
+    return {{{state.lo.words[1], state.hi.words[1],
+              state.lo.words[3], state.hi.words[3]}}};
+}
+
+[[nodiscard]] constexpr std::uint32_t pmfhlClampSignedWord(std::uint32_t value) noexcept
+{
+    const std::int32_t signedValue = std::bit_cast<std::int32_t>(value);
+    if (signedValue > 0x7FFF)
+        return 0x7FFFu;
+    if (signedValue < -0x8000)
+        return 0xFFFF8000u;
+    return value;
+}
+
+[[nodiscard]] constexpr Vector128 pmfhlSh(const HiLoState &state) noexcept
+{
+    const std::array<std::uint32_t, 8> source{
+        state.lo.words[0], state.lo.words[1], state.hi.words[0], state.hi.words[1],
+        state.lo.words[2], state.lo.words[3], state.hi.words[2], state.hi.words[3]};
+    std::array<std::uint16_t, 8> halfwords{};
+    for (std::size_t i = 0; i < source.size(); ++i)
+        halfwords[i] = static_cast<std::uint16_t>(pmfhlClampSignedWord(source[i]));
+    return {{{static_cast<std::uint32_t>(halfwords[0]) |
+                  (static_cast<std::uint32_t>(halfwords[1]) << 16u),
+              static_cast<std::uint32_t>(halfwords[2]) |
+                  (static_cast<std::uint32_t>(halfwords[3]) << 16u),
+              static_cast<std::uint32_t>(halfwords[4]) |
+                  (static_cast<std::uint32_t>(halfwords[5]) << 16u),
+              static_cast<std::uint32_t>(halfwords[6]) |
+                  (static_cast<std::uint32_t>(halfwords[7]) << 16u)}}};
+}
+
+// PMFHL.LH rearranges selected halfwords from HI/LO into the order specified
+// by the EE manual: LO0, LO2, HI0, HI2, LO4, LO6, HI4, HI6.
+[[nodiscard]] constexpr Vector128 pmfhlLh(const HiLoState &state) noexcept
+{
+    const std::array<std::uint16_t, 8> halfwords{
+        static_cast<std::uint16_t>(state.lo.words[0]),
+        static_cast<std::uint16_t>(state.lo.words[1] >> 16u),
+        static_cast<std::uint16_t>(state.hi.words[0]),
+        static_cast<std::uint16_t>(state.hi.words[1] >> 16u),
+        static_cast<std::uint16_t>(state.lo.words[2]),
+        static_cast<std::uint16_t>(state.lo.words[3] >> 16u),
+        static_cast<std::uint16_t>(state.hi.words[2]),
+        static_cast<std::uint16_t>(state.hi.words[3] >> 16u)};
+    return {{{static_cast<std::uint32_t>(halfwords[0]) |
+                  (static_cast<std::uint32_t>(halfwords[1]) << 16u),
+              static_cast<std::uint32_t>(halfwords[2]) |
+                  (static_cast<std::uint32_t>(halfwords[3]) << 16u),
+              static_cast<std::uint32_t>(halfwords[4]) |
+                  (static_cast<std::uint32_t>(halfwords[5]) << 16u),
+              static_cast<std::uint32_t>(halfwords[6]) |
+                  (static_cast<std::uint32_t>(halfwords[7]) << 16u)}}};
+}
+
+// PMFHL.SLW concatenates corresponding 32-bit HI/LO words into two signed
+// 64-bit values, saturates each to signed 32-bit, and sign-extends the result.
+[[nodiscard]] constexpr Vector128 pmfhlSlw(const HiLoState &state) noexcept
+{
+    const auto saturate = [](std::uint32_t hiWord, std::uint32_t loWord) constexpr {
+        const std::uint64_t bits = (static_cast<std::uint64_t>(hiWord) << 32u) | loWord;
+        const std::int64_t value = std::bit_cast<std::int64_t>(bits);
+        if (value > 0x7FFFFFFFll)
+            return 0x7FFFFFFFu;
+        if (value < -0x80000000ll)
+            return 0x80000000u;
+        return static_cast<std::uint32_t>(value);
+    };
+    const std::uint32_t lane0 = saturate(state.hi.words[0], state.lo.words[0]);
+    const std::uint32_t lane1 = saturate(state.hi.words[2], state.lo.words[2]);
+    const std::uint32_t sign0 = (lane0 & 0x80000000u) ? 0xFFFFFFFFu : 0u;
+    const std::uint32_t sign1 = (lane1 & 0x80000000u) ? 0xFFFFFFFFu : 0u;
+    return {{{lane0, sign0, lane1, sign1}}};
+}
+
 // PMTHL.LW writes source words 0/2 into LO words 0/2 and source words 1/3
 // into HI words 0/2. The intervening accumulator words are architecturally
 // unchanged.
