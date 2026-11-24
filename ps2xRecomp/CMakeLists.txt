@@ -165,7 +165,8 @@ if(PS2X_BUILD_XBOX360_CODEGEN_PROBE)
 
     add_executable(mksm_xbox360_codegen_probe
         "${MKSM_XBOX360_GENERATED_CPP}"
-        "${CMAKE_SOURCE_DIR}/port/xbox360/tests/ps2_recomp_generated_probe_runner.cpp")
+        "${CMAKE_SOURCE_DIR}/port/xbox360/tests/ps2_recomp_generated_probe_runner.cpp"
+        "${CMAKE_SOURCE_DIR}/port/xbox360/tests/ps2_recomp_codegen_runtime_stubs.cpp")
     target_include_directories(mksm_xbox360_codegen_probe PRIVATE
         "${MKSM_XBOX360_CODEGEN_DIR}/generated"
         "${CMAKE_SOURCE_DIR}/ps2xRuntime/include"
