@@ -105,6 +105,8 @@ If xSDK fails the C++20 smoke build, stop and investigate a specific missing fea
 
 **Additional progress (2026-11-24):** the generated-code ABI now implements explicit little-endian 8/16/32/64-bit accesses against a 32 MiB RDRAM view, including masked wraparound and a small set of direct/KSEG windows. The PS2Recomp fixture now exercises `SB/SH/SW/SD`, `LB/LBU/LHU/LW/LD`, with a word store crossing the RDRAM boundary. CI runs the same emitted function against both the desktop reference runtime and the Xenon ABI shim on the host, and the XEX compiles that function for PowerPC. Scratchpad, MMIO, GS/VU regions, 128-bit memory operations, full TLB translation and physical-console execution remain outstanding; this is not yet safe for the retail game translation.
 
+**CI validation (2026-11-24):** commit `efff5c5057f575d77150d049710cfa3288ef548a` passed the Xbox portable test workflow (run `45402421409`), the PS2Recomp desktop/Xenon-ABI memory probe workflow (run `45402422328`), and the xSDK smoke XEX workflow (run `45402422067`). Both generated-code runners reported `failures=00000000`; the XEX compiled and uploaded as artifact `mksm-xbox360-smoke-xex` (artifact ID `14923867389`, SHA-256 `0f6771da0acdbcfcc7281b069e2e1d2c1adc0b584f1cd5cb6d19433c86ee0ab7`). This is CI evidence only; the new XEX has not yet been executed on physical Xenon hardware. The expected startup memory trace begins `MKSM_RECOMP_XENON_TRACE failures=00000000 pc=CAFE1234` and includes the checked load results.
+
 ### X4 — GS renderer
 - Implement command submission, state, textures, CLUTs, framebuffer/depth, blending and transfers.
 - Start with diagnostic triangles and clear operations, then the opening/menu scenes.
