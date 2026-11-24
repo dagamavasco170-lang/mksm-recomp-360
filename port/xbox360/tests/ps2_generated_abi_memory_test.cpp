@@ -24,26 +24,26 @@ int main()
     using ps2::xbox360::generated_abi::writeRdram;
 
     // Cross-window coherence: the aliases must refer to the same byte storage.
-    writeRdram<std::uint32_t>(rdram.data(), 0x00000100u, 0x1234ABCDu);
-    expect(readRdram<std::uint32_t>(rdram.data(), 0x20000100u) == 0x1234ABCDu,
+    writeRdram<std::uint32_t>(rdram.data(), 0x00100100u, 0x1234ABCDu);
+    expect(readRdram<std::uint32_t>(rdram.data(), 0x20100100u) == 0x1234ABCDu,
            "cached write visible through uncached alias");
     expect(readRdram<std::uint32_t>(rdram.data(), 0x30100100u) == 0x1234ABCDu,
            "cached write visible through accelerated alias");
-    expect(readRdram<std::uint32_t>(rdram.data(), 0x80000100u) == 0x1234ABCDu,
+    expect(readRdram<std::uint32_t>(rdram.data(), 0x80100100u) == 0x1234ABCDu,
            "cached write visible through KSEG0 alias");
-    expect(readRdram<std::uint32_t>(rdram.data(), 0xA0000100u) == 0x1234ABCDu,
+    expect(readRdram<std::uint32_t>(rdram.data(), 0xA0100100u) == 0x1234ABCDu,
            "cached write visible through KSEG1 alias");
 
-    writeRdram<std::uint64_t>(rdram.data(), 0x20000200u, 0x0123456789ABCDEFull);
-    expect(readRdram<std::uint64_t>(rdram.data(), 0x00000200u) == 0x0123456789ABCDEFull,
+    writeRdram<std::uint64_t>(rdram.data(), 0x20100200u, 0x0123456789ABCDEFull);
+    expect(readRdram<std::uint64_t>(rdram.data(), 0x00100200u) == 0x0123456789ABCDEFull,
            "uncached write visible in default window");
     expect(readRdram<std::uint64_t>(rdram.data(), 0x30100200u) == 0x0123456789ABCDEFull,
            "uncached write visible in accelerated alias");
 
     writeRdram<std::uint16_t>(rdram.data(), 0x30100300u, 0xBEEFu);
-    expect(readRdram<std::uint16_t>(rdram.data(), 0x20000300u) == 0xBEEFu,
+    expect(readRdram<std::uint16_t>(rdram.data(), 0x20100300u) == 0xBEEFu,
            "accelerated write visible in uncached alias");
-    expect(readRdram<std::uint16_t>(rdram.data(), 0x80000300u) == 0xBEEFu,
+    expect(readRdram<std::uint16_t>(rdram.data(), 0x80100300u) == 0xBEEFu,
            "accelerated write visible through KSEG0");
 
     bool ioRejected = false;
