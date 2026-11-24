@@ -48,7 +48,7 @@ constexpr std::array<std::uint32_t, 23> makeProbeWords()
     };
 }
 
-constexpr std::array<std::uint32_t, 14> makeScratchpadProbeWords()
+constexpr std::array<std::uint32_t, 15> makeScratchpadProbeWords()
 {
     using namespace ps2::xbox360::ee::test_program::detail;
     return {
