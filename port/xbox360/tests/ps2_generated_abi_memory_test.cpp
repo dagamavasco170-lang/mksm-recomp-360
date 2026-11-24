@@ -12,6 +12,8 @@ int main()
     std::uint8_t *rdram = rdramStorage.data();
     PS2Runtime runtimeStorage{};
     PS2Runtime *runtime = &runtimeStorage;
+    PS2Runtime secondRuntimeStorage{};
+    PS2Runtime *secondRuntime = &secondRuntimeStorage;
     std::uint32_t cases = 0u;
     std::uint32_t failures = 0u;
 
@@ -93,6 +95,11 @@ int main()
            "scratchpad bytes are stored in guest little-endian order");
     expect(readGuestMemory<std::uint32_t>(rdram, runtime, 0x00000004u) == 0u,
            "scratchpad does not alias main RDRAM");
+    expect(readGuestMemory<std::uint32_t>(rdram, secondRuntime, 0x70000004u) == 0u,
+           "scratchpad storage is isolated per EE runtime");
+    writeGuestMemory<std::uint32_t>(rdram, secondRuntime, 0x70000004u, 0xCAFEBABEu);
+    expect(readGuestMemory<std::uint32_t>(rdram, runtime, 0x70000004u) == 0x12345678u,
+           "second runtime writes do not mutate the first scratchpad");
 
     writeGuestMemory<std::uint16_t>(rdram, runtime, 0x70003FFEu, 0xCAFEu);
     expect(readGuestMemory<std::uint16_t>(rdram, runtime, 0x70003FFEu) == 0xCAFEu,
