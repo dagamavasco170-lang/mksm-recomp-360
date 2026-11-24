@@ -476,5 +476,51 @@ int main()
     assert(cpu.readGpr(14u).bytes[2] == 0xFFu);
     assert(cpu.readGpr(14u).bytes[3] == 0u);
 
+    // MMI0 PADDSH/PSUBSH and PADDSB/PSUBSB clamp signed lane overflow.
+    Vector128 signedHalfA{}, signedHalfB{};
+    writeLane<std::uint16_t>(signedHalfA, 0u, 0x7FFFu);
+    writeLane<std::uint16_t>(signedHalfA, 1u, 0x8000u);
+    writeLane<std::uint16_t>(signedHalfA, 2u, 10u);
+    writeLane<std::uint16_t>(signedHalfA, 3u, 0xFFF6u);
+    writeLane<std::uint16_t>(signedHalfB, 0u, 1u);
+    writeLane<std::uint16_t>(signedHalfB, 1u, 0xFFFFu);
+    writeLane<std::uint16_t>(signedHalfB, 2u, 0xFFECu);
+    writeLane<std::uint16_t>(signedHalfB, 3u, 20u);
+    cpu.writeGpr(10u, signedHalfA);
+    cpu.writeGpr(11u, signedHalfB);
+    cpu.pc = 0xA0u;
+    store(ram, 0xA0u, encodeMmi(10u, 11u, 12u, 0x14u, 0x08u)); // PADDSH
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0xA4u);
+    const std::array<std::uint16_t, 4> addHalfExpected{0x7FFFu, 0x8000u, 0xFFECu, 10u};
+    for (std::size_t lane = 0; lane < 4u; ++lane)
+        assert(readLane<std::uint16_t>(cpu.readGpr(12u), lane) == addHalfExpected[lane]);
+    store(ram, 0xA4u, encodeMmi(10u, 11u, 13u, 0x15u, 0x08u)); // PSUBSH
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0xA8u);
+    const std::array<std::uint16_t, 4> subHalfExpected{0x7FFEu, 0x8001u, 30u, 0xFFE2u};
+    for (std::size_t lane = 0; lane < 4u; ++lane)
+        assert(readLane<std::uint16_t>(cpu.readGpr(13u), lane) == subHalfExpected[lane]);
+
+    Vector128 signedByteA{}, signedByteB{};
+    signedByteA.bytes[0] = 0x7Fu; signedByteA.bytes[1] = 0x80u;
+    signedByteA.bytes[2] = 10u; signedByteA.bytes[3] = 0xF6u;
+    signedByteB.bytes[0] = 1u; signedByteB.bytes[1] = 0xFFu;
+    signedByteB.bytes[2] = 0xECu; signedByteB.bytes[3] = 20u;
+    cpu.writeGpr(10u, signedByteA);
+    cpu.writeGpr(11u, signedByteB);
+    store(ram, 0xA8u, encodeMmi(10u, 11u, 14u, 0x18u, 0x08u)); // PADDSB
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0xACu);
+    const std::array<std::uint8_t, 4> addByteExpected{0x7Fu, 0x80u, 0xF6u, 10u};
+    for (std::size_t lane = 0; lane < 4u; ++lane)
+        assert(cpu.readGpr(14u).bytes[lane] == addByteExpected[lane]);
+    store(ram, 0xACu, encodeMmi(10u, 11u, 15u, 0x19u, 0x08u)); // PSUBSB
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0xB0u);
+    const std::array<std::uint8_t, 4> subByteExpected{0x7Eu, 0x81u, 30u, 0xE2u};
+    for (std::size_t lane = 0; lane < 4u; ++lane)
+        assert(cpu.readGpr(15u).bytes[lane] == subByteExpected[lane]);
+
     return 0;
 }

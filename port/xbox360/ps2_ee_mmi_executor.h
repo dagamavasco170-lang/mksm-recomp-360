@@ -137,6 +137,48 @@ enum class MmiStatus : std::uint8_t
             executed = true;
             break;
         }
+        case 0x14: // PADDSH: signed saturating packed halfword addition
+        case 0x15: // PSUBSH: signed saturating packed halfword subtraction
+        {
+            const auto &lhs = state.readGpr(instruction.rs);
+            const auto &rhs = state.readGpr(instruction.rt);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 8u; ++lane)
+            {
+                const auto a = std::bit_cast<std::int16_t>(simd::readLane<std::uint16_t>(lhs, lane));
+                const auto b = std::bit_cast<std::int16_t>(simd::readLane<std::uint16_t>(rhs, lane));
+                const std::int32_t wide = instruction.sa == 0x14u
+                    ? static_cast<std::int32_t>(a) + b
+                    : static_cast<std::int32_t>(a) - b;
+                const auto clamped = wide > INT16_MAX ? INT16_MAX
+                    : (wide < INT16_MIN ? INT16_MIN : static_cast<std::int16_t>(wide));
+                simd::writeLane<std::uint16_t>(value, lane, std::bit_cast<std::uint16_t>(clamped));
+            }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
+        case 0x18: // PADDSB: signed saturating packed byte addition
+        case 0x19: // PSUBSB: signed saturating packed byte subtraction
+        {
+            const auto &lhs = state.readGpr(instruction.rs);
+            const auto &rhs = state.readGpr(instruction.rt);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 16u; ++lane)
+            {
+                const auto a = std::bit_cast<std::int8_t>(lhs.bytes[lane]);
+                const auto b = std::bit_cast<std::int8_t>(rhs.bytes[lane]);
+                const int wide = instruction.sa == 0x18u
+                    ? static_cast<int>(a) + b
+                    : static_cast<int>(a) - b;
+                const auto clamped = wide > INT8_MAX ? INT8_MAX
+                    : (wide < INT8_MIN ? INT8_MIN : static_cast<std::int8_t>(wide));
+                value.bytes[lane] = std::bit_cast<std::uint8_t>(clamped);
+            }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
         case 0x00: // PADDW: wrapping packed 32-bit addition
         case 0x01: // PSUBW: wrapping packed 32-bit subtraction
         case 0x02: // PCGTW: signed packed greater-than word
