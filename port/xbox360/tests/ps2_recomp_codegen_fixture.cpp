@@ -209,7 +209,52 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23 entry=00100000 output="
-              << generatedCpp.string() << '\n';
+    const auto generatedHeader = generatedDir / "ps2_recompiled_functions.h";
+    std::ifstream headerInput(generatedHeader);
+    if (!headerInput)
+    {
+        std::cerr << "PS2Recomp did not produce ps2_recompiled_functions.h\n";
+        return 1;
+    }
+    const std::string headerText{
+        std::istreambuf_iterator<char>(headerInput), std::istreambuf_iterator<char>()};
+    const auto declaration = headerText.find("void ");
+    const auto nameStart = declaration == std::string::npos
+        ? std::string::npos : declaration + 5u;
+    const auto nameEnd = nameStart == std::string::npos
+        ? std::string::npos : headerText.find('(', nameStart);
+    if (nameStart == std::string::npos || nameEnd == std::string::npos ||
+        nameEnd == nameStart)
+    {
+        std::cerr << "Could not find the generated probe declaration in its header\n";
+        return 1;
+    }
+
+    const std::string entryName = headerText.substr(nameStart, nameEnd - nameStart);
+    if (source.find("void " + entryName + "(") == std::string::npos)
+    {
+        std::cerr << "Generated header entry does not match generated C++: "
+                  << entryName << '\n';
+        return 1;
+    }
+
+    const auto entryHeader = generatedDir / "mksm_generated_probe_entry.h";
+    std::ofstream entryOutput(entryHeader);
+    if (!entryOutput)
+    {
+        std::cerr << "Could not write generated probe entry adapter header\n";
+        return 1;
+    }
+    entryOutput << "#pragma once\n"
+                << "#include \"ps2_recompiled_functions.h\"\n"
+                << "#define MKSM_RECOMP_GENERATED_PROBE_ENTRY " << entryName << "\n";
+    if (!entryOutput)
+    {
+        std::cerr << "Could not finish generated probe entry adapter header\n";
+        return 1;
+    }
+
+    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23 entry=00100000 symbol="
+              << entryName << " output=" << generatedCpp.string() << '\n';
     return 0;
 }
