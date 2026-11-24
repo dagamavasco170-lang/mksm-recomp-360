@@ -191,21 +191,31 @@ int main()
 
     // MMI0 PADDW/PSUBW use wrapping arithmetic independently in each 32-bit lane.
     Vector128 wordA{}, wordB{};
-    wordA.words = {0xFFFFFFFFu, 0x7FFFFFFFu, 0x80000000u, 0x12345678u};
-    wordB.words = {0x00000001u, 0x00000001u, 0xFFFFFFFFu, 0x87654321u};
+    writeLane<std::uint32_t>(wordA, 0u, 0xFFFFFFFFu);
+    writeLane<std::uint32_t>(wordA, 1u, 0x7FFFFFFFu);
+    writeLane<std::uint32_t>(wordA, 2u, 0x80000000u);
+    writeLane<std::uint32_t>(wordA, 3u, 0x12345678u);
+    writeLane<std::uint32_t>(wordB, 0u, 0x00000001u);
+    writeLane<std::uint32_t>(wordB, 1u, 0x00000001u);
+    writeLane<std::uint32_t>(wordB, 2u, 0xFFFFFFFFu);
+    writeLane<std::uint32_t>(wordB, 3u, 0x87654321u);
     cpu.writeGpr(19u, wordA);
     cpu.writeGpr(20u, wordB);
     cpu.pc = 0x40u;
     store(ram, 0x40u, encodeMmi(19u, 20u, 21u, 0x00u, 0x08u)); // MMI0/PADDW
     result = step(cpu, ram);
     assert(result.status == StepStatus::Executed && cpu.pc == 0x44u);
-    assert((cpu.readGpr(21u).words == std::array<std::uint32_t, 4>{
-        0u, 0x80000000u, 0x7FFFFFFFu, 0x99999999u}));
+    assert(readLane<std::uint32_t>(cpu.readGpr(21u), 0u) == 0u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(21u), 1u) == 0x80000000u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(21u), 2u) == 0x7FFFFFFFu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(21u), 3u) == 0x99999999u);
     store(ram, 0x44u, encodeMmi(19u, 20u, 22u, 0x01u, 0x08u)); // MMI0/PSUBW
     result = step(cpu, ram);
     assert(result.status == StepStatus::Executed && cpu.pc == 0x48u);
-    assert((cpu.readGpr(22u).words == std::array<std::uint32_t, 4>{
-        0xFFFFFFFEu, 0x7FFFFFFEu, 0x80000001u, 0x88888888u}));
+    assert(readLane<std::uint32_t>(cpu.readGpr(22u), 0u) == 0xFFFFFFFEu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(22u), 1u) == 0x7FFFFFFEu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(22u), 2u) == 0x80000001u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(22u), 3u) == 0x88888888u);
 
     return 0;
 }
