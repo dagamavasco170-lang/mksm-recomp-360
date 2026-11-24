@@ -98,6 +98,36 @@ int main()
     assert(cpu.hilo.lo.bytes == newLo.bytes);
     assert(cpu.hilo.hi.bytes == newHi.bytes);
 
+    // MMI2 PAND/PXOR and MMI3 POR/PNOR operate on all 128 bits.
+    Vector128 bitA{}, bitB{};
+    for (std::size_t i = 0; i < 16u; ++i)
+    {
+        bitA.bytes[i] = static_cast<std::uint8_t>(0xF0u | (i & 0x0Fu));
+        bitB.bytes[i] = static_cast<std::uint8_t>(0x0Fu ^ (i & 0x07u));
+    }
+    cpu.writeGpr(11u, bitA);
+    cpu.writeGpr(12u, bitB);
+    store(ram, 0x18u, encodeMmi(11u, 12u, 13u, 0x12u, 0x09u)); // PAND
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed);
+    for (std::size_t i = 0; i < 16u; ++i)
+        assert(cpu.readGpr(13u).bytes[i] == (bitA.bytes[i] & bitB.bytes[i]));
+    store(ram, 0x1Cu, encodeMmi(11u, 12u, 14u, 0x13u, 0x09u)); // PXOR
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed);
+    for (std::size_t i = 0; i < 16u; ++i)
+        assert(cpu.readGpr(14u).bytes[i] == (bitA.bytes[i] ^ bitB.bytes[i]));
+    store(ram, 0x20u, encodeMmi(11u, 12u, 15u, 0x12u, 0x29u)); // POR
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed);
+    for (std::size_t i = 0; i < 16u; ++i)
+        assert(cpu.readGpr(15u).bytes[i] == (bitA.bytes[i] | bitB.bytes[i]));
+    store(ram, 0x24u, encodeMmi(11u, 12u, 16u, 0x13u, 0x29u)); // PNOR
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed);
+    for (std::size_t i = 0; i < 16u; ++i)
+        assert(cpu.readGpr(16u).bytes[i] == static_cast<std::uint8_t>(~(bitA.bytes[i] | bitB.bytes[i])));
+    
     // PMTHL.LW writes words 0/2 into LO and HI while preserving words 1/3.
     Vector128 pmthlSource{};
     writeLane<std::uint32_t>(pmthlSource, 0u, 0xDEADBEEFu);
