@@ -98,6 +98,38 @@ int main()
     assert(cpu.hilo.lo.bytes == newLo.bytes);
     assert(cpu.hilo.hi.bytes == newHi.bytes);
 
+    // PMTHL.LW writes words 0/2 into LO and HI while preserving words 1/3.
+    Vector128 pmthlSource{};
+    writeLane<std::uint32_t>(pmthlSource, 0u, 0xDEADBEEFu);
+    writeLane<std::uint32_t>(pmthlSource, 1u, 0xCAFEBABEu);
+    writeLane<std::uint32_t>(pmthlSource, 2u, 0x0BADF00Du);
+    writeLane<std::uint32_t>(pmthlSource, 3u, 0x8BADF00Du);
+    cpu.writeGpr(17u, pmthlSource);
+    const auto preservedLo1 = readLane<std::uint32_t>(cpu.hilo.lo, 1u);
+    const auto preservedLo3 = readLane<std::uint32_t>(cpu.hilo.lo, 3u);
+    const auto preservedHi1 = readLane<std::uint32_t>(cpu.hilo.hi, 1u);
+    const auto preservedHi3 = readLane<std::uint32_t>(cpu.hilo.hi, 3u);
+    store(ram, 0x18u, encodeMmi(17u, 0u, 0u, 0x00u, 0x31u)); // PMTHL.LW
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x1Cu);
+    assert(readLane<std::uint32_t>(cpu.hilo.lo, 0u) == 0xDEADBEEFu);
+    assert(readLane<std::uint32_t>(cpu.hilo.lo, 1u) == preservedLo1);
+    assert(readLane<std::uint32_t>(cpu.hilo.lo, 2u) == 0x0BADF00Du);
+    assert(readLane<std::uint32_t>(cpu.hilo.lo, 3u) == preservedLo3);
+    assert(readLane<std::uint32_t>(cpu.hilo.hi, 0u) == 0xCAFEBABEu);
+    assert(readLane<std::uint32_t>(cpu.hilo.hi, 1u) == preservedHi1);
+    assert(readLane<std::uint32_t>(cpu.hilo.hi, 2u) == 0x8BADF00Du);
+    assert(readLane<std::uint32_t>(cpu.hilo.hi, 3u) == preservedHi3);
+
+    // PMFHL.LW reads the same four selected words into a GPR.
+    store(ram, 0x1Cu, encodeMmi(0u, 0u, 18u, 0x00u, 0x30u)); // PMFHL.LW
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x20u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(18u), 0u) == 0xDEADBEEFu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(18u), 1u) == 0xCAFEBABEu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(18u), 2u) == 0x0BADF00Du);
+    assert(readLane<std::uint32_t>(cpu.readGpr(18u), 3u) == 0x8BADF00Du);
+
     // A supported MMI operation in a branch delay slot must retire, then branch.
     const std::uint32_t beq = (0x04u << 26u) | (1u << 21u) | (1u << 16u) | 1u;
     store(ram, 0x20u, beq);
