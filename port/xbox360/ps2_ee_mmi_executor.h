@@ -21,6 +21,46 @@ enum class MmiStatus : std::uint8_t
     if (instruction.kind != InstructionKind::Mmi)
         return MmiStatus::Unsupported;
 
+    // PMFHL/PMTHL are top-level MMI functions (0x30/0x31), not MMI2/3.
+    // The first transfer mode (sa=0) is the LW word-pair transfer.
+    if (instruction.funct == 0x30u || instruction.funct == 0x31u)
+    {
+        if (instruction.sa != 0u)
+            return MmiStatus::Unsupported;
+
+        if (instruction.funct == 0x30u) // PMFHL.LW: LO0, HI0, LO2, HI2
+        {
+            auto &destination = state.gpr[instruction.rd & 31u];
+            if ((instruction.rd & 31u) != 0u)
+            {
+                simd::writeLane<std::uint32_t>(destination, 0u,
+                    simd::readLane<std::uint32_t>(state.hilo.lo, 0u));
+                simd::writeLane<std::uint32_t>(destination, 1u,
+                    simd::readLane<std::uint32_t>(state.hilo.hi, 0u));
+                simd::writeLane<std::uint32_t>(destination, 2u,
+                    simd::readLane<std::uint32_t>(state.hilo.lo, 2u));
+                simd::writeLane<std::uint32_t>(destination, 3u,
+                    simd::readLane<std::uint32_t>(state.hilo.hi, 2u));
+            }
+        }
+        else // PMTHL.LW: partial write to LO/HI words 0 and 2
+        {
+            const auto &source = state.readGpr(instruction.rs);
+            simd::writeLane<std::uint32_t>(state.hilo.lo, 0u,
+                simd::readLane<std::uint32_t>(source, 0u));
+            simd::writeLane<std::uint32_t>(state.hilo.hi, 0u,
+                simd::readLane<std::uint32_t>(source, 1u));
+            simd::writeLane<std::uint32_t>(state.hilo.lo, 2u,
+                simd::readLane<std::uint32_t>(source, 2u));
+            simd::writeLane<std::uint32_t>(state.hilo.hi, 2u,
+                simd::readLane<std::uint32_t>(source, 3u));
+        }
+
+        state.advancePc();
+        state.recordRetiredInstruction();
+        return MmiStatus::Executed;
+    }
+
     bool executed = false;
     if (instruction.mmiSubfamily == MmiSubfamily::Mmi2)
     {
