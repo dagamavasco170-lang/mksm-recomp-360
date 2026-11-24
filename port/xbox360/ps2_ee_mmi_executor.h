@@ -86,8 +86,29 @@ enum class MmiStatus : std::uint8_t
             executed = true;
             break;
         }
-        case 0x06: // PADDB: wrapping packed byte addition
-        case 0x07: // PSUBB: wrapping packed byte subtraction
+        case 0x06: // PCGTH: signed packed halfword greater-than
+        case 0x07: // PMAXH: signed packed halfword maximum
+        {
+            const auto &lhs = state.readGpr(instruction.rs);
+            const auto &rhs = state.readGpr(instruction.rt);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 8u; ++lane)
+            {
+                const auto a = simd::readLane<std::uint16_t>(lhs, lane);
+                const auto b = simd::readLane<std::uint16_t>(rhs, lane);
+                const auto signedA = std::bit_cast<std::int16_t>(a);
+                const auto signedB = std::bit_cast<std::int16_t>(b);
+                const auto result = instruction.sa == 0x06u
+                    ? (signedA > signedB ? 0xFFFFu : 0u)
+                    : (signedA > signedB ? a : b);
+                simd::writeLane<std::uint16_t>(value, lane, static_cast<std::uint16_t>(result));
+            }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
+        case 0x08: // PADDB: wrapping packed byte addition
+        case 0x09: // PSUBB: wrapping packed byte subtraction
         {
             const auto &lhs = state.readGpr(instruction.rs);
             const auto &rhs = state.readGpr(instruction.rt);
@@ -96,10 +117,22 @@ enum class MmiStatus : std::uint8_t
             {
                 const auto a = lhs.bytes[lane];
                 const auto b = rhs.bytes[lane];
-                value.bytes[lane] = instruction.sa == 0x06u
+                value.bytes[lane] = instruction.sa == 0x08u
                     ? static_cast<std::uint8_t>(a + b)
                     : static_cast<std::uint8_t>(a - b);
             }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
+        case 0x0A: // PCGTB: signed packed byte greater-than
+        {
+            const auto &lhs = state.readGpr(instruction.rs);
+            const auto &rhs = state.readGpr(instruction.rt);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 16u; ++lane)
+                value.bytes[lane] = std::bit_cast<std::int8_t>(lhs.bytes[lane]) >
+                                   std::bit_cast<std::int8_t>(rhs.bytes[lane]) ? 0xFFu : 0u;
             state.writeGpr(instruction.rd, value);
             executed = true;
             break;

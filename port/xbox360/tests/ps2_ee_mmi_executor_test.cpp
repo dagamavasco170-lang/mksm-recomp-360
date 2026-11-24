@@ -420,18 +420,61 @@ int main()
     }
     cpu.writeGpr(10u, narrowA);
     cpu.writeGpr(11u, narrowB);
-    store(ram, 0x88u, encodeMmi(10u, 11u, 14u, 0x06u, 0x08u)); // PADDB
+    store(ram, 0x88u, encodeMmi(10u, 11u, 14u, 0x08u, 0x08u)); // PADDB
     result = step(cpu, ram);
     assert(result.status == StepStatus::Executed && cpu.pc == 0x8Cu);
     for (std::size_t lane = 0; lane < 16u; ++lane)
         assert(cpu.readGpr(14u).bytes[lane] ==
                static_cast<std::uint8_t>(narrowA.bytes[lane] + narrowB.bytes[lane]));
-    store(ram, 0x8Cu, encodeMmi(10u, 11u, 15u, 0x07u, 0x08u)); // PSUBB
+    store(ram, 0x8Cu, encodeMmi(10u, 11u, 15u, 0x09u, 0x08u)); // PSUBB
     result = step(cpu, ram);
     assert(result.status == StepStatus::Executed && cpu.pc == 0x90u);
     for (std::size_t lane = 0; lane < 16u; ++lane)
         assert(cpu.readGpr(15u).bytes[lane] ==
                static_cast<std::uint8_t>(narrowA.bytes[lane] - narrowB.bytes[lane]));
+
+    // MMI0 PCGTH/PMAXH compare signed halfwords; byte arithmetic uses 08/09.
+    Vector128 compareHalfA{}, compareHalfB{};
+    writeLane<std::uint16_t>(compareHalfA, 0u, 0xFFFFu); // -1
+    writeLane<std::uint16_t>(compareHalfA, 1u, 5u);
+    writeLane<std::uint16_t>(compareHalfA, 2u, 0x8000u); // INT16_MIN
+    writeLane<std::uint16_t>(compareHalfA, 3u, 0x7FFFu);
+    writeLane<std::uint16_t>(compareHalfB, 0u, 0u);
+    writeLane<std::uint16_t>(compareHalfB, 1u, 4u);
+    writeLane<std::uint16_t>(compareHalfB, 2u, 0xFFFFu); // -1
+    writeLane<std::uint16_t>(compareHalfB, 3u, 0x7FFFu);
+    cpu.writeGpr(10u, compareHalfA);
+    cpu.writeGpr(11u, compareHalfB);
+    cpu.pc = 0x90u;
+    store(ram, 0x90u, encodeMmi(10u, 11u, 12u, 0x06u, 0x08u)); // PCGTH
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x94u);
+    assert(readLane<std::uint16_t>(cpu.readGpr(12u), 0u) == 0u);
+    assert(readLane<std::uint16_t>(cpu.readGpr(12u), 1u) == 0xFFFFu);
+    assert(readLane<std::uint16_t>(cpu.readGpr(12u), 2u) == 0u);
+    assert(readLane<std::uint16_t>(cpu.readGpr(12u), 3u) == 0u);
+    store(ram, 0x94u, encodeMmi(10u, 11u, 13u, 0x07u, 0x08u)); // PMAXH
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x98u);
+    assert(readLane<std::uint16_t>(cpu.readGpr(13u), 0u) == 0u);
+    assert(readLane<std::uint16_t>(cpu.readGpr(13u), 1u) == 5u);
+    assert(readLane<std::uint16_t>(cpu.readGpr(13u), 2u) == 0xFFFFu);
+    assert(readLane<std::uint16_t>(cpu.readGpr(13u), 3u) == 0x7FFFu);
+
+    Vector128 compareByteA{}, compareByteB{};
+    compareByteA.bytes[0] = 0xFFu; compareByteA.bytes[1] = 0x80u;
+    compareByteA.bytes[2] = 0x7Fu; compareByteA.bytes[3] = 5u;
+    compareByteB.bytes[0] = 0u; compareByteB.bytes[1] = 0xFFu;
+    compareByteB.bytes[2] = 0x80u; compareByteB.bytes[3] = 5u;
+    cpu.writeGpr(10u, compareByteA);
+    cpu.writeGpr(11u, compareByteB);
+    store(ram, 0x98u, encodeMmi(10u, 11u, 14u, 0x0Au, 0x08u)); // PCGTB
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x9Cu);
+    assert(cpu.readGpr(14u).bytes[0] == 0u);
+    assert(cpu.readGpr(14u).bytes[1] == 0xFFu);
+    assert(cpu.readGpr(14u).bytes[2] == 0xFFu);
+    assert(cpu.readGpr(14u).bytes[3] == 0u);
 
     return 0;
 }
