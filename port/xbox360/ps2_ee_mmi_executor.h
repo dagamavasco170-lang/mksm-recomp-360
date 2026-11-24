@@ -45,6 +45,17 @@ enum class MmiStatus : std::uint8_t
             executed = true;
             break;
         }
+        case 0x14: // PMSUBH
+        {
+            const auto result = simd::pmsubh(state.readGpr(instruction.rs),
+                                             state.readGpr(instruction.rt),
+                                             state.hilo.hi, state.hilo.lo);
+            state.hilo.hi = result.hi;
+            state.hilo.lo = result.lo;
+            state.writeGpr(instruction.rd, result.destination);
+            executed = true;
+            break;
+        }
         default:
             break;
         }
