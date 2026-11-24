@@ -232,8 +232,8 @@ enum class MmiStatus : std::uint8_t
         case 0x10: // PADDUW: saturating unsigned packed word addition
         case 0x11: // PSUBUW: saturating unsigned packed word subtraction
         {
-            const &lhs = state.readGpr(instruction.rs);
-            const &rhs = state.readGpr(instruction.rt);
+            const auto &lhs = state.readGpr(instruction.rs);
+            const auto &rhs = state.readGpr(instruction.rt);
             simd::Vector128 value{};
             for (std::size_t lane = 0; lane < 4u; ++lane)
             {
