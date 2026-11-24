@@ -255,5 +255,36 @@ int main()
     assert(readLane<std::uint32_t>(cpu.readGpr(27u), 2u) == 0x80000000u);
     assert(readLane<std::uint32_t>(cpu.readGpr(27u), 3u) == 0x87654321u);
 
+    // MMI1 PABSH and PCEQB: signed absolute values (including -32768)
+    // and equality masks across sixteen byte lanes.
+    Vector128 absInput{}, byteA{}, byteB{};
+    const std::array<std::uint16_t, 8> absValues{0x8000u, 0xFFFFu, 0x7FFFu, 0x0000u,
+                                                    0xFFFEu, 0x1234u, 0xFEDCu, 0x0100u};
+    for (std::size_t lane = 0; lane < 8u; ++lane)
+        writeLane<std::uint16_t>(absInput, lane, absValues[lane]);
+    cpu.writeGpr(1u, absInput);
+    cpu.pc = 0x60u;
+    store(ram, 0x60u, encodeMmi(1u, 0u, 2u, 0x05u, 0x28u)); // PABSH
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x64u);
+    const std::array<std::uint16_t, 8> absExpected{0x8000u, 1u, 0x7FFFu, 0u,
+                                                     2u, 0x1234u, 0x0124u, 0x0100u};
+    for (std::size_t lane = 0; lane < 8u; ++lane)
+        assert(readLane<std::uint16_t>(cpu.readGpr(2u), lane) == absExpected[lane]);
+    for (std::size_t lane = 0; lane < 16u; ++lane)
+    {
+        byteA.bytes[lane] = static_cast<std::uint8_t>((lane * 13u + 0x35u) & 0xFFu);
+        byteB.bytes[lane] = static_cast<std::uint8_t>((lane % 3u == 0u)
+            ? byteA.bytes[lane] : (byteA.bytes[lane] ^ 0xFFu));
+    }
+    cpu.writeGpr(3u, byteA);
+    cpu.writeGpr(4u, byteB);
+    store(ram, 0x64u, encodeMmi(3u, 4u, 5u, 0x0Au, 0x28u)); // PCEQB
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x68u);
+    for (std::size_t lane = 0; lane < 16u; ++lane)
+        assert(cpu.readGpr(5u).bytes[lane] ==
+               (byteA.bytes[lane] == byteB.bytes[lane] ? 0xFFu : 0u));
+
     return 0;
 }

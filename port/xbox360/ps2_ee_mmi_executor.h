@@ -108,6 +108,38 @@ enum class MmiStatus : std::uint8_t
     {
         switch (instruction.sa)
         {
+        case 0x05: // PABSH: absolute signed packed halfwords
+        {
+            const auto &source = state.readGpr(instruction.rs);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 8u; ++lane)
+            {
+                const auto bits = simd::readLane<std::uint16_t>(source, lane);
+                const auto signedValue = std::bit_cast<std::int16_t>(bits);
+                const auto absolute = signedValue < 0
+                    ? static_cast<std::uint16_t>(-static_cast<std::int32_t>(signedValue))
+                    : bits;
+                simd::writeLane<std::uint16_t>(value, lane, absolute);
+            }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
+        case 0x0A: // PCEQB: packed byte equality
+        {
+            const auto &lhs = state.readGpr(instruction.rs);
+            const auto &rhs = state.readGpr(instruction.rt);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 16u; ++lane)
+            {
+                const auto a = lhs.bytes[lane];
+                const auto b = rhs.bytes[lane];
+                value.bytes[lane] = a == b ? 0xFFu : 0u;
+            }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
         case 0x06: // PCEQH: packed 16-bit equality
         case 0x07: // PMINH: signed packed 16-bit minimum
         {
