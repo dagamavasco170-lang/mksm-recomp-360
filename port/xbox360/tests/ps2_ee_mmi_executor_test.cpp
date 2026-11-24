@@ -472,7 +472,7 @@ int main()
     result = step(cpu, ram);
     assert(result.status == StepStatus::Executed && cpu.pc == 0x9Cu);
     assert(cpu.readGpr(14u).bytes[0] == 0u);
-    assert(cpu.readGpr(14u).bytes[1] == 0xFFu);
+    assert(cpu.readGpr(14u).bytes[1] == 0u); // -128 is not greater than -1
     assert(cpu.readGpr(14u).bytes[2] == 0xFFu);
     assert(cpu.readGpr(14u).bytes[3] == 0u);
 
