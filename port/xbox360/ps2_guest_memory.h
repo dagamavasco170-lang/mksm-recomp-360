@@ -10,7 +10,8 @@
 namespace ps2::xbox360::guest_memory
 {
 // These helpers model the PS2 EE's little-endian byte layout explicitly.
-// They do not map PS2 virtual addresses, I/O registers, scratchpad or VU memories.
+// The wrapped forms are for main RDRAM, whose current backing buffer is a
+// power-of-two size. Scratchpad uses the bounded forms below and never wraps.
 inline bool validWrappedRam(std::span<const uint8_t> memory) noexcept
 {
     return !memory.empty() &&
@@ -60,6 +61,44 @@ template <typename UInt>
         const auto index = static_cast<size_t>((static_cast<uint64_t>(address) + i) & mask);
         memory[index] = static_cast<uint8_t>((value >> (i * 8u)) & UInt{0xFFu});
     }
+    return true;
+}
+
+// Bounded accessors are used for regions such as the EE scratchpad. They do
+// not wrap an out-of-range access back to offset zero.
+template <typename UInt>
+    requires(std::is_integral_v<UInt> && std::is_unsigned_v<UInt> &&
+             (sizeof(UInt) == 1u || sizeof(UInt) == 2u ||
+              sizeof(UInt) == 4u || sizeof(UInt) == 8u))
+[[nodiscard]] bool readLittleEndianBounded(std::span<const uint8_t> memory,
+                                           size_t offset,
+                                           UInt &value) noexcept
+{
+    if (offset > memory.size() || sizeof(UInt) > memory.size() - offset)
+        return false;
+
+    UInt decoded = 0u;
+    for (size_t i = 0; i < sizeof(UInt); ++i)
+        decoded |= static_cast<UInt>(memory[offset + i]) << (i * 8u);
+
+    value = decoded;
+    return true;
+}
+
+template <typename UInt>
+    requires(std::is_integral_v<UInt> && std::is_unsigned_v<UInt> &&
+             (sizeof(UInt) == 1u || sizeof(UInt) == 2u ||
+              sizeof(UInt) == 4u || sizeof(UInt) == 8u))
+[[nodiscard]] bool writeLittleEndianBounded(std::span<uint8_t> memory,
+                                            size_t offset,
+                                            UInt value) noexcept
+{
+    if (offset > memory.size() || sizeof(UInt) > memory.size() - offset)
+        return false;
+
+    for (size_t i = 0; i < sizeof(UInt); ++i)
+        memory[offset + i] = static_cast<uint8_t>((value >> (i * 8u)) & UInt{0xFFu});
+
     return true;
 }
 

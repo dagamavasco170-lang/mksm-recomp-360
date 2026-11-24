@@ -28,7 +28,24 @@ struct R5900Context
 class PS2Runtime
 {
 public:
+    static constexpr std::size_t kScratchpadSize =
+        ps2::xbox360::rdram_address::kScratchpadSize;
+
     [[nodiscard]] bool eeCheckpointDue() const noexcept { return false; }
+
+    [[nodiscard]] std::span<std::uint8_t> eeScratchpad() noexcept
+    {
+        return std::span<std::uint8_t>(scratchpad_);
+    }
+
+    [[nodiscard]] std::span<const std::uint8_t> eeScratchpad() const noexcept
+    {
+        return std::span<const std::uint8_t>(scratchpad_);
+    }
+
+private:
+    // Scratchpad is per EE runtime and deliberately separate from main RDRAM.
+    std::array<std::uint8_t, kScratchpadSize> scratchpad_{};
 };
 
 namespace ps2::xbox360::generated_abi
@@ -94,6 +111,52 @@ inline void writeRdram(std::uint8_t *rdram, std::uint32_t address, UInt value)
     if (!guest_memory::writeLittleEndian(memory, offset, value))
         throw std::runtime_error("PS2 generated ABI: little-endian RDRAM write failed");
 }
+
+template <typename UInt>
+[[nodiscard]] inline UInt readGuestMemory(const std::uint8_t *rdram,
+                                          PS2Runtime *runtime,
+                                          std::uint32_t address)
+{
+    if (rdram == nullptr)
+        throw std::invalid_argument("PS2 generated ABI: null RDRAM pointer");
+
+    if (rdram_address::classifyRegion(address) != rdram_address::RegionKind::Scratchpad)
+        return readRdram<UInt>(rdram, address);
+
+    if (runtime == nullptr)
+        throw std::invalid_argument("PS2 generated ABI: scratchpad access requires an EE runtime");
+
+    UInt value{};
+    const auto offset = static_cast<std::size_t>(
+        address - rdram_address::kScratchpadBase);
+    if (!guest_memory::readLittleEndianBounded(runtime->eeScratchpad(), offset, value))
+        throw std::out_of_range("PS2 generated ABI: scratchpad read crosses its 16 KiB boundary");
+    return value;
+}
+
+template <typename UInt>
+inline void writeGuestMemory(std::uint8_t *rdram,
+                             PS2Runtime *runtime,
+                             std::uint32_t address,
+                             UInt value)
+{
+    if (rdram == nullptr)
+        throw std::invalid_argument("PS2 generated ABI: null RDRAM pointer");
+
+    if (rdram_address::classifyRegion(address) != rdram_address::RegionKind::Scratchpad)
+    {
+        writeRdram<UInt>(rdram, address, value);
+        return;
+    }
+
+    if (runtime == nullptr)
+        throw std::invalid_argument("PS2 generated ABI: scratchpad access requires an EE runtime");
+
+    const auto offset = static_cast<std::size_t>(
+        address - rdram_address::kScratchpadBase);
+    if (!guest_memory::writeLittleEndianBounded(runtime->eeScratchpad(), offset, value))
+        throw std::out_of_range("PS2 generated ABI: scratchpad write crosses its 16 KiB boundary");
+}
 } // namespace ps2::xbox360::generated_abi
 
 // 32-bit EE arithmetic wraps modulo 2^32 on ADDIU/ADDU.
@@ -127,25 +190,26 @@ inline void writeRdram(std::uint8_t *rdram, std::uint32_t address, UInt value)
 
 #define SET_GPR_S64(ctx_ptr, reg_idx, value) SET_GPR_U64((ctx_ptr), (reg_idx), (value))
 
-// Scalar EE memory operations are explicitly little-endian after resolving a
-// documented RDRAM virtual window. Vector loads/stores and special regions remain unsupported.
+// Scalar EE memory operations route RDRAM windows to little-endian RDRAM and
+// the 16 KiB scratchpad to separate per-runtime storage. Other special regions
+// remain explicitly unsupported.
 #define READ8(addr) \
-    (::ps2::xbox360::generated_abi::readRdram<std::uint8_t>((rdram), static_cast<std::uint32_t>(addr)))
+    (::ps2::xbox360::generated_abi::readGuestMemory<std::uint8_t>((rdram), (runtime), static_cast<std::uint32_t>(addr)))
 #define READ16(addr) \
-    (::ps2::xbox360::generated_abi::readRdram<std::uint16_t>((rdram), static_cast<std::uint32_t>(addr)))
+    (::ps2::xbox360::generated_abi::readGuestMemory<std::uint16_t>((rdram), (runtime), static_cast<std::uint32_t>(addr)))
 #define READ32(addr) \
-    (::ps2::xbox360::generated_abi::readRdram<std::uint32_t>((rdram), static_cast<std::uint32_t>(addr)))
+    (::ps2::xbox360::generated_abi::readGuestMemory<std::uint32_t>((rdram), (runtime), static_cast<std::uint32_t>(addr)))
 #define READ64(addr) \
-    (::ps2::xbox360::generated_abi::readRdram<std::uint64_t>((rdram), static_cast<std::uint32_t>(addr)))
+    (::ps2::xbox360::generated_abi::readGuestMemory<std::uint64_t>((rdram), (runtime), static_cast<std::uint32_t>(addr)))
 
 #define WRITE8(addr, value) \
-    (::ps2::xbox360::generated_abi::writeRdram<std::uint8_t>((rdram), static_cast<std::uint32_t>(addr), static_cast<std::uint8_t>(value)))
+    (::ps2::xbox360::generated_abi::writeGuestMemory<std::uint8_t>((rdram), (runtime), static_cast<std::uint32_t>(addr), static_cast<std::uint8_t>(value)))
 #define WRITE16(addr, value) \
-    (::ps2::xbox360::generated_abi::writeRdram<std::uint16_t>((rdram), static_cast<std::uint32_t>(addr), static_cast<std::uint16_t>(value)))
+    (::ps2::xbox360::generated_abi::writeGuestMemory<std::uint16_t>((rdram), (runtime), static_cast<std::uint32_t>(addr), static_cast<std::uint16_t>(value)))
 #define WRITE32(addr, value) \
-    (::ps2::xbox360::generated_abi::writeRdram<std::uint32_t>((rdram), static_cast<std::uint32_t>(addr), static_cast<std::uint32_t>(value)))
+    (::ps2::xbox360::generated_abi::writeGuestMemory<std::uint32_t>((rdram), (runtime), static_cast<std::uint32_t>(addr), static_cast<std::uint32_t>(value)))
 #define WRITE64(addr, value) \
-    (::ps2::xbox360::generated_abi::writeRdram<std::uint64_t>((rdram), static_cast<std::uint32_t>(addr), static_cast<std::uint64_t>(value)))
+    (::ps2::xbox360::generated_abi::writeGuestMemory<std::uint64_t>((rdram), (runtime), static_cast<std::uint32_t>(addr), static_cast<std::uint64_t>(value)))
 
 #define FAST_READ8(addr) READ8(addr)
 #define FAST_READ16(addr) READ16(addr)
