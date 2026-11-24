@@ -46,7 +46,7 @@ Keep the existing desktop build as the correctness/reference backend. Add an iso
 |---|---|---|
 | Recompiled game code | Generate/compile the retail EE translation for 32-bit big-endian PowerPC | Compiler language support, ABI, floating-point behavior and generated-code size |
 | EE runtime | Port the minimum runtime helpers, exceptions, threads, DMA and EE state used by generated code | Existing runtime assumes desktop C++20 facilities |
-| Guest memory | Little-endian scalar accessors resolve the documented default, uncached and accelerated 32 MiB RDRAM windows plus limited KSEG aliases; a table-driven test checks supported mappings and rejected special/unmapped regions | Full TLB, scratchpad, I/O/GS/VU, IOP, DMA and 128-bit semantics |
+| Guest memory | Little-endian scalar accessors resolve the documented RDRAM windows and limited KSEG aliases; the generated ABI also has separate bounded 16 KiB per-runtime scratchpad scalar access with host tests | Full TLB, scratchpad DMA/DMAC, I/O/GS/VU, IOP and 128-bit semantics |
 | GS graphics | New adapter from the project's GS command/state model to xSDK's native Xenos GPU API | PS2 GS blending, depth, texture formats, CLUTs, transfers and effects |
 | IOP/services | Port the required SIF/RPC, sound and file services incrementally | Threading, audio decoder and filesystem dependencies |
 | Audio | xSDK PCM output initially; evaluate FAudio-xenon for mixing | Timing, resampling, ADPCM and streaming |
