@@ -42,6 +42,7 @@ if(MKSM_XBOX360_GENERATED_DIR)
     )
     target_include_directories(mksm_xbox360_smoke PRIVATE
         "${MKSM_XBOX360_GENERATED_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests"
     )
     target_compile_definitions(mksm_xbox360_smoke PRIVATE
         PS2X_GENERATED_RUNTIME_ABI=1
