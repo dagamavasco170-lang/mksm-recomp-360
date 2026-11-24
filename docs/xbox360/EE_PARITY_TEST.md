@@ -41,10 +41,16 @@ The golden signature is enforced by the test itself. A non-zero failure mask ind
 
 The host test runs as part of .github/workflows/xbox360-tests.yml. The same runDeterministicTrace() function is called by port/xbox360/smoke.cpp, so the XEX writes the same MKSM_EE_TRACE line to mksm_xbox360_smoke.log at startup.
 
+## PS2Recomp-generated execution probe
+
+A second focused workflow, .github/workflows/xbox360-codegen.yml, sends a scalar test through the real PS2Recomp pipeline. It writes a synthetic little-endian MIPS ELF, calls PS2Recompiler::initialize/recompile/generateOutput, compiles the emitted C++ with the desktop runtime headers, and executes that generated function against an R5900Context. The probe reuses the first four words from the shared EE test program and adds ADDIU, ADDU, a taken BEQ with its delay slot, and JR RA. It checks the generated GPR results and return PC.
+
+This validates a real generated function on the desktop reference runtime. It does not yet compile or execute that generated function for Xenon, and it deliberately excludes memory/MMIO and MMI instructions from this narrower code-generation gate.
+
 ## What this proves — and does not prove
 
 The host test proves that the currently implemented dispatcher operations produce the documented state on the portable build. The xSDK smoke workflow proves the same source compiles into a 32-bit big-endian PowerPC XEX.
 
 **The cross-target execution result is still pending:** the newly built XEX must be launched on an RGH/JTAG console and its signature compared with the host's 4F63CD2AAFC519CE. A successful XEX build is not proof that the probe ran on Xenon.
 
-Even after that hardware check, this remains a dispatcher portability test, not a complete desktop-vs-PowerPC runtime comparison. The next stronger X3 gate is a test program produced by the real PS2Recomp generation pipeline and compared against the desktop runtime, including the actual helper calls and runtime state it uses.
+The generated-code workflow adds a desktop execution check for a scalar function produced by PS2Recomp. The existing desktop runtime still uses the SSE-based R5900Context ABI, while the Xbox target has a separate experimental CpuState/dispatcher. The next target-side gate is to port the generated-code runtime ABI/helpers to PPC and link this same generated probe into the XEX. The physical Xbox run of the dispatcher trace also remains pending.

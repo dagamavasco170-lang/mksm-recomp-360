@@ -49,6 +49,27 @@ constexpr std::uint32_t mmi(std::uint8_t rs, std::uint8_t rt,
            (static_cast<std::uint32_t>(sa) << 6u) | function;
 }
 
+inline constexpr std::array<std::uint32_t, 18> kProgramWords{
+    iType(0x0Fu, 0u, 1u, 0x1234u),
+    iType(0x0Du, 1u, 1u, 0x5678u),
+    iType(0x09u, 1u, 2u, 0xFFFFu),
+    iType(0x0Eu, 2u, 3u, 0x00FFu),
+    iType(0x2Bu, 0u, 3u, 0x0080u),
+    iType(0x23u, 0u, 4u, 0x0080u),
+    rType(3u, 4u, 5u, 0x21u),
+    iType(0x04u, 3u, 4u, 0x0002u),
+    iType(0x09u, 0u, 6u, 0x0009u),
+    iType(0x09u, 0u, 7u, 0x0063u),
+    iType(0x09u, 6u, 7u, 0x0003u),
+    mmi(5u, 0u, 0u, 0x08u, 0x29u), // PMTHI
+    mmi(4u, 0u, 0u, 0x09u, 0x29u), // PMTLO
+    mmi(0u, 0u, 8u, 0x08u, 0x09u), // PMFHI
+    mmi(0u, 0u, 9u, 0x09u, 0x09u), // PMFLO
+    mmi(1u, 2u, 10u, 0x10u, 0x09u), // PMADDH
+    iType(0x2Bu, 0u, 10u, 0x0090u),
+    iType(0x23u, 0u, 11u, 0x0090u)
+};
+
 inline void hashByte(std::uint64_t &hash, std::uint8_t byte) noexcept
 {
     hash ^= byte;
@@ -86,26 +107,7 @@ inline void hashU64(std::uint64_t &hash, std::uint64_t value) noexcept
     // 2C PMTHI r5          30 PMTLO r4         34 PMFHI r8
     // 38 PMFLO r9          3C PMADDH r10,r1,r2 40 SW r10,90(r0)
     // 44 LW r11,90(r0)
-    constexpr std::array<std::uint32_t, 18> program{
-        iType(0x0Fu, 0u, 1u, 0x1234u),
-        iType(0x0Du, 1u, 1u, 0x5678u),
-        iType(0x09u, 1u, 2u, 0xFFFFu),
-        iType(0x0Eu, 2u, 3u, 0x00FFu),
-        iType(0x2Bu, 0u, 3u, 0x0080u),
-        iType(0x23u, 0u, 4u, 0x0080u),
-        rType(3u, 4u, 5u, 0x21u),
-        iType(0x04u, 3u, 4u, 0x0002u),
-        iType(0x09u, 0u, 6u, 0x0009u),
-        iType(0x09u, 0u, 7u, 0x0063u),
-        iType(0x09u, 6u, 7u, 0x0003u),
-        mmi(5u, 0u, 0u, 0x08u, 0x29u), // PMTHI
-        mmi(4u, 0u, 0u, 0x09u, 0x29u), // PMTLO
-        mmi(0u, 0u, 8u, 0x08u, 0x09u), // PMFHI
-        mmi(0u, 0u, 9u, 0x09u, 0x09u), // PMFLO
-        mmi(1u, 2u, 10u, 0x10u, 0x09u), // PMADDH
-        iType(0x2Bu, 0u, 10u, 0x0090u),
-        iType(0x23u, 0u, 11u, 0x0090u)
-    };
+    const auto &program = kProgramWords;
 
     const auto memory = std::span<std::uint8_t>(ram);
     for (std::size_t i = 0; i < program.size(); ++i)
