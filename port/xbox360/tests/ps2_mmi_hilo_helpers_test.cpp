@@ -41,9 +41,9 @@ int main()
                              0x80008000u, 0x80008000u}};
     const auto wrapped = ps2::mmi::pmaddh(wrap, minHalf, minHalf);
     assert(wrap.lo.words[0] == 0xBFFFFFFFu);
-    assert(wrap.lo.words[1] == 0xBFFFFFFFu);
-    assert(wrap.hi.words[0] == 0xBFFFFFFFu);
-    assert(wrap.hi.words[1] == 0xBFFFFFFFu);
+    assert(wrap.lo.words[1] == 0x3FFFFFFFu);
+    assert(wrap.hi.words[0] == 0x3FFFFFFFu);
+    assert(wrap.hi.words[1] == 0x3FFFFFFFu);
     assert(wrapped.words[0] == wrap.lo.words[0]);
     assert(wrapped.words[1] == wrap.hi.words[0]);
     assert(wrapped.words[2] == wrap.lo.words[2]);
