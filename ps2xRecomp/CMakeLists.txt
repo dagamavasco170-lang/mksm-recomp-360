@@ -170,7 +170,8 @@ if(PS2X_BUILD_XBOX360_CODEGEN_PROBE)
         "${MKSM_XBOX360_CODEGEN_DIR}/generated"
         "${CMAKE_SOURCE_DIR}/ps2xRuntime/include"
         "${CMAKE_SOURCE_DIR}/ps2xIOP/include"
-        "${CMAKE_SOURCE_DIR}/ps2xRuntime/src/lib")
+        "${CMAKE_SOURCE_DIR}/ps2xRuntime/src/lib"
+        "${CMAKE_SOURCE_DIR}/ps2xRuntime/src/lib/Kernel")
     target_compile_features(mksm_xbox360_codegen_probe PRIVATE cxx_std_20)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT APPLE)
         target_compile_options(mksm_xbox360_codegen_probe PRIVATE -msse4.1)

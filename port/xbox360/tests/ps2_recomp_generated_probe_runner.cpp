@@ -10,18 +10,19 @@ int main()
     constexpr std::uint32_t returnPc = 0xCAFE1234u;
     std::vector<std::uint8_t> rdram(PS2_RAM_SIZE, 0u);
     R5900Context context{};
-    SET_GPR_U32(&context, 31, returnPc);
+    R5900Context *ctx = &context;
+    SET_GPR_U32(ctx, 31, returnPc);
 
-    mksm_ee_codegen_probe_0x100000(rdram.data(), &context, nullptr);
+    mksm_ee_codegen_probe_0x100000(rdram.data(), ctx, nullptr);
 
     std::uint32_t failures = 0u;
-    const std::uint32_t r1 = GPR_U32(&context, 1);
-    const std::uint32_t r2 = GPR_U32(&context, 2);
-    const std::uint32_t r3 = GPR_U32(&context, 3);
-    const std::uint32_t r4 = GPR_U32(&context, 4);
-    const std::uint32_t r5 = GPR_U32(&context, 5);
-    const std::uint32_t r6 = GPR_U32(&context, 6);
-    const std::uint32_t r7 = GPR_U32(&context, 7);
+    const std::uint32_t r1 = GPR_U32(ctx, 1);
+    const std::uint32_t r2 = GPR_U32(ctx, 2);
+    const std::uint32_t r3 = GPR_U32(ctx, 3);
+    const std::uint32_t r4 = GPR_U32(ctx, 4);
+    const std::uint32_t r5 = GPR_U32(ctx, 5);
+    const std::uint32_t r6 = GPR_U32(ctx, 6);
+    const std::uint32_t r7 = GPR_U32(ctx, 7);
 
     if (r1 != 0x12345678u || r2 != 0x12345677u || r3 != 0x12345688u)
         failures |= 1u << 0u;
