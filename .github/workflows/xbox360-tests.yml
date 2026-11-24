@@ -50,6 +50,7 @@ jobs:
             "build/host-tests/$name"
           }
           compile_run ps2_rdram_address_test -Iport/xbox360 port/xbox360/tests/ps2_rdram_address_test.cpp
+          compile_run ps2_generated_abi_memory_test -Iport/xbox360 port/xbox360/tests/ps2_generated_abi_memory_test.cpp
           compile_run ps2_guest_memory_test -Iport/xbox360 port/xbox360/tests/ps2_guest_memory_test.cpp
           compile_run ps2_mmi_hilo_state_test -Iport/xbox360 port/xbox360/tests/ps2_mmi_hilo_state_test.cpp
           compile_run ps2_mmi_hilo_transfers_test -Iport/xbox360 port/xbox360/tests/ps2_mmi_hilo_transfers_test.cpp
