@@ -186,7 +186,8 @@ if(PS2X_BUILD_XBOX360_CODEGEN_PROBE)
         "${CMAKE_SOURCE_DIR}/port/xbox360/tests/ps2_recomp_generated_memory_probe_runner.cpp")
     target_include_directories(mksm_xbox360_codegen_memory_probe PRIVATE
         "${MKSM_XBOX360_CODEGEN_DIR}/generated"
-        "${CMAKE_SOURCE_DIR}/port/xbox360")
+        "${CMAKE_SOURCE_DIR}/port/xbox360"
+        "${CMAKE_SOURCE_DIR}/ps2xRuntime/include")
     target_compile_definitions(mksm_xbox360_codegen_memory_probe PRIVATE
         PS2X_GENERATED_RUNTIME_ABI=1)
     target_compile_features(mksm_xbox360_codegen_memory_probe PRIVATE cxx_std_20)
