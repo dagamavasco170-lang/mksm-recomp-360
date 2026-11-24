@@ -121,6 +121,14 @@ int main()
                0x1234ABCDu,
            "guest-memory dispatcher preserves RDRAM mappings");
 
+    // Exercise the exact memory macros emitted by PS2Recomp as well.
+    WRITE32(0x70000020u, 0x89ABCDEFu);
+    expect(READ32(0x70000020u) == 0x89ABCDEFu,
+           "generated READ32/WRITE32 macros route to scratchpad");
+    FAST_WRITE16(0x70000024u, 0x1357u);
+    expect(FAST_READ16(0x70000024u) == 0x1357u,
+           "generated FAST_READ/FAST_WRITE macros route to scratchpad");
+
     std::printf("MKSM_GENERATED_ABI_MEMORY_TEST cases=%u failures=%u\n",
                 static_cast<unsigned>(cases), static_cast<unsigned>(failures));
     return failures == 0u ? 0 : 1;
