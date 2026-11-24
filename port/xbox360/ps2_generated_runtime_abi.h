@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ps2_guest_memory.h"
+#include "ps2_rdram_address.h"
 #include "ps2_recompiled_functions.h"
 
 #include <array>
@@ -59,34 +60,12 @@ inline void setGprLow64(R5900Context *ctx, std::uint32_t index,
         ctx->r[index].low64 = value;
 }
 
-// Resolve only ordinary RDRAM windows. Scratchpad, BIOS, I/O, VU and GS
-// regions must not silently alias into RAM; those need their own runtime.
+// Keep virtual-window decoding separate from endian-safe byte access so the
+// accepted aliases can be tested without pulling in generated code.
 [[nodiscard]] inline std::uint32_t resolveRdramOffset(std::uint32_t address)
 {
-    std::uint32_t physical = 0u;
-    if (address < 0x20000000u)
-    {
-        physical = address;
-    }
-    else if ((address >= 0x20000000u && address < 0x40000000u) ||
-             (address >= 0x80000000u && address < 0xC0000000u))
-    {
-        physical = address & 0x1FFFFFFFu;
-    }
-    else
-    {
-        throw std::out_of_range("PS2 generated ABI: address is outside supported RDRAM windows");
-    }
-
-    const bool isSpecialRegion =
-        (physical >= 0x10000000u && physical < 0x10010000u) ||
-        (physical >= 0x11000000u && physical < 0x11010000u) ||
-        (physical >= 0x12000000u && physical < 0x12002000u) ||
-        (physical >= 0x1FC00000u);
-    if (isSpecialRegion)
-        throw std::out_of_range("PS2 generated ABI: I/O, VU, GS and BIOS memory are not implemented");
-
-    return physical & kGuestRdramMask;
+    static_assert(kGuestRdramSize == rdram_address::kRdramSize);
+    return rdram_address::resolveOffset(address);
 }
 
 template <typename UInt>
@@ -148,8 +127,8 @@ inline void writeRdram(std::uint8_t *rdram, std::uint32_t address, UInt value)
 
 #define SET_GPR_S64(ctx_ptr, reg_idx, value) SET_GPR_U64((ctx_ptr), (reg_idx), (value))
 
-// Scalar EE memory operations are explicitly little-endian and wrap at 32 MiB.
-// 128-bit vector loads/stores and special regions remain unsupported.
+// Scalar EE memory operations are explicitly little-endian after resolving a
+// documented RDRAM virtual window. Vector loads/stores and special regions remain unsupported.
 #define READ8(addr) \
     (::ps2::xbox360::generated_abi::readRdram<std::uint8_t>((rdram), static_cast<std::uint32_t>(addr)))
 #define READ16(addr) \
