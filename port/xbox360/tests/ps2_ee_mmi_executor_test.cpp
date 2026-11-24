@@ -286,5 +286,33 @@ int main()
         assert(cpu.readGpr(5u).bytes[lane] ==
                (byteA.bytes[lane] == byteB.bytes[lane] ? 0xFFu : 0u));
 
+    // MMI0 PADDSW/PSUBSW saturate signed 32-bit lanes at both bounds.
+    Vector128 satA{}, satB{};
+    writeLane<std::uint32_t>(satA, 0u, 0x7FFFFFFFu);
+    writeLane<std::uint32_t>(satA, 1u, 0x80000000u);
+    writeLane<std::uint32_t>(satA, 2u, 0x00000010u);
+    writeLane<std::uint32_t>(satA, 3u, 0xFFFFFFF0u);
+    writeLane<std::uint32_t>(satB, 0u, 1u);
+    writeLane<std::uint32_t>(satB, 1u, 0xFFFFFFFFu);
+    writeLane<std::uint32_t>(satB, 2u, 0xFFFFFFF0u);
+    writeLane<std::uint32_t>(satB, 3u, 0x00000010u);
+    cpu.writeGpr(6u, satA);
+    cpu.writeGpr(7u, satB);
+    cpu.pc = 0x70u;
+    store(ram, 0x70u, encodeMmi(6u, 7u, 8u, 0x10u, 0x08u)); // PADDSW
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x74u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(8u), 0u) == 0x7FFFFFFFu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(8u), 1u) == 0x80000000u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(8u), 2u) == 0u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(8u), 3u) == 0u);
+    store(ram, 0x74u, encodeMmi(6u, 7u, 9u, 0x11u, 0x08u)); // PSUBSW
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x78u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(9u), 0u) == 0x7FFFFFFEu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(9u), 1u) == 0x80000000u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(9u), 2u) == 0x20u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(9u), 3u) == 0xFFFFFFE0u);
+
     return 0;
 }

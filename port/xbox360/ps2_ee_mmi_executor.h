@@ -71,6 +71,8 @@ enum class MmiStatus : std::uint8_t
         case 0x01: // PSUBW: wrapping packed 32-bit subtraction
         case 0x02: // PCGTW: signed packed greater-than word
         case 0x03: // PMAXW: signed packed maximum word
+        case 0x10: // PADDSW: signed saturating packed word addition
+        case 0x11: // PSUBSW: signed saturating packed word subtraction
         {
             const auto &lhs = state.readGpr(instruction.rs);
             const auto &rhs = state.readGpr(instruction.rt);
@@ -92,6 +94,19 @@ enum class MmiStatus : std::uint8_t
                     result = std::bit_cast<std::int32_t>(a) >
                              std::bit_cast<std::int32_t>(b) ? a : b;
                     break;
+                case 0x10:
+                case 0x11:
+                {
+                    const auto signedA = std::bit_cast<std::int32_t>(a);
+                    const auto signedB = std::bit_cast<std::int32_t>(b);
+                    const std::int64_t wide = instruction.sa == 0x10u
+                        ? static_cast<std::int64_t>(signedA) + signedB
+                        : static_cast<std::int64_t>(signedA) - signedB;
+                    const auto clamped = wide > INT32_MAX ? INT32_MAX
+                        : (wide < INT32_MIN ? INT32_MIN : static_cast<std::int32_t>(wide));
+                    result = std::bit_cast<std::uint32_t>(clamped);
+                    break;
+                }
                 default: break;
                 }
                 simd::writeLane<std::uint32_t>(value, lane, result);
