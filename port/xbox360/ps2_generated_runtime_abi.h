@@ -53,6 +53,10 @@ inline void setGprLow64(R5900Context *ctx, std::uint32_t index,
 }
 } // namespace ps2::xbox360::generated_abi
 
+// 32-bit EE arithmetic wraps modulo 2^32 on ADDIU/ADDU.
+#define ADD32(lhs, rhs) \
+    (static_cast<std::uint32_t>(static_cast<std::uint32_t>(lhs) + static_cast<std::uint32_t>(rhs)))
+
 #define GPR_U32(ctx_ptr, reg_idx) \
     (::ps2::xbox360::generated_abi::gprU32((ctx_ptr), static_cast<std::uint32_t>(reg_idx)))
 #define GPR_U64(ctx_ptr, reg_idx) \

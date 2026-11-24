@@ -34,6 +34,12 @@ if(MKSM_XBOX360_GENERATED_DIR)
         "${MKSM_XBOX360_GENERATED_DIR}/ps2_recompiled_functions.cpp"
         "ps2_recomp_generated_xenon_probe.cpp"
     )
+    # Generated functions have the common runtime ABI parameters even when a
+    # focused scalar probe does not touch RDRAM or the runtime object.
+    set_source_files_properties(
+        "${MKSM_XBOX360_GENERATED_DIR}/ps2_recompiled_functions.cpp"
+        PROPERTIES COMPILE_OPTIONS "-Wno-unused-parameter"
+    )
     target_include_directories(mksm_xbox360_smoke PRIVATE
         "${MKSM_XBOX360_GENERATED_DIR}"
     )
