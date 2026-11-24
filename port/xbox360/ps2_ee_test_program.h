@@ -140,9 +140,12 @@ inline void hashU64(std::uint64_t &hash, std::uint64_t value) noexcept
         readLane<std::uint32_t>(cpu.readGpr(5u), 0u) == 0x2468AD10u &&
         readLane<std::uint32_t>(cpu.readGpr(6u), 0u) == 9u &&
         readLane<std::uint32_t>(cpu.readGpr(7u), 0u) == 12u;
+    // PMFHI/PMFLO run before PMADDH, so r8/r9 retain the pre-accumulate snapshots.
+    const auto expectedHiSnapshot = scalarVector(0x2468AD10u);
+    const auto expectedLoSnapshot = scalarVector(0x12345688u);
     const bool hiloTransfersMatch =
-        cpu.readGpr(8u).bytes == cpu.hilo.hi.bytes &&
-        cpu.readGpr(9u).bytes == cpu.hilo.lo.bytes;
+        cpu.readGpr(8u).bytes == expectedHiSnapshot.bytes &&
+        cpu.readGpr(9u).bytes == expectedLoSnapshot.bytes;
     const bool pmaddhRegistersMatch =
         readLane<std::uint32_t>(cpu.readGpr(10u), 0u) == 0x2F68D850u &&
         readLane<std::uint32_t>(cpu.readGpr(10u), 1u) == 0x2468AD10u &&
