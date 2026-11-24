@@ -96,6 +96,16 @@ enum class MmiStatus : std::uint8_t
             executed = true;
             break;
         }
+        case 0x12: // PAND
+            state.writeGpr(instruction.rd, simd::bitAnd(state.readGpr(instruction.rs),
+                                                       state.readGpr(instruction.rt)));
+            executed = true;
+            break;
+        case 0x13: // PXOR
+            state.writeGpr(instruction.rd, simd::bitXor(state.readGpr(instruction.rs),
+                                                       state.readGpr(instruction.rt)));
+            executed = true;
+            break;
         default:
             break;
         }
@@ -110,6 +120,16 @@ enum class MmiStatus : std::uint8_t
             break;
         case 0x09: // PMTLO
             state.pmtlo(instruction.rs);
+            executed = true;
+            break;
+        case 0x12: // POR
+            state.writeGpr(instruction.rd, simd::bitOr(state.readGpr(instruction.rs),
+                                                      state.readGpr(instruction.rt)));
+            executed = true;
+            break;
+        case 0x13: // PNOR
+            state.writeGpr(instruction.rd, simd::bitNor(state.readGpr(instruction.rs),
+                                                       state.readGpr(instruction.rt)));
             executed = true;
             break;
         default:
