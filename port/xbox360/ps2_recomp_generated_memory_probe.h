@@ -46,7 +46,8 @@ struct Ps2GeneratedMemoryProbeResult
     R5900Context context{};
     PS2Runtime *runtime = nullptr;
     SET_GPR_U32(&context, 31u, kReturnPc);
-    SET_GPR_U32(&context, 8u, 0x01FFFFF8u); // Last aligned RDRAM word; later ops verify mirrored aliases.
+    SET_GPR_U32(&context, 8u, 0x01FFFFF8u); // Last aligned word in the default RDRAM window.
+    SET_GPR_U32(&context, 20u, 0x20000000u); // Base of the documented uncached 32 MiB RDRAM alias.
     SET_GPR_U32(&context, 9u, 0xA1B2C3D4u);
     SET_GPR_U64(&context, 14u, 0x0123456789ABCDEFull);
     SET_GPR_U32(&context, 16u, 0x5Au);
