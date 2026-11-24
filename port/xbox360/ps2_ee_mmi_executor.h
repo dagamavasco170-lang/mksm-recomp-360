@@ -160,6 +160,23 @@ enum class MmiStatus : std::uint8_t
     {
         switch (instruction.sa)
         {
+        case 0x01: // PABSW: saturating absolute signed packed words
+        {
+            const auto &source = state.readGpr(instruction.rt);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 4u; ++lane)
+            {
+                const auto bits = simd::readLane<std::uint32_t>(source, lane);
+                const auto signedValue = std::bit_cast<std::int32_t>(bits);
+                const auto absolute = signedValue == INT32_MIN ? INT32_MAX
+                    : (signedValue < 0 ? -signedValue : signedValue);
+                simd::writeLane<std::uint32_t>(value, lane,
+                    std::bit_cast<std::uint32_t>(absolute));
+            }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
         case 0x05: // PABSH: absolute signed packed halfwords
         {
             const auto &source = state.readGpr(instruction.rs);

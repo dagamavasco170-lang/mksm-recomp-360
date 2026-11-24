@@ -255,6 +255,22 @@ int main()
     assert(readLane<std::uint32_t>(cpu.readGpr(27u), 2u) == 0x80000000u);
     assert(readLane<std::uint32_t>(cpu.readGpr(27u), 3u) == 0x87654321u);
 
+    // MMI1 PABSW saturates INT_MIN to INT_MAX without an exception.
+    Vector128 absWordInput{};
+    writeLane<std::uint32_t>(absWordInput, 0u, 0x80000000u);
+    writeLane<std::uint32_t>(absWordInput, 1u, 0xFFFFFFFDu);
+    writeLane<std::uint32_t>(absWordInput, 2u, 0x7FFFFFFFu);
+    writeLane<std::uint32_t>(absWordInput, 3u, 0u);
+    cpu.writeGpr(1u, absWordInput);
+    cpu.pc = 0x5Cu;
+    store(ram, 0x5Cu, encodeMmi(0u, 1u, 2u, 0x01u, 0x28u)); // PABSW
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x60u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(2u), 0u) == 0x7FFFFFFFu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(2u), 1u) == 3u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(2u), 2u) == 0x7FFFFFFFu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(2u), 3u) == 0u);
+
     // MMI1 PABSH and PCEQB: signed absolute values (including -32768)
     // and equality masks across sixteen byte lanes.
     Vector128 absInput{}, byteA{}, byteB{};
