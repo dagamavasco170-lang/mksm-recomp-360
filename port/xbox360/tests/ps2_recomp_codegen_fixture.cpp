@@ -71,7 +71,7 @@ constexpr std::array<std::uint32_t, 15> makeScratchpadProbeWords()
     };
 }
 
-constexpr std::array<std::uint32_t, 9> makeMmiProbeWords()
+constexpr std::array<std::uint32_t, 12> makeMmiProbeWords()
 {
     using namespace ps2::xbox360::ee::test_program::detail;
     return {
@@ -80,8 +80,11 @@ constexpr std::array<std::uint32_t, 9> makeMmiProbeWords()
         mmi(0u, 0u, 3u, 0x08u, 0x09u), // PMFHI r3: read all 128 HI bits
         mmi(0u, 0u, 4u, 0x09u, 0x09u), // PMFLO r4: read all 128 LO bits
         mmi(5u, 6u, 7u, 0x10u, 0x09u), // PMADDH r7,r5,r6: eight independent accumulators
-        mmi(0u, 0u, 8u, 0x08u, 0x09u), // PMFHI r8: inspect updated HI bank
-        mmi(0u, 0u, 9u, 0x09u, 0x09u), // PMFLO r9: inspect updated LO bank
+        mmi(0u, 0u, 8u, 0x08u, 0x09u), // PMFHI r8: inspect PMADDH HI bank
+        mmi(0u, 0u, 9u, 0x09u, 0x09u), // PMFLO r9: inspect PMADDH LO bank
+        mmi(5u, 6u, 12u, 0x14u, 0x09u), // PMSUBH r12,r5,r6: subtract each product lane
+        mmi(0u, 0u, 10u, 0x08u, 0x09u), // PMFHI r10: verify HI restored
+        mmi(0u, 0u, 11u, 0x09u, 0x09u), // PMFLO r11: verify LO restored
         rType(31u, 0u, 0u, 0x08u),      // JR r31
         0u                               // delay slot: NOP
     };
@@ -258,6 +261,7 @@ int main(int argc, char **argv)
             "Ps2MmiPmfhi(ctx, 3);",
             "Ps2MmiPmflo(ctx, 4);",
             "Ps2MmiPmaddh(ctx, 5, 6, 7);",
+            "Ps2MmiPmsubh(ctx, 5, 6, 12);",
             "Ps2MmiPmfhi(ctx, 8);",
             "Ps2MmiPmflo(ctx, 9);",
             "SET_GPR_S32(ctx, 1",
@@ -353,7 +357,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+15+9 entry=00100000/00100100/00100200 symbols="
+    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+15+12 entry=00100000/00100100/00100200 symbols="
               << entryName << "," << scratchpadEntryName << "," << mmiEntryName
               << " output=" << generatedCpp.string() << '\n';
     return 0;

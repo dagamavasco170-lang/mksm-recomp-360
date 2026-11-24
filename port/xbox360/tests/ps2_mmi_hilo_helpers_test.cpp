@@ -57,6 +57,14 @@ int main()
     assert(wrapped.words[2] == wrap.lo.words[2]);
     assert(wrapped.words[3] == wrap.hi.words[2]);
 
+    (void)ps2::mmi::pmsubh(wrap, minHalf, minHalf);
+    assert(wrap.lo.words[0] == 0x7FFFFFFFu);
+    assert(wrap.lo.words[1] == 0xFFFFFFFFu);
+    assert(wrap.hi.words[0] == 0xFFFFFFFFu);
+    assert(wrap.hi.words[1] == 0xFFFFFFFFu);
+    assert(wrap.lo.words[2] == 0u && wrap.lo.words[3] == 0u);
+    assert(wrap.hi.words[2] == 0u && wrap.hi.words[3] == 0u);
+
     // A round-trip through four 64-bit context fields preserves all 128 bits.
     std::uint64_t hiLow{}, hiHigh{}, loLow{}, loHigh{};
     ps2::mmi::to64Halves(state.hi, hiLow, hiHigh);

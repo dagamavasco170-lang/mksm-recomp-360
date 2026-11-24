@@ -15,6 +15,9 @@ struct Ps2GeneratedMmiProbeResult
     std::array<std::uint32_t, 4> destination{};
     std::array<std::uint32_t, 4> hi{};
     std::array<std::uint32_t, 4> lo{};
+    std::array<std::uint32_t, 4> subDestination{};
+    std::array<std::uint32_t, 4> subHi{};
+    std::array<std::uint32_t, 4> subLo{};
 };
 
 [[nodiscard]] inline Ps2GeneratedMmiProbeResult
@@ -33,6 +36,8 @@ runGeneratedMmiProbe(std::uint8_t *rdram)
         0x00000088u, 0x000000E8u, 0x00000260u, 0x00000310u};
     constexpr std::array<std::uint32_t, 4> kExpectedLo{
         0x00000114u, 0x0000023Cu, 0x0000042Cu, 0x000005A4u};
+    constexpr std::array<std::uint32_t, 4> kExpectedSubDestination{
+        0x00000100u, 0x00000010u, 0x00000300u, 0x00000030u};
 
     Ps2GeneratedMmiProbeResult result{};
     R5900Context context{};
@@ -51,6 +56,9 @@ runGeneratedMmiProbe(std::uint8_t *rdram)
     result.destination = Ps2MmiReadGprVector(ctx, 7u).words;
     result.hi = Ps2MmiReadGprVector(ctx, 8u).words;
     result.lo = Ps2MmiReadGprVector(ctx, 9u).words;
+    result.subDestination = Ps2MmiReadGprVector(ctx, 12u).words;
+    result.subHi = Ps2MmiReadGprVector(ctx, 10u).words;
+    result.subLo = Ps2MmiReadGprVector(ctx, 11u).words;
 
     if (result.pc != kReturnPc || ctx->in_delay_slot)
         result.failures |= 1u << 0u;
@@ -62,10 +70,13 @@ runGeneratedMmiProbe(std::uint8_t *rdram)
         result.failures |= 1u << 3u;
 
     const auto state = Ps2MmiReadHiLo(ctx);
-    if (state.hi.words != kExpectedHi || state.lo.words != kExpectedLo)
+    if (state.hi.words != kInitialHi.words || state.lo.words != kInitialLo.words)
         result.failures |= 1u << 4u;
-    if (GPR_U32(ctx, 0u) != 0u)
+    if (result.subDestination != kExpectedSubDestination ||
+        result.subHi != kInitialHi.words || result.subLo != kInitialLo.words)
         result.failures |= 1u << 5u;
+    if (GPR_U32(ctx, 0u) != 0u)
+        result.failures |= 1u << 6u;
 
     return result;
 }

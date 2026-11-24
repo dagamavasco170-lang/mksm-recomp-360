@@ -82,7 +82,9 @@ int main()
     const auto mmi = runGeneratedMmiProbe(rdram.data());
     std::printf("MKSM_RECOMP_MMI_TRACE failures=%08X pc=%08X "
                 "dest=%08X/%08X/%08X/%08X hi=%08X/%08X/%08X/%08X "
-                "lo=%08X/%08X/%08X/%08X\n",
+                "lo=%08X/%08X/%08X/%08X "
+                "subdest=%08X/%08X/%08X/%08X "
+                "subhi=%08X/%08X/%08X/%08X sublo=%08X/%08X/%08X/%08X\n",
                 static_cast<unsigned>(mmi.failures),
                 static_cast<unsigned>(mmi.pc),
                 static_cast<unsigned>(mmi.destination[0]),
@@ -96,6 +98,18 @@ int main()
                 static_cast<unsigned>(mmi.lo[0]),
                 static_cast<unsigned>(mmi.lo[1]),
                 static_cast<unsigned>(mmi.lo[2]),
-                static_cast<unsigned>(mmi.lo[3]));
+                static_cast<unsigned>(mmi.lo[3]),
+                static_cast<unsigned>(mmi.subDestination[0]),
+                static_cast<unsigned>(mmi.subDestination[1]),
+                static_cast<unsigned>(mmi.subDestination[2]),
+                static_cast<unsigned>(mmi.subDestination[3]),
+                static_cast<unsigned>(mmi.subHi[0]),
+                static_cast<unsigned>(mmi.subHi[1]),
+                static_cast<unsigned>(mmi.subHi[2]),
+                static_cast<unsigned>(mmi.subHi[3]),
+                static_cast<unsigned>(mmi.subLo[0]),
+                static_cast<unsigned>(mmi.subLo[1]),
+                static_cast<unsigned>(mmi.subLo[2]),
+                static_cast<unsigned>(mmi.subLo[3]));
     return (failures == 0u && mmi.failures == 0u) ? 0 : 1;
 }

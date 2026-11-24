@@ -12,7 +12,8 @@ bool checkGeneratedRecompProbe()
                    "lw=%08X lbu=%08X lb=%016llX lhu=%04X ld=%016llX "
                    "lbu_after=%02X lhu_after=%04X spw=%08X spb=%02X "
                    "sph=%04X spd=%016llX aliasw=%08X aliasb=%02X isolated=%08X "
-                   "mmi=%08X dest=%08X/%08X/%08X/%08X",
+                   "mmi=%08X dest=%08X/%08X/%08X/%08X "
+                   "subdest=%08X/%08X/%08X/%08X",
                    static_cast<unsigned>(result.failures),
                    static_cast<unsigned>(result.pc),
                    static_cast<unsigned>(result.r1), static_cast<unsigned>(result.r2),
@@ -37,6 +38,10 @@ bool checkGeneratedRecompProbe()
                    static_cast<unsigned>(result.mmi.destination[0]),
                    static_cast<unsigned>(result.mmi.destination[1]),
                    static_cast<unsigned>(result.mmi.destination[2]),
-                   static_cast<unsigned>(result.mmi.destination[3]));
+                   static_cast<unsigned>(result.mmi.destination[3]),
+                   static_cast<unsigned>(result.mmi.subDestination[0]),
+                   static_cast<unsigned>(result.mmi.subDestination[1]),
+                   static_cast<unsigned>(result.mmi.subDestination[2]),
+                   static_cast<unsigned>(result.mmi.subDestination[3]));
     return result.failures == 0u;
 }
