@@ -55,9 +55,22 @@ int main()
     assert(readLane<std::uint32_t>(cpu.readGpr(3u), 0u) == 6u);
     assert(readLane<std::uint32_t>(cpu.readGpr(3u), 1u) == 20u);
 
+    // PMSUBH uses the same signed products and accumulator lanes as PMADDH.
+    // Subtracting identical operands must restore all HI/LO words to zero.
+    store(ram, 0x04u, encodeMmi(1u, 2u, 4u, 0x14u, 0x09u)); // MMI2/PMSUBH
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed);
+    assert(cpu.pc == 8u && cpu.retiredInstructions == 2u);
+    for (std::size_t lane = 0; lane < 4u; ++lane)
+    {
+        assert(readLane<std::uint32_t>(cpu.hilo.hi, lane) == 0u);
+        assert(readLane<std::uint32_t>(cpu.hilo.lo, lane) == 0u);
+        assert(readLane<std::uint32_t>(cpu.readGpr(4u), lane) == 0u);
+    }
+
     // PMFHI / PMFLO copy each entire 128-bit bank to the selected GPR.
-    store(ram, 0x04u, encodeMmi(0u, 0u, 4u, 0x08u, 0x09u));
-    store(ram, 0x08u, encodeMmi(0u, 0u, 5u, 0x09u, 0x09u));
+    store(ram, 0x08u, encodeMmi(0u, 0u, 4u, 0x08u, 0x09u));
+    store(ram, 0x0Cu, encodeMmi(0u, 0u, 5u, 0x09u, 0x09u));
     result = step(cpu, ram);
     assert(result.status == StepStatus::Executed);
     assert(cpu.readGpr(4u).bytes == cpu.hilo.hi.bytes);
@@ -74,8 +87,8 @@ int main()
     }
     cpu.writeGpr(6u, newHi);
     cpu.writeGpr(7u, newLo);
-    store(ram, 0x0Cu, encodeMmi(6u, 0u, 0u, 0x08u, 0x29u));
-    store(ram, 0x10u, encodeMmi(7u, 0u, 0u, 0x09u, 0x29u));
+    store(ram, 0x10u, encodeMmi(6u, 0u, 0u, 0x08u, 0x29u));
+    store(ram, 0x14u, encodeMmi(7u, 0u, 0u, 0x09u, 0x29u));
     result = step(cpu, ram);
     assert(result.status == StepStatus::Executed);
     assert(cpu.hilo.hi.bytes == newHi.bytes);
