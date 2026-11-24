@@ -209,7 +209,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=12 entry=00100000 output="
+    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23 entry=00100000 output="
               << generatedCpp.string() << '\n';
     return 0;
 }
