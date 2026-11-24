@@ -36,22 +36,23 @@ runGeneratedMmiProbe(std::uint8_t *rdram)
 
     Ps2GeneratedMmiProbeResult result{};
     R5900Context context{};
-    SET_GPR_U32(&context, 31u, kReturnPc);
-    Ps2MmiWriteGprVector(&context, 1u, kInitialHi);
-    Ps2MmiWriteGprVector(&context, 2u, kInitialLo);
-    Ps2MmiWriteGprVector(&context, 5u, kLhs);
-    Ps2MmiWriteGprVector(&context, 6u, kRhs);
+    R5900Context *ctx = &context;
+    SET_GPR_U32(ctx, 31u, kReturnPc);
+    Ps2MmiWriteGprVector(ctx, 1u, kInitialHi);
+    Ps2MmiWriteGprVector(ctx, 2u, kInitialLo);
+    Ps2MmiWriteGprVector(ctx, 5u, kLhs);
+    Ps2MmiWriteGprVector(ctx, 6u, kRhs);
 
-    MKSM_RECOMP_GENERATED_MMI_ENTRY(rdram, &context, nullptr);
+    MKSM_RECOMP_GENERATED_MMI_ENTRY(rdram, ctx, nullptr);
 
-    result.pc = context.pc;
-    result.initialHi = Ps2MmiReadGprVector(&context, 3u).words;
-    result.initialLo = Ps2MmiReadGprVector(&context, 4u).words;
-    result.destination = Ps2MmiReadGprVector(&context, 7u).words;
-    result.hi = Ps2MmiReadGprVector(&context, 8u).words;
-    result.lo = Ps2MmiReadGprVector(&context, 9u).words;
+    result.pc = ctx->pc;
+    result.initialHi = Ps2MmiReadGprVector(ctx, 3u).words;
+    result.initialLo = Ps2MmiReadGprVector(ctx, 4u).words;
+    result.destination = Ps2MmiReadGprVector(ctx, 7u).words;
+    result.hi = Ps2MmiReadGprVector(ctx, 8u).words;
+    result.lo = Ps2MmiReadGprVector(ctx, 9u).words;
 
-    if (result.pc != kReturnPc || context.in_delay_slot)
+    if (result.pc != kReturnPc || ctx->in_delay_slot)
         result.failures |= 1u << 0u;
     if (result.initialHi != kInitialHi.words || result.initialLo != kInitialLo.words)
         result.failures |= 1u << 1u;
@@ -60,10 +61,10 @@ runGeneratedMmiProbe(std::uint8_t *rdram)
     if (result.hi != kExpectedHi || result.lo != kExpectedLo)
         result.failures |= 1u << 3u;
 
-    const auto state = Ps2MmiReadHiLo(&context);
+    const auto state = Ps2MmiReadHiLo(ctx);
     if (state.hi.words != kExpectedHi || state.lo.words != kExpectedLo)
         result.failures |= 1u << 4u;
-    if (GPR_U32(&context, 0u) != 0u)
+    if (GPR_U32(ctx, 0u) != 0u)
         result.failures |= 1u << 5u;
 
     return result;
