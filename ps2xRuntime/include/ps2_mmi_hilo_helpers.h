@@ -122,4 +122,12 @@ constexpr void pmtlo(HiLoState &state, const Vector128 &source) noexcept
     return {{{state.lo.words[0], state.hi.words[0],
               state.lo.words[2], state.hi.words[2]}}};
 }
+
+// PMFHL.LW copies the low/high HI/LO word pair from both halves of each
+// 128-bit bank to a 128-bit GPR: LO0, HI0, LO2, HI2.
+[[nodiscard]] constexpr Vector128 pmfhlLw(const HiLoState &state) noexcept
+{
+    return {{{state.lo.words[0], state.hi.words[0],
+              state.lo.words[2], state.hi.words[2]}}};
+}
 } // namespace ps2::mmi

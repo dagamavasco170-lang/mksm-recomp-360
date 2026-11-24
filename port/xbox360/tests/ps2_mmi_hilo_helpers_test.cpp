@@ -65,6 +65,10 @@ int main()
     assert(wrap.lo.words[2] == 0u && wrap.lo.words[3] == 0u);
     assert(wrap.hi.words[2] == 0u && wrap.hi.words[3] == 0u);
 
+    const auto restoredPmfhl = ps2::mmi::pmfhlLw(state);
+    assert((restoredPmfhl.words == std::array<std::uint32_t, 4>{
+        0x00000100u, 0x00000010u, 0x00000300u, 0x00000030u}));
+
     // A round-trip through four 64-bit context fields preserves all 128 bits.
     std::uint64_t hiLow{}, hiHigh{}, loLow{}, loHigh{};
     ps2::mmi::to64Halves(state.hi, hiLow, hiHigh);

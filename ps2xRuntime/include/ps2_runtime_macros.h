@@ -879,4 +879,9 @@ inline void Ps2MmiPmsubh(R5900Context *ctx,
     Ps2MmiWriteGprVector(ctx, rd, destination);
 }
 
+inline void Ps2MmiPmfhlLw(R5900Context *ctx, std::uint32_t rd) noexcept
+{
+    Ps2MmiWriteGprVector(ctx, rd, ps2::mmi::pmfhlLw(Ps2MmiReadHiLo(ctx)));
+}
+
 #endif // PS2_RUNTIME_MACROS_H
