@@ -19,6 +19,8 @@ struct Ps2GeneratedMmiProbeResult
     std::array<std::uint32_t, 4> subDestination{};
     std::array<std::uint32_t, 4> subHi{};
     std::array<std::uint32_t, 4> subLo{};
+    std::array<std::uint32_t, 4> pmthlHi{};
+    std::array<std::uint32_t, 4> pmthlLo{};
 };
 
 [[nodiscard]] inline Ps2GeneratedMmiProbeResult
@@ -31,6 +33,8 @@ runGeneratedMmiProbe(std::uint8_t *rdram)
                                         0x00070006u, 0x00090008u}};
     constexpr ps2::mmi::Vector128 kRhs{{0x0014000Au, 0x0028001Eu,
                                         0x003C0032u, 0x00500046u}};
+    constexpr ps2::mmi::Vector128 kPmthlSource{{0xDEADBEEFu, 0xCAFEBABEu,
+                                                0x0BADF00Du, 0x8BADF00Du}};
     constexpr std::array<std::uint32_t, 4> kExpectedDestination{
         0x00000114u, 0x00000088u, 0x0000042Cu, 0x00000260u};
     constexpr std::array<std::uint32_t, 4> kExpectedHi{
@@ -48,6 +52,7 @@ runGeneratedMmiProbe(std::uint8_t *rdram)
     Ps2MmiWriteGprVector(ctx, 2u, kInitialLo);
     Ps2MmiWriteGprVector(ctx, 5u, kLhs);
     Ps2MmiWriteGprVector(ctx, 6u, kRhs);
+    Ps2MmiWriteGprVector(ctx, 14u, kPmthlSource);
 
     MKSM_RECOMP_GENERATED_MMI_ENTRY(rdram, ctx, nullptr);
 
@@ -61,6 +66,8 @@ runGeneratedMmiProbe(std::uint8_t *rdram)
     result.subDestination = Ps2MmiReadGprVector(ctx, 12u).words;
     result.subHi = Ps2MmiReadGprVector(ctx, 10u).words;
     result.subLo = Ps2MmiReadGprVector(ctx, 11u).words;
+    result.pmthlHi = Ps2MmiReadGprVector(ctx, 15u).words;
+    result.pmthlLo = Ps2MmiReadGprVector(ctx, 16u).words;
 
     if (result.pc != kReturnPc || ctx->in_delay_slot)
         result.failures |= 1u << 0u;
@@ -80,6 +87,13 @@ runGeneratedMmiProbe(std::uint8_t *rdram)
     if (result.subDestination != kExpectedSubDestination ||
         result.subHi != kInitialHi.words || result.subLo != kInitialLo.words)
         result.failures |= 1u << 5u;
+    constexpr std::array<std::uint32_t, 4> kExpectedPmthlHi{
+        0xCAFEBABEu, 0x00000020u, 0x8BADF00Du, 0x00000040u};
+    constexpr std::array<std::uint32_t, 4> kExpectedPmthlLo{
+        0xDEADBEEFu, 0x00000200u, 0x0BADF00Du, 0x00000400u};
+    if (result.pmthlHi != kExpectedPmthlHi ||
+        result.pmthlLo != kExpectedPmthlLo)
+        result.failures |= 1u << 8u;
     if (GPR_U32(ctx, 0u) != 0u)
         result.failures |= 1u << 6u;
 

@@ -14,7 +14,8 @@ bool checkGeneratedRecompProbe()
                    "sph=%04X spd=%016llX aliasw=%08X aliasb=%02X isolated=%08X "
                    "mmi=%08X pmfhl=%08X/%08X/%08X/%08X "
                    "dest=%08X/%08X/%08X/%08X "
-                   "subdest=%08X/%08X/%08X/%08X",
+                   "subdest=%08X/%08X/%08X/%08X "
+                   "pmthl_hi=%08X/%08X/%08X/%08X pmthl_lo=%08X/%08X/%08X/%08X",
                    static_cast<unsigned>(result.failures),
                    static_cast<unsigned>(result.pc),
                    static_cast<unsigned>(result.r1), static_cast<unsigned>(result.r2),
@@ -47,6 +48,14 @@ bool checkGeneratedRecompProbe()
                    static_cast<unsigned>(result.mmi.subDestination[0]),
                    static_cast<unsigned>(result.mmi.subDestination[1]),
                    static_cast<unsigned>(result.mmi.subDestination[2]),
-                   static_cast<unsigned>(result.mmi.subDestination[3]));
+                   static_cast<unsigned>(result.mmi.subDestination[3]),
+                   static_cast<unsigned>(result.mmi.pmthlHi[0]),
+                   static_cast<unsigned>(result.mmi.pmthlHi[1]),
+                   static_cast<unsigned>(result.mmi.pmthlHi[2]),
+                   static_cast<unsigned>(result.mmi.pmthlHi[3]),
+                   static_cast<unsigned>(result.mmi.pmthlLo[0]),
+                   static_cast<unsigned>(result.mmi.pmthlLo[1]),
+                   static_cast<unsigned>(result.mmi.pmthlLo[2]),
+                   static_cast<unsigned>(result.mmi.pmthlLo[3]));
     return result.failures == 0u;
 }

@@ -71,7 +71,7 @@ constexpr std::array<std::uint32_t, 15> makeScratchpadProbeWords()
     };
 }
 
-constexpr std::array<std::uint32_t, 13> makeMmiProbeWords()
+constexpr std::array<std::uint32_t, 16> makeMmiProbeWords()
 {
     using namespace ps2::xbox360::ee::test_program::detail;
     return {
@@ -86,6 +86,9 @@ constexpr std::array<std::uint32_t, 13> makeMmiProbeWords()
         mmi(5u, 6u, 12u, 0x14u, 0x09u), // PMSUBH r12,r5,r6: subtract each product lane
         mmi(0u, 0u, 10u, 0x08u, 0x09u), // PMFHI r10: verify HI restored
         mmi(0u, 0u, 11u, 0x09u, 0x09u), // PMFLO r11: verify LO restored
+        mmi(14u, 0u, 0u, 0x00u, 0x31u), // PMTHL.LW r14: partial write, preserve untouched words
+        mmi(0u, 0u, 15u, 0x08u, 0x09u), // PMFHI r15: inspect PMTHL.HI words
+        mmi(0u, 0u, 16u, 0x09u, 0x09u), // PMFLO r16: inspect PMTHL.LO words
         rType(31u, 0u, 0u, 0x08u),      // JR r31
         0u                               // delay slot: NOP
     };
@@ -264,6 +267,7 @@ int main(int argc, char **argv)
             "Ps2MmiPmaddh(ctx, 5, 6, 7);",
             "Ps2MmiPmsubh(ctx, 5, 6, 12);",
             "Ps2MmiPmfhlLw(ctx, 13);",
+            "Ps2MmiPmthlLw(ctx, 14);",
             "Ps2MmiPmfhi(ctx, 8);",
             "Ps2MmiPmflo(ctx, 9);",
             "SET_GPR_S32(ctx, 1",
@@ -359,7 +363,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+15+13 entry=00100000/00100100/00100200 symbols="
+    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+15+16 entry=00100000/00100100/00100200 symbols="
               << entryName << "," << scratchpadEntryName << "," << mmiEntryName
               << " output=" << generatedCpp.string() << '\n';
     return 0;

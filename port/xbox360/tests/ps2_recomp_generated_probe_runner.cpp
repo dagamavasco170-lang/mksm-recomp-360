@@ -85,7 +85,8 @@ int main()
                 "dest=%08X/%08X/%08X/%08X hi=%08X/%08X/%08X/%08X "
                 "lo=%08X/%08X/%08X/%08X "
                 "subdest=%08X/%08X/%08X/%08X "
-                "subhi=%08X/%08X/%08X/%08X sublo=%08X/%08X/%08X/%08X\n",
+                "subhi=%08X/%08X/%08X/%08X sublo=%08X/%08X/%08X/%08X "
+                "pmthl_hi=%08X/%08X/%08X/%08X pmthl_lo=%08X/%08X/%08X/%08X\n",
                 static_cast<unsigned>(mmi.failures),
                 static_cast<unsigned>(mmi.pc),
                 static_cast<unsigned>(mmi.pmfhlLw[0]),
@@ -115,6 +116,14 @@ int main()
                 static_cast<unsigned>(mmi.subLo[0]),
                 static_cast<unsigned>(mmi.subLo[1]),
                 static_cast<unsigned>(mmi.subLo[2]),
-                static_cast<unsigned>(mmi.subLo[3]));
+                static_cast<unsigned>(mmi.subLo[3]),
+                static_cast<unsigned>(mmi.pmthlHi[0]),
+                static_cast<unsigned>(mmi.pmthlHi[1]),
+                static_cast<unsigned>(mmi.pmthlHi[2]),
+                static_cast<unsigned>(mmi.pmthlHi[3]),
+                static_cast<unsigned>(mmi.pmthlLo[0]),
+                static_cast<unsigned>(mmi.pmthlLo[1]),
+                static_cast<unsigned>(mmi.pmthlLo[2]),
+                static_cast<unsigned>(mmi.pmthlLo[3]));
     return (failures == 0u && mmi.failures == 0u) ? 0 : 1;
 }
