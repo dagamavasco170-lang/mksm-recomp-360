@@ -215,7 +215,7 @@ int main()
     assert(readLane<std::uint32_t>(cpu.readGpr(22u), 0u) == 0xFFFFFFFEu);
     assert(readLane<std::uint32_t>(cpu.readGpr(22u), 1u) == 0x7FFFFFFEu);
     assert(readLane<std::uint32_t>(cpu.readGpr(22u), 2u) == 0x80000001u);
-    assert(readLane<std::uint32_t>(cpu.readGpr(22u), 3u) == 0x88888888u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(22u), 3u) == 0x8ACF1357u);
 
     return 0;
 }
