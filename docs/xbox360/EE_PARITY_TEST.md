@@ -43,9 +43,9 @@ The host test runs as part of .github/workflows/xbox360-tests.yml. The same runD
 
 ## PS2Recomp-generated execution probe
 
-A second focused workflow, .github/workflows/xbox360-codegen.yml, sends a scalar test through the real PS2Recomp pipeline. It writes a synthetic little-endian MIPS ELF, calls PS2Recompiler::initialize/recompile/generateOutput, compiles the emitted C++ with the desktop runtime headers, and executes that generated function against an R5900Context. The probe reuses the first four words from the shared EE test program and adds ADDIU, ADDU, a taken BEQ with its delay slot, and JR RA. It checks the generated GPR results and return PC.
+A second focused workflow, `.github/workflows/xbox360-codegen.yml`, sends a synthetic little-endian MIPS ELF through the real PS2Recomp pipeline: `PS2Recompiler::initialize/recompile/generateOutput`. The emitted C++ is compiled and executed against the desktop runtime and, separately, against the Xbox generated-runtime ABI shim on the host.
 
-This validates a real generated function on the desktop reference runtime. It does not yet compile or execute that generated function for Xenon, and it deliberately excludes memory/MMIO and MMI instructions from this narrower code-generation gate.
+The generated function covers immediate arithmetic, ADDU, a taken BEQ and its delay slot, JR RA, and scalar memory instructions: `SB/SH/SW/SD`, `LB/LBU/LHU/LW/LD`. Its `SW` begins at `0x01FFFFFF`, testing little-endian byte order while wrapping across the 32 MiB RDRAM boundary. Both runners compare the generated register results and the memory bytes written. The XEX workflow compiles the same generated C++ for Xenon.
 
 ## Xenon generated-code ABI slice
 
@@ -59,4 +59,4 @@ The host test proves that the currently implemented dispatcher operations produc
 
 **The cross-target execution result is still pending:** the newly built XEX must be launched on an RGH/JTAG console and its signature compared with the host's 4F63CD2AAFC519CE. A successful XEX build is not proof that the probe ran on Xenon.
 
-The generated-code workflow adds a desktop execution check for a scalar function produced by PS2Recomp. The smoke XEX now also builds the exact generated C++ function with a deliberately narrow scalar-only Xenon ABI shim and runs it during title startup. The console log should contain `MKSM_RECOMP_XENON_TRACE failures=00000000 pc=CAFE1234 ...`. The shim is limited to low-64-bit GPR accessors plus PC/delay-slot state; it does not implement the complete R5900Context, memory/MMIO, MMI, VU, syscalls, or runtime scheduling. A physical run is still required to establish Xenon execution parity.
+The generated-code workflow now has two host gates: the desktop reference runner and a runner using the same little-endian RDRAM ABI as the Xenon build. The smoke XEX compiles and runs that exact generated function during title startup. The expected console line begins `MKSM_RECOMP_XENON_TRACE failures=00000000 pc=CAFE1234 ...` and includes scalar load results. This proves only the generated scalar RDRAM slice; it does not implement the complete R5900Context, scratchpad, MMIO, 128-bit memory, MMI, VU, syscalls or runtime scheduling. A physical run is still required to establish Xenon execution parity.
