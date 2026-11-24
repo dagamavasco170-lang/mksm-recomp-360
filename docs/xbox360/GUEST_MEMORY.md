@@ -16,7 +16,7 @@ The original smoke test exercises a small wrapped buffer. The helper is now also
 
 The PS2Recomp fixture now emits a synthetic function with `SB/SH/SW/SD`, `LB/LBU/LHU/LW/LD`, arithmetic and a taken branch with a delay slot. Its word store begins at guest address `0x01FFFFFF`, so the four bytes cross the 32 MiB boundary and must wrap. The same generated function is executed twice in CI: once against the desktop runtime and once against the Xbox generated-runtime ABI shim on the host. The Xbox smoke XEX also compiles and executes this exact generated function at title startup.
 
-The host ABI runner checks loaded register values and the exact bytes written at the end and beginning of RDRAM. The XEX logs `MKSM_RECOMP_XENON_TRACE` with the generated register and memory results. A host pass validates the shim's byte-order logic; it does not replace the required physical-console run.
+The host ABI runner checks loaded register values and the exact bytes written to the final aligned word and the mirrored beginning of RDRAM. The standalone byte helper still has separate wraparound tests for arbitrary byte spans. The XEX logs `MKSM_RECOMP_XENON_TRACE` with the generated register and memory results. A host pass validates the shim's byte-order logic; it does not replace the required physical-console run.
 
 ## Important scope limits
 
