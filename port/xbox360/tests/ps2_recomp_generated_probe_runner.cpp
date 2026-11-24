@@ -12,7 +12,8 @@ int main()
     R5900Context context{};
     R5900Context *ctx = &context;
     SET_GPR_U32(ctx, 31, returnPc);
-    SET_GPR_U32(ctx, 8, 0x01FFFFFFu);
+    SET_GPR_U32(ctx, 8, 0x01FFFFF8u);
+    SET_GPR_U32(ctx, 20, 0x20000000u);
     SET_GPR_U32(ctx, 9, 0xA1B2C3D4u);
     SET_GPR_U64(ctx, 14, 0x0123456789ABCDEFull);
     SET_GPR_U32(ctx, 16, 0x5Au);
@@ -48,11 +49,17 @@ int main()
     if (r15 != 0x0123456789ABCDEFull || GPR_U32(ctx, 17) != 0x5Au ||
         GPR_U32(ctx, 19) != 0xBEEFu)
         failures |= 1u << 6u;
-    if (rdram[PS2_RAM_MASK] != 0xD4u || rdram[0] != 0xC3u ||
-        rdram[1] != 0xB2u || rdram[2] != 0xA1u ||
-        rdram[7] != 0xEFu || rdram[8] != 0xCDu ||
-        rdram[13] != 0x23u || rdram[14] != 0x5Au ||
-        rdram[15] != 0xEFu || rdram[16] != 0xBEu)
+
+    const std::uint32_t mask = PS2_RAM_MASK;
+    if (rdram[mask - 7u] != 0xD4u ||
+        rdram[mask - 6u] != 0xC3u ||
+        rdram[mask - 5u] != 0xB2u ||
+        rdram[mask - 4u] != 0xA1u ||
+        rdram[0] != 0xEFu || rdram[1] != 0xCDu ||
+        rdram[2] != 0xABu || rdram[3] != 0x89u ||
+        rdram[4] != 0x67u || rdram[5] != 0x45u ||
+        rdram[6] != 0x23u || rdram[7] != 0x5Au ||
+        rdram[8] != 0xEFu || rdram[9] != 0xBEu)
         failures |= 1u << 7u;
 
     std::printf("MKSM_RECOMP_TRACE failures=%08X pc=%08X r1=%08X r2=%08X "
