@@ -255,6 +255,66 @@ int main()
     assert(readLane<std::uint32_t>(cpu.readGpr(27u), 2u) == 0x80000000u);
     assert(readLane<std::uint32_t>(cpu.readGpr(27u), 3u) == 0x87654321u);
 
+    // MMI1 unsigned saturating arithmetic clamps at lane-width bounds.
+    Vector128 satUnsignedA{}, satUnsignedB{};
+    writeLane<std::uint32_t>(satUnsignedA, 0u, 0xFFFFFFFFu);
+    writeLane<std::uint32_t>(satUnsignedA, 1u, 3u);
+    writeLane<std::uint32_t>(satUnsignedA, 2u, 0u);
+    writeLane<std::uint32_t>(satUnsignedA, 3u, 0x80000000u);
+    writeLane<std::uint32_t>(satUnsignedB, 0u, 1u);
+    writeLane<std::uint32_t>(satUnsignedB, 1u, 5u);
+    writeLane<std::uint32_t>(satUnsignedB, 2u, 0xFFFFFFFFu);
+    writeLane<std::uint32_t>(satUnsignedB, 3u, 0x80000000u);
+    cpu.writeGpr(1u, satUnsignedA);
+    cpu.writeGpr(2u, satUnsignedB);
+    cpu.pc = 0x54u;
+    store(ram, 0x54u, encodeMmi(1u, 2u, 3u, 0x10u, 0x28u)); // PADDUW
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x58u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(3u), 0u) == 0xFFFFFFFFu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(3u), 1u) == 8u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(3u), 2u) == 0xFFFFFFFFu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(3u), 3u) == 0xFFFFFFFFu);
+    store(ram, 0x58u, encodeMmi(1u, 2u, 4u, 0x11u, 0x28u)); // PSUBUW
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x5Cu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(4u), 0u) == 0xFFFFFFFEu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(4u), 1u) == 0u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(4u), 2u) == 0u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(4u), 3u) == 0u);
+
+    Vector128 satHalfA{}, satHalfB{};
+    writeLane<std::uint16_t>(satHalfA, 0u, 0xFFFFu);
+    writeLane<std::uint16_t>(satHalfA, 1u, 4u);
+    writeLane<std::uint16_t>(satHalfB, 0u, 1u);
+    writeLane<std::uint16_t>(satHalfB, 1u, 5u);
+    cpu.writeGpr(1u, satHalfA);
+    cpu.writeGpr(2u, satHalfB);
+    store(ram, 0x5Cu, encodeMmi(1u, 2u, 5u, 0x14u, 0x28u)); // PADDUH
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x60u);
+    assert(readLane<std::uint16_t>(cpu.readGpr(5u), 0u) == 0xFFFFu);
+    assert(readLane<std::uint16_t>(cpu.readGpr(5u), 1u) == 9u);
+    store(ram, 0x60u, encodeMmi(1u, 2u, 6u, 0x15u, 0x28u)); // PSUBUH
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x64u);
+    assert(readLane<std::uint16_t>(cpu.readGpr(6u), 0u) == 0xFFFEu);
+    assert(readLane<std::uint16_t>(cpu.readGpr(6u), 1u) == 0u);
+
+    Vector128 satByteA{}, satByteB{};
+    satByteA.bytes[0] = 0xFFu; satByteA.bytes[1] = 4u;
+    satByteB.bytes[0] = 1u; satByteB.bytes[1] = 5u;
+    cpu.writeGpr(1u, satByteA);
+    cpu.writeGpr(2u, satByteB);
+    store(ram, 0x64u, encodeMmi(1u, 2u, 7u, 0x18u, 0x28u)); // PADDUB
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x68u);
+    assert(cpu.readGpr(7u).bytes[0] == 0xFFu && cpu.readGpr(7u).bytes[1] == 9u);
+    store(ram, 0x68u, encodeMmi(1u, 2u, 8u, 0x19u, 0x28u)); // PSUBUB
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x6Cu);
+    assert(cpu.readGpr(8u).bytes[0] == 0xFEu && cpu.readGpr(8u).bytes[1] == 0u);
+
     // MMI1 PABSW saturates INT_MIN to INT_MAX without an exception.
     Vector128 absWordInput{};
     writeLane<std::uint32_t>(absWordInput, 0u, 0x80000000u);

@@ -229,6 +229,65 @@ enum class MmiStatus : std::uint8_t
             executed = true;
             break;
         }
+        case 0x10: // PADDUW: saturating unsigned packed word addition
+        case 0x11: // PSUBUW: saturating unsigned packed word subtraction
+        {
+            const &lhs = state.readGpr(instruction.rs);
+            const &rhs = state.readGpr(instruction.rt);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 4u; ++lane)
+            {
+                const auto a = simd::readLane<std::uint32_t>(lhs, lane);
+                const auto b = simd::readLane<std::uint32_t>(rhs, lane);
+                const auto result = instruction.sa == 0x10u
+                    ? (static_cast<std::uint64_t>(a) + b > UINT32_MAX
+                        ? UINT32_MAX : static_cast<std::uint32_t>(a + b))
+                    : (a < b ? 0u : a - b);
+                simd::writeLane<std::uint32_t>(value, lane, result);
+            }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
+        case 0x14: // PADDUH: saturating unsigned packed halfword addition
+        case 0x15: // PSUBUH: saturating unsigned packed halfword subtraction
+        {
+            const auto &lhs = state.readGpr(instruction.rs);
+            const auto &rhs = state.readGpr(instruction.rt);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 8u; ++lane)
+            {
+                const auto a = simd::readLane<std::uint16_t>(lhs, lane);
+                const auto b = simd::readLane<std::uint16_t>(rhs, lane);
+                const auto result = instruction.sa == 0x14u
+                    ? (static_cast<std::uint32_t>(a) + b > UINT16_MAX
+                        ? UINT16_MAX : static_cast<std::uint16_t>(a + b))
+                    : (a < b ? 0u : static_cast<std::uint16_t>(a - b));
+                simd::writeLane<std::uint16_t>(value, lane, result);
+            }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
+        case 0x18: // PADDUB: saturating unsigned packed byte addition
+        case 0x19: // PSUBUB: saturating unsigned packed byte subtraction
+        {
+            const auto &lhs = state.readGpr(instruction.rs);
+            const auto &rhs = state.readGpr(instruction.rt);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 16u; ++lane)
+            {
+                const auto a = lhs.bytes[lane];
+                const auto b = rhs.bytes[lane];
+                value.bytes[lane] = instruction.sa == 0x18u
+                    ? (static_cast<unsigned>(a) + b > UINT8_MAX
+                        ? UINT8_MAX : static_cast<std::uint8_t>(a + b))
+                    : (a < b ? 0u : static_cast<std::uint8_t>(a - b));
+            }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
         case 0x02: // PCEQW: packed 32-bit equality
         case 0x03: // PMINW: signed packed 32-bit minimum
         {
