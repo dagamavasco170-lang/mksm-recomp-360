@@ -127,6 +127,13 @@ inline void Ps2MmiPmfhlLw(R5900Context *ctx, std::uint32_t rd) noexcept
     Ps2MmiWriteGprVector(ctx, rd, ps2::mmi::pmfhlLw(Ps2MmiReadHiLo(ctx)));
 }
 
+inline void Ps2MmiPmthlLw(R5900Context *ctx, std::uint32_t rs) noexcept
+{
+    auto state = Ps2MmiReadHiLo(ctx);
+    ps2::mmi::pmthlLw(state, Ps2MmiReadGprVector(ctx, rs));
+    Ps2MmiWriteHiLo(ctx, state);
+}
+
 class PS2Runtime
 {
 public:

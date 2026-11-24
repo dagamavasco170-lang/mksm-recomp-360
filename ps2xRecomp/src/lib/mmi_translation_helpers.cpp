@@ -249,7 +249,7 @@ namespace ps2recomp
         switch (subfunc)
         {
         case PMFHL_LW:
-            return fmt::format("{{ __m128i val = GPR_VEC(ctx, {}); ctx->lo = _mm_extract_epi32(val, 0); ctx->hi = _mm_extract_epi32(val, 1); }}", inst.rs);
+            return fmt::format("Ps2MmiPmthlLw(ctx, {});", inst.rs);
         default:
             return emitUnhandledInstruction(inst, fmt::format("Unhandled PMTHL instruction: function 0x{:X}", subfunc));
         }

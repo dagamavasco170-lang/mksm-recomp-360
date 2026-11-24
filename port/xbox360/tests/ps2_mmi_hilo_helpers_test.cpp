@@ -69,6 +69,14 @@ int main()
     assert((restoredPmfhl.words == std::array<std::uint32_t, 4>{
         0x00000100u, 0x00000010u, 0x00000300u, 0x00000030u}));
 
+    const Vector128 partialSource{{0xDEADBEEFu, 0xCAFEBABEu,
+                                   0x0BADF00Du, 0x8BADF00Du}};
+    ps2::mmi::pmthlLw(state, partialSource);
+    assert((state.lo.words == std::array<std::uint32_t, 4>{
+        0xDEADBEEFu, 0x00000200u, 0x0BADF00Du, 0x00000400u}));
+    assert((state.hi.words == std::array<std::uint32_t, 4>{
+        0xCAFEBABEu, 0x00000020u, 0x8BADF00Du, 0x00000040u}));
+
     // A round-trip through four 64-bit context fields preserves all 128 bits.
     std::uint64_t hiLow{}, hiHigh{}, loLow{}, loHigh{};
     ps2::mmi::to64Halves(state.hi, hiLow, hiHigh);

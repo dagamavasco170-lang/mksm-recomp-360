@@ -130,4 +130,15 @@ constexpr void pmtlo(HiLoState &state, const Vector128 &source) noexcept
     return {{{state.lo.words[0], state.hi.words[0],
               state.lo.words[2], state.hi.words[2]}}};
 }
+
+// PMTHL.LW writes source words 0/2 into LO words 0/2 and source words 1/3
+// into HI words 0/2. The intervening accumulator words are architecturally
+// unchanged.
+constexpr void pmthlLw(HiLoState &state, const Vector128 &source) noexcept
+{
+    state.lo.words[0] = source.words[0];
+    state.hi.words[0] = source.words[1];
+    state.lo.words[2] = source.words[2];
+    state.hi.words[2] = source.words[3];
+}
 } // namespace ps2::mmi
