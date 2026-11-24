@@ -67,6 +67,43 @@ enum class MmiStatus : std::uint8_t
     {
         switch (instruction.sa)
         {
+        case 0x04: // PADDH: wrapping packed 16-bit addition
+        case 0x05: // PSUBH: wrapping packed 16-bit subtraction
+        {
+            const auto &lhs = state.readGpr(instruction.rs);
+            const auto &rhs = state.readGpr(instruction.rt);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 8u; ++lane)
+            {
+                const auto a = simd::readLane<std::uint16_t>(lhs, lane);
+                const auto b = simd::readLane<std::uint16_t>(rhs, lane);
+                const auto result = instruction.sa == 0x04u
+                    ? static_cast<std::uint16_t>(a + b)
+                    : static_cast<std::uint16_t>(a - b);
+                simd::writeLane<std::uint16_t>(value, lane, result);
+            }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
+        case 0x06: // PADDB: wrapping packed byte addition
+        case 0x07: // PSUBB: wrapping packed byte subtraction
+        {
+            const auto &lhs = state.readGpr(instruction.rs);
+            const auto &rhs = state.readGpr(instruction.rt);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 16u; ++lane)
+            {
+                const auto a = lhs.bytes[lane];
+                const auto b = rhs.bytes[lane];
+                value.bytes[lane] = instruction.sa == 0x06u
+                    ? static_cast<std::uint8_t>(a + b)
+                    : static_cast<std::uint8_t>(a - b);
+            }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
         case 0x00: // PADDW: wrapping packed 32-bit addition
         case 0x01: // PSUBW: wrapping packed 32-bit subtraction
         case 0x02: // PCGTW: signed packed greater-than word

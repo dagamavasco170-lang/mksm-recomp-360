@@ -314,5 +314,48 @@ int main()
     assert(readLane<std::uint32_t>(cpu.readGpr(9u), 2u) == 0x20u);
     assert(readLane<std::uint32_t>(cpu.readGpr(9u), 3u) == 0xFFFFFFE0u);
 
+    // MMI0 PADDH/PSUBH and PADDB/PSUBB wrap independently in narrow lanes.
+    Vector128 narrowA{}, narrowB{};
+    for (std::size_t lane = 0; lane < 8u; ++lane)
+    {
+        writeLane<std::uint16_t>(narrowA, lane, static_cast<std::uint16_t>(0xFFF0u + lane));
+        writeLane<std::uint16_t>(narrowB, lane, static_cast<std::uint16_t>(0x0020u + lane));
+    }
+    cpu.writeGpr(10u, narrowA);
+    cpu.writeGpr(11u, narrowB);
+    cpu.pc = 0x80u;
+    store(ram, 0x80u, encodeMmi(10u, 11u, 12u, 0x04u, 0x08u)); // PADDH
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x84u);
+    for (std::size_t lane = 0; lane < 8u; ++lane)
+        assert(readLane<std::uint16_t>(cpu.readGpr(12u), lane) ==
+               static_cast<std::uint16_t>(0xFFF0u + lane + 0x0020u + lane));
+    store(ram, 0x84u, encodeMmi(10u, 11u, 13u, 0x05u, 0x08u)); // PSUBH
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x88u);
+    for (std::size_t lane = 0; lane < 8u; ++lane)
+        assert(readLane<std::uint16_t>(cpu.readGpr(13u), lane) ==
+               static_cast<std::uint16_t>(0xFFF0u + lane - (0x0020u + lane)));
+
+    for (std::size_t lane = 0; lane < 16u; ++lane)
+    {
+        narrowA.bytes[lane] = static_cast<std::uint8_t>(0xF8u + lane);
+        narrowB.bytes[lane] = static_cast<std::uint8_t>(0x10u + lane * 3u);
+    }
+    cpu.writeGpr(10u, narrowA);
+    cpu.writeGpr(11u, narrowB);
+    store(ram, 0x88u, encodeMmi(10u, 11u, 14u, 0x06u, 0x08u)); // PADDB
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x8Cu);
+    for (std::size_t lane = 0; lane < 16u; ++lane)
+        assert(cpu.readGpr(14u).bytes[lane] ==
+               static_cast<std::uint8_t>(narrowA.bytes[lane] + narrowB.bytes[lane]));
+    store(ram, 0x8Cu, encodeMmi(10u, 11u, 15u, 0x07u, 0x08u)); // PSUBB
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x90u);
+    for (std::size_t lane = 0; lane < 16u; ++lane)
+        assert(cpu.readGpr(15u).bytes[lane] ==
+               static_cast<std::uint8_t>(narrowA.bytes[lane] - narrowB.bytes[lane]));
+
     return 0;
 }
