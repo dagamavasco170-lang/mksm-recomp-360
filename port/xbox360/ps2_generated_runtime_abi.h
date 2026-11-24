@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ps2_guest_memory.h"
+#include "ps2_mmi_hilo_helpers.h"
 #include "ps2_rdram_address.h"
 #include "ps2_recompiled_functions.h"
 
@@ -21,9 +22,93 @@ struct R5900Context
 {
     std::array<Ps2GeneratedGpr128, 32> r{};
     std::uint32_t pc{};
+    std::uint64_t hi{};
+    std::uint64_t lo{};
+    std::uint64_t hi1{};
+    std::uint64_t lo1{};
     bool in_delay_slot{};
     std::uint32_t branch_pc{};
 };
+
+// Match the desktop runtime's split 128-bit MMI HI/LO banks.
+inline ps2::mmi::HiLoState Ps2MmiReadHiLo(const R5900Context *ctx) noexcept
+{
+    if (ctx == nullptr)
+        return {};
+    return {ps2::mmi::from64Halves(ctx->hi, ctx->hi1),
+            ps2::mmi::from64Halves(ctx->lo, ctx->lo1)};
+}
+
+inline void Ps2MmiWriteHiLo(R5900Context *ctx,
+                            const ps2::mmi::HiLoState &state) noexcept
+{
+    if (ctx == nullptr)
+        return;
+    ps2::mmi::to64Halves(state.hi, ctx->hi, ctx->hi1);
+    ps2::mmi::to64Halves(state.lo, ctx->lo, ctx->lo1);
+}
+
+inline ps2::mmi::Vector128 Ps2MmiReadGprVector(const R5900Context *ctx,
+                                               std::uint32_t reg) noexcept
+{
+    ps2::mmi::Vector128 result{};
+    if (ctx == nullptr || reg == 0u || reg >= ctx->r.size())
+        return result;
+    const auto &entry = ctx->r[reg];
+    result.words[0] = static_cast<std::uint32_t>(entry.low64);
+    result.words[1] = static_cast<std::uint32_t>(entry.low64 >> 32u);
+    result.words[2] = static_cast<std::uint32_t>(entry.high64);
+    result.words[3] = static_cast<std::uint32_t>(entry.high64 >> 32u);
+    return result;
+}
+
+inline void Ps2MmiWriteGprVector(R5900Context *ctx, std::uint32_t reg,
+                                 const ps2::mmi::Vector128 &value) noexcept
+{
+    if (ctx == nullptr || reg == 0u || reg >= ctx->r.size())
+        return;
+    auto &entry = ctx->r[reg];
+    entry.low64 = static_cast<std::uint64_t>(value.words[0]) |
+                  (static_cast<std::uint64_t>(value.words[1]) << 32u);
+    entry.high64 = static_cast<std::uint64_t>(value.words[2]) |
+                   (static_cast<std::uint64_t>(value.words[3]) << 32u);
+}
+
+inline void Ps2MmiPmfhi(R5900Context *ctx, std::uint32_t rd) noexcept
+{
+    Ps2MmiWriteGprVector(ctx, rd, ps2::mmi::pmfhi(Ps2MmiReadHiLo(ctx)));
+}
+
+inline void Ps2MmiPmflo(R5900Context *ctx, std::uint32_t rd) noexcept
+{
+    Ps2MmiWriteGprVector(ctx, rd, ps2::mmi::pmflo(Ps2MmiReadHiLo(ctx)));
+}
+
+inline void Ps2MmiPmthi(R5900Context *ctx, std::uint32_t rs) noexcept
+{
+    auto state = Ps2MmiReadHiLo(ctx);
+    ps2::mmi::pmthi(state, Ps2MmiReadGprVector(ctx, rs));
+    Ps2MmiWriteHiLo(ctx, state);
+}
+
+inline void Ps2MmiPmtlo(R5900Context *ctx, std::uint32_t rs) noexcept
+{
+    auto state = Ps2MmiReadHiLo(ctx);
+    ps2::mmi::pmtlo(state, Ps2MmiReadGprVector(ctx, rs));
+    Ps2MmiWriteHiLo(ctx, state);
+}
+
+inline void Ps2MmiPmaddh(R5900Context *ctx,
+                         std::uint32_t rs,
+                         std::uint32_t rt,
+                         std::uint32_t rd) noexcept
+{
+    auto state = Ps2MmiReadHiLo(ctx);
+    const auto destination = ps2::mmi::pmaddh(
+        state, Ps2MmiReadGprVector(ctx, rs), Ps2MmiReadGprVector(ctx, rt));
+    Ps2MmiWriteHiLo(ctx, state);
+    Ps2MmiWriteGprVector(ctx, rd, destination);
+}
 
 class PS2Runtime
 {
