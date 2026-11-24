@@ -28,7 +28,7 @@ constexpr std::array<Mapping, 14> kValidMappings{{
     {0xA0100000u, 0x00100000u},
 }};
 
-constexpr std::array<std::uint32_t, 24> kRejectedAddresses{{
+constexpr std::array<std::uint32_t, 26> kRejectedAddresses{{
     0x02000000u, // Not a documented virtual RDRAM window.
     0x10000000u, // EE hardware registers.
     0x10010000u, // Other addresses in the non-RDRAM device/reserved area.
@@ -46,7 +46,9 @@ constexpr std::array<std::uint32_t, 24> kRejectedAddresses{{
     0x40000000u, // No direct RDRAM mapping.
     0x70000000u, // Scratchpad (separate storage, not RDRAM).
     0x70003FFFu, // Last scratchpad byte.
-    0x70004000u, // Past scratchpad.
+    0x70004000u, // Past scratchpad
+    0xF0000000u, // Scratchpad pointer alias, not a RDRAM mapping
+    0xF0003FFFu, // Final byte of scratchpad pointer alias.
     0x82000000u, // KSEG maps this to physical 0x02000000.
     0x9FC00000u, // Cached BIOS alias.
     0xBFC00000u, // Uncached BIOS alias.

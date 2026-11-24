@@ -89,6 +89,11 @@ int main()
     expect(readGuestMemory<std::uint64_t>(rdram, runtime, 0x70000008u) ==
                0x0123456789ABCDEFull,
            "scratchpad doubleword read/write");
+    expect(readGuestMemory<std::uint32_t>(rdram, runtime, 0xF0000004u) == 0x12345678u,
+           "scratchpad bit-31 compatibility alias reads canonical storage");
+    writeGuestMemory<std::uint32_t>(rdram, runtime, 0xF0000010u, 0xCAFED00Du);
+    expect(readGuestMemory<std::uint32_t>(rdram, runtime, 0x70000010u) == 0xCAFED00Du,
+           "scratchpad alias write is visible through canonical address");
     expect(runtime->eeScratchpad()[1] == 0x5Au &&
                runtime->eeScratchpad()[2] == 0xEFu &&
                runtime->eeScratchpad()[3] == 0xBEu,

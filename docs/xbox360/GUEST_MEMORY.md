@@ -15,7 +15,7 @@ The PS2 EE memory model is little-endian. The Xbox 360 PowerPC CPU is big-endian
 | Address range | Region | Current generated ABI support |
 |---|---|---|
 | `0x00000000-0x01FFFFFF`, `0x20000000-0x21FFFFFF`, `0x30100000-0x31FFFFFF` | Main RDRAM | Scalar 8/16/32/64-bit access |
-| `0x70000000-0x70003FFF` | Scratchpad RAM (16 KiB) | Separate per-runtime scalar 8/16/32/64-bit access |
+| `0x70000000-0x70003FFF` | Scratchpad RAM (16 KiB) | Separate per-runtime scalar 8/16/32/64-bit access; compatibility pointer alias at `0xF0000000-0xF0003FFF` |
 | `0x10000000-0x1000FFFF` | EE I/O registers (64 KiB) | Classified, no handlers |
 | `0x11000000-0x11000FFF` | VU0 code memory (4 KiB) | Classified, no handlers |
 | `0x11004000-0x11004FFF` | VU0 data memory (4 KiB) | Classified, no handlers |
@@ -25,7 +25,7 @@ The PS2 EE memory model is little-endian. The Xbox 360 PowerPC CPU is big-endian
 | `0x1C000000-0x1C1FFFFF` | IOP RAM (2 MiB) | Classified, no handlers |
 | `0x1FC00000-0x1FFFFFFF` | BIOS (4 MiB) | Classified, no handlers |
 
-Addresses in remaining KUSEG windows and KSSEG/KSEG3 are marked TLB-dependent rather than guessed. Unassigned holes in the KSEG0/KSEG1 direct physical aperture are marked unmapped. Scratchpad is a virtual-only EE window and is not treated as an RDRAM or KSEG physical alias.
+Addresses in remaining KUSEG windows and KSSEG/KSEG3 are marked TLB-dependent rather than guessed. Unassigned holes in the KSEG0/KSEG1 direct physical aperture are marked unmapped. Scratchpad's canonical EE window is virtual-only and is not treated as an RDRAM or KSEG physical alias. For compatibility with the existing desktop `PS2Memory` pointer helpers, the generated ABI also recognizes the bit-31 selector alias `0xF0000000-0xF0003FFF`; this is a project compatibility mapping, not a second physical RDRAM window.
 
 The region classification is metadata, not a claim that every device is emulated. The table and KSEG aliases are covered by `port/xbox360/tests/ps2_memory_region_test.cpp`. The map bases and sizes follow the [PS2 Developer Wiki EE memory map](https://www.psdevwiki.com/ps2/Memory_Map) and the [PS2Tek reference](https://psi-rockin.github.io/ps2tek/index.html).
 
@@ -44,7 +44,7 @@ This is a deliberately small fixed-window resolver, not a general EE TLB impleme
 
 ## Scratchpad storage and scalar access
 
-The generated ABI's `PS2Runtime` now owns an independently zero-initialized 16 KiB scratchpad buffer. Generated `READ8/16/32/64`, `WRITE8/16/32/64` and corresponding `FAST_*` macros route addresses in `0x70000000-0x70003FFF` to that buffer, using explicit little-endian byte access. Scratchpad bytes do not alias the main RDRAM allocation.
+The generated ABI's `PS2Runtime` now owns an independently zero-initialized 16 KiB scratchpad buffer. Both the canonical `0x70000000` range and the project's bit-31 compatibility alias `0xF0000000` route to the same offsets. Generated `READ8/16/32/64`, `WRITE8/16/32/64` and corresponding `FAST_*` macros route addresses in `0x70000000-0x70003FFF` to that buffer, using explicit little-endian byte access. Scratchpad bytes do not alias the main RDRAM allocation.
 
 Scratchpad accesses are bounded: a scalar operation whose final byte would exceed `0x70003FFF` throws `std::out_of_range` instead of wrapping to the start. A null runtime pointer also fails explicitly. The standalone ABI regression test exercises byte, halfword, word and doubleword access, end-of-region checks, RDRAM isolation, and the same generated memory macros used by translated functions.
 

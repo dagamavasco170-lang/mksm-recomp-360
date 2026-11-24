@@ -48,6 +48,9 @@ inline constexpr std::uint32_t kIopRamSize = 2u * 1024u * 1024u;
 inline constexpr std::uint32_t kBiosBase = 0x1FC00000u;
 inline constexpr std::uint32_t kBiosSize = 4u * 1024u * 1024u;
 inline constexpr std::uint32_t kScratchpadBase = 0x70000000u;
+inline constexpr std::uint32_t kScratchpadAliasBase = 0xF0000000u;
+// Compatibility alias recognized by the desktop PS2Memory helpers when bit 31
+// marks a scratchpad pointer (e.g. a DMA/guest-pointer selector).
 inline constexpr std::uint32_t kScratchpadSize = 16u * 1024u;
 
 namespace detail
@@ -89,7 +92,8 @@ namespace detail
 // TLB mappings or claiming that the selected device has a working handler.
 [[nodiscard]] constexpr RegionKind classifyRegion(std::uint32_t address) noexcept
 {
-    if (detail::inRange(address, kScratchpadBase, kScratchpadSize))
+    if (detail::inRange(address, kScratchpadBase, kScratchpadSize) ||
+        detail::inRange(address, kScratchpadAliasBase, kScratchpadSize))
         return RegionKind::Scratchpad;
 
     if (address <= kRdramLast ||
@@ -114,6 +118,13 @@ namespace detail
         return RegionKind::TlbDependent;
 
     return RegionKind::Unmapped;
+}
+
+[[nodiscard]] constexpr std::uint32_t scratchpadOffset(std::uint32_t address) noexcept
+{
+    const std::uint32_t base =
+        address >= kScratchpadAliasBase ? kScratchpadAliasBase : kScratchpadBase;
+    return address - base;
 }
 
 [[nodiscard]] inline std::uint32_t resolveOffset(std::uint32_t address)

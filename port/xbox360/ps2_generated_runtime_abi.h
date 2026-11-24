@@ -128,7 +128,7 @@ template <typename UInt>
 
     UInt value{};
     const auto offset = static_cast<std::size_t>(
-        address - rdram_address::kScratchpadBase);
+        rdram_address::scratchpadOffset(address));
     if (!guest_memory::readLittleEndianBounded(runtime->eeScratchpad(), offset, value))
         throw std::out_of_range("PS2 generated ABI: scratchpad read crosses its 16 KiB boundary");
     return value;
@@ -153,7 +153,7 @@ inline void writeGuestMemory(std::uint8_t *rdram,
         throw std::invalid_argument("PS2 generated ABI: scratchpad access requires an EE runtime");
 
     const auto offset = static_cast<std::size_t>(
-        address - rdram_address::kScratchpadBase);
+        rdram_address::scratchpadOffset(address));
     if (!guest_memory::writeLittleEndianBounded(runtime->eeScratchpad(), offset, value))
         throw std::out_of_range("PS2 generated ABI: scratchpad write crosses its 16 KiB boundary");
 }
