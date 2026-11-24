@@ -46,7 +46,15 @@ This is a deliberately small fixed-window resolver, not a general EE TLB impleme
 
 The generated ABI's `PS2Runtime` now owns an independently zero-initialized 16 KiB scratchpad buffer. Both the canonical `0x70000000` range and the project's bit-31 compatibility alias `0xF0000000` route to the same offsets. Generated `READ8/16/32/64`, `WRITE8/16/32/64` and corresponding `FAST_*` macros route addresses in `0x70000000-0x70003FFF` to that buffer, using explicit little-endian byte access. Scratchpad bytes do not alias the main RDRAM allocation.
 
-Scratchpad accesses are bounded: a scalar operation whose final byte would exceed `0x70003FFF` throws `std::out_of_range` instead of wrapping to the start. A null runtime pointer also fails explicitly. The standalone ABI regression test exercises byte, halfword, word and doubleword access, end-of-region checks, RDRAM isolation, and the same generated memory macros used by translated functions.
+Scratchpad accesses are bounded: a scalar operation whose final byte would exceed `0x70003FFF` throws `std::out_of_range` instead of wrapping to the start. A null runtime pointer also fails explicitly. The standalone ABI regression test exercises byte, halfword, word and doubleword access, end-of-region checks, RDRAM isolation, per-runtime isolation, and the same generated memory macros used by translated functions.
+
+The scratchpad path is now also exercised by a second function generated from the same synthetic little-endian MIPS ELF. This 15-instruction function executes real `SW/LW`, `SB/LBU`, `SH/LHU` and `SD/LD` instructions through PS2Recomp-generated C++, accesses both `0x70000000` and the existing project compatibility alias `0xF0000000`, and writes a separate word to verify that scratchpad does not alias main RDRAM. The Xenon-ABI host runner reports:
+
+```text
+MKSM_RECOMP_MEMORY_TRACE failures=00000000 ... spw=A1B2C3D4 spb=5A sph=BEEF spd=0123456789ABCDEF aliasw=A1B2C3D4 aliasb=C7 isolated=DEADBEEF
+```
+
+The XEX workflow compiles the exact same generated functions and calls the probe during smoke-title startup. This is still host execution evidence plus a PowerPC build: the current XEX must be launched on an RGH/JTAG console to verify the scratchpad trace on physical Xenon hardware.
 
 This is CPU load/store support only. Scratchpad DMA paths, cache behavior, arbitration, timing and interaction with the DMAC are not implemented. The desktop `PS2Memory` subsystem and full Xenon runtime are not yet unified behind this shim.
 
@@ -54,7 +62,7 @@ This is CPU load/store support only. Scratchpad DMA paths, cache behavior, arbit
 
 The synthetic PS2Recomp fixture emits `SB/SH/SW/SD`, `LB/LBU/LHU/LW/LD`, arithmetic and a taken branch with a delay slot. Its `SW` targets the final aligned RDRAM word at `0x01FFFFF8`. A separate base register then targets `0x20000000`, the documented uncached alias: aligned `SD/LD` access backing offset zero, and byte/halfword operations verify additional bytes through that same alias.
 
-The exact generated RDRAM function runs in CI against both the desktop reference runtime and the Xbox generated-runtime ABI shim on the host. The smoke XEX compiles this generated function for Xenon. The scratchpad helpers are currently covered by focused direct ABI and emitted-memory-macro tests; a dedicated synthetic ELF instruction sequence that accesses scratchpad, plus a new physical-console trace, remains a useful follow-up gate.
+The 23-instruction generated RDRAM function runs in CI against both the desktop reference runtime and the Xbox generated-runtime ABI shim on the host. A second 15-instruction PS2Recomp function now exercises scratchpad through generated `SW/LW/SB/LBU/SH/LHU/SD/LD` instructions, including the bit-31 compatibility alias; the Xenon-ABI host runner reports zero failures and the expected values in the trace above. The smoke XEX compiles both generated functions and invokes the same memory probe at title startup. Its execution on a physical RGH/JTAG console remains the next acceptance gate.
 
 ## Important scope limits
 

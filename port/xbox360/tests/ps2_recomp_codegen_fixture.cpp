@@ -314,7 +314,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+14 entry=00100000/00100100 symbols="
+    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+15 entry=00100000/00100100 symbols="
               << entryName << "," << scratchpadEntryName
               << " output=" << generatedCpp.string() << '\n';
     return 0;
