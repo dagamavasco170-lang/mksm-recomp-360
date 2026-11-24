@@ -19,6 +19,7 @@
 
 #include "ps2_guest_memory.h"
 #include "ps2_pad_xbox360.h"
+#include "ps2_ee_test_program.h"
 #include "ps2_simd_scalar.h"
 #include "runtime/ps2_pad.h"
 
@@ -96,6 +97,25 @@ bool checkScalarMmi()
            readLane<uint32_t>(madd.lo, 0u) == 1u &&
            readLane<uint32_t>(madd.hi, 0u) == 2u &&
            readLane<uint32_t>(packed, 0u) == 1u;
+}
+
+bool checkDeterministicEeTrace()
+{
+    const auto trace = ps2::xbox360::ee::test_program::runDeterministicTrace();
+    if (!trace.passed)
+    {
+        xsdk_log_write("MKSM smoke: EE deterministic trace FAILED at pc=%08X retired=%u",
+                       static_cast<unsigned>(trace.pc),
+                       static_cast<unsigned>(trace.retiredInstructions));
+        return false;
+    }
+
+    xsdk_log_write("MKSM_EE_TRACE signature=%08X%08X pc=%08X retired=%u",
+                   static_cast<unsigned>(trace.signature >> 32u),
+                   static_cast<unsigned>(trace.signature),
+                   static_cast<unsigned>(trace.pc),
+                   static_cast<unsigned>(trace.retiredInstructions));
+    return true;
 }
 
 bool checkCpp20Runtime()
@@ -227,6 +247,12 @@ int main()
     {
         xsdk_log_write("MKSM smoke: little-endian guest memory check failed");
         return 3;
+    }
+
+    if (!checkDeterministicEeTrace())
+    {
+        xsdk_log_write("MKSM smoke: deterministic EE program check failed");
+        return 5;
     }
 
     if (!checkScalarMmi())

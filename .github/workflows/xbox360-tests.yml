@@ -59,6 +59,7 @@ jobs:
           compile_run ps2_ee_branch_delay_test -Iport/xbox360 port/xbox360/tests/ps2_ee_branch_delay_test.cpp
           compile_run ps2_ee_dispatcher_test -Iport/xbox360 port/xbox360/tests/ps2_ee_dispatcher_test.cpp
           compile_run ps2_ee_mmi_executor_test -Iport/xbox360 port/xbox360/tests/ps2_ee_mmi_executor_test.cpp
+          compile_run ps2_ee_test_program_test -Iport/xbox360 port/xbox360/tests/ps2_ee_test_program_test.cpp
           compile_run ps2_ee_immediate_executor_test -Iport/xbox360 port/xbox360/tests/ps2_ee_immediate_executor_test.cpp
 
   simd-tests:
