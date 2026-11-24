@@ -36,12 +36,12 @@ constexpr std::array<std::uint32_t, 23> makeProbeWords()
         iType(0x24u, 8u, 11u, 0x0001u),           // LBU r11,1(r8)
         iType(0x20u, 8u, 12u, 0x0003u),           // LB r12,3(r8)
         iType(0x25u, 8u, 13u, 0x0002u),           // LHU r13,2(r8)
-        iType(0x3Fu, 8u, 14u, 0x0008u),           // SD r14,8(r8), aligned RDRAM mirror alias
-        iType(0x37u, 8u, 15u, 0x0008u),           // LD r15,8(r8), same mirrored bytes
-        iType(0x28u, 8u, 16u, 0x000Fu),           // SB r16,15(r8), mirrors to RDRAM byte 7
-        iType(0x24u, 8u, 17u, 0x000Fu),           // LBU r17,15(r8), verifies mirrored byte
-        iType(0x29u, 8u, 18u, 0x0010u),           // SH r18,16(r8), aligned at mirrored offset 8
-        iType(0x25u, 8u, 19u, 0x0010u),           // LHU r19,16(r8), verifies mirrored halfword
+        iType(0x3Fu, 20u, 14u, 0x0000u),         // SD r14,0(r20), aligned in the uncached RDRAM alias
+        iType(0x37u, 20u, 15u, 0x0000u),         // LD r15,0(r20), same RDRAM bytes as address zero
+        iType(0x28u, 20u, 16u, 0x0007u),         // SB r16,7(r20), writes the uncached alias byte 7
+        iType(0x24u, 20u, 17u, 0x0007u),         // LBU r17,7(r20), verifies the alias byte
+        iType(0x29u, 20u, 18u, 0x0008u),         // SH r18,8(r20), aligned at uncached alias offset 8
+        iType(0x25u, 20u, 19u, 0x0008u),         // LHU r19,8(r20), verifies the alias halfword
         rType(31u, 0u, 0u, 0x08u),                // JR r31
         0u                                         // delay slot: NOP
     };
