@@ -234,5 +234,25 @@ int main()
     assert(readLane<std::uint32_t>(cpu.readGpr(24u), 2u) == 0xFFFFFFFFu);
     assert(readLane<std::uint32_t>(cpu.readGpr(24u), 3u) == 0x12345678u);
 
+    // MMI1 PCEQW and PMINW: equality masks and signed minima.
+    Vector128 equalVector = wordB;
+    writeLane<std::uint32_t>(equalVector, 0u, 0xFFFFFFFFu);
+    cpu.writeGpr(25u, equalVector);
+    cpu.pc = 0x50u;
+    store(ram, 0x50u, encodeMmi(19u, 25u, 26u, 0x02u, 0x28u)); // PCEQW
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x54u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(26u), 0u) == 0xFFFFFFFFu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(26u), 1u) == 0u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(26u), 2u) == 0u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(26u), 3u) == 0u);
+    store(ram, 0x54u, encodeMmi(19u, 20u, 27u, 0x03u, 0x28u)); // PMINW
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x58u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(27u), 0u) == 0xFFFFFFFFu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(27u), 1u) == 1u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(27u), 2u) == 0x80000000u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(27u), 3u) == 0x87654321u);
+
     return 0;
 }

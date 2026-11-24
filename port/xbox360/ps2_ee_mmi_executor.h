@@ -104,6 +104,34 @@ enum class MmiStatus : std::uint8_t
             break;
         }
     }
+    else if (instruction.mmiSubfamily == MmiSubfamily::Mmi1)
+    {
+        switch (instruction.sa)
+        {
+        case 0x02: // PCEQW: packed 32-bit equality
+        case 0x03: // PMINW: signed packed 32-bit minimum
+        {
+            const auto &lhs = state.readGpr(instruction.rs);
+            const auto &rhs = state.readGpr(instruction.rt);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 4u; ++lane)
+            {
+                const auto a = simd::readLane<std::uint32_t>(lhs, lane);
+                const auto b = simd::readLane<std::uint32_t>(rhs, lane);
+                const std::uint32_t result = instruction.sa == 0x02u
+                    ? (a == b ? 0xFFFFFFFFu : 0u)
+                    : (std::bit_cast<std::int32_t>(a) <
+                       std::bit_cast<std::int32_t>(b) ? a : b);
+                simd::writeLane<std::uint32_t>(value, lane, result);
+            }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
+        default:
+            break;
+        }
+    }
     else if (instruction.mmiSubfamily == MmiSubfamily::Mmi2)
     {
         switch (instruction.sa)
