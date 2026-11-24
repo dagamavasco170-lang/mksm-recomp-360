@@ -17,7 +17,7 @@ It draws a solid background only. It does not load the retail game, render the P
 
 The revised run #76 XEX has now been tested on the physical console. The supplied log records ABI, C++20 and little-endian guest-memory checks, 1280×720 presentation, the Xbox Back → PS2 Select event, 122 presented frames and clean shutdown (exit 0). See [the hardware report](../../docs/xbox360/HARDWARE_SMOKE_2026-11-22.md).
 
-The scalar PS2 packed-vector reference covers signed comparisons, min/max, absolute value, saturation, variable shifts, packing, interleave and PMADDH semantics. The EE dispatcher now executes a deliberately small MMI slice: PMADDH, PMFHI, PMFLO, PMTHI and PMTLO. Host tests verify the HI/LO effects, GPR transfers, branch-delay retirement and atomic rejection of unsupported MMI encodings. This is not a complete MMI implementation, an SSE replacement or a VMX128 backend; the full game runtime remains outside the Xbox target.
+The scalar PS2 packed-vector reference covers signed comparisons, min/max, absolute value, saturation, variable shifts, packing, interleave and PMADDH semantics. The EE dispatcher now executes a deliberately small MMI slice: PMADDH, PMFHI, PMFLO, PMTHI and PMTLO. The new host regression test covers HI/LO effects, 128-bit GPR transfers, MMI in a branch delay slot and atomic rejection of unsupported MMI encodings; the portable EE workflow passes on commit `b871e08`. This is not a complete MMI implementation, an SSE replacement or a VMX128 backend; the full game runtime remains outside the Xbox target.
 
 ## Preferred SDK
 

@@ -25,16 +25,18 @@ See [the initial source/build-graph audit](SOURCE_AUDIT.md) for verified CMake t
 - Preferred target SDK: [xenosworks/xsdk](https://github.com/xenosworks/xsdk), evaluated in [SDK_EVALUATION.md](SDK_EVALUATION.md). Its GCC 15.3 / C++23 toolchain, native XEX packer and Xenos/system APIs are a closer fit for this C++20 project than the legacy XDK route.
 - The initial xSDK integration is pinned to commit `9e6de98f6b5d737bce0fecd2864edae94bdd2637`. The repository keeps xSDK external; it is not vendored.
 - The Microsoft XDK is proprietary and is not included. It is not required by the preferred path; only consider it later if xSDK has a demonstrated gap. Never commit SDK binaries, headers, libraries, credentials, game images, extracted game data, or generated game translations.
-- The two technical references are documented in [REFERENCES.md](REFERENCES.md): [Tenkaichi3Decomp](https://github.com/z3xox/Tenkaichi3Decomp) for code reconstruction/organization and [BT3XBx](https://github.com/Lucas-Tito/bt3xbx) for native Xbox 360 architecture, platform layers and hardware validation. Treat them as study references, not code/toolchain drop-ins; check file-level provenance and license obligations before adapting code.
+- The technical references are documented in [REFERENCES.md](REFERENCES.md): [Tenkaichi3Decomp](https://github.com/z3xox/Tenkaichi3Decomp) and [BT3XBx](https://github.com/Lucas-Tito/bt3xbx) for PS2 game reconstruction/native Xbox port structure; [Laika64](https://github.com/ErickaguirreD/Laika64) for Xenon MIPS-to-PowerPC dynarec, executable code-cache and Xenos lessons; and [Ibara360](https://github.com/PaulAtreides67/ibara360) for another xSDK-native Xbox title and hardware validation. Treat them as study references, not code/toolchain drop-ins; check file-level provenance and license obligations before adapting code.
 - CI run #106 built the smoke XEX successfully after the SIMD oracle test fix. This is a CI build result, not a new physical-console run; run #80 remains the latest hardware evidence.
 
 ## Alignment with existing Xbox 360 ports
 
 **Direct precedent — BT3XBx:** this is the closest known project doing the same PS2-to-Xbox-360 class of work. It keeps Xbox code in `port/x360/`, has a staged build/hardware roadmap, uses a deterministic headless replay to check x86/PPC behavior before full console integration, and only promotes optimizations after image/gameplay evidence. Adopt those practices. Do not copy its XDK setup: this project uses the pinned, open xSDK toolchain instead.
 
-**Complementary precedent — Ibara360:** it proves a second xSDK-based native XEX can integrate Xenos display, audio, controllers, storage, saves and launcher behavior on real RGH/JTAG hardware. Its game core is different: the arcade's SH-3 program is recompiled and the PS2 Arrange mode is applied as SH-3 patches. It does not provide R5900/EE execution semantics.
+**Complementary precedent — Laika64:** this is an N64 emulator for RGH/JTAG, not a PS2 game port. Its MIPS dynarec emits native PowerPC blocks and demonstrates practical Xenon concerns that the current smoke title does not yet test: a writable/executable image section for generated code, data-cache writeback plus instruction-cache invalidation/synchronization, block-cache eviction/invalidation, register caching, and JIT/interpreter lockstep. Its PPC opcode encoder is tested against instructions assembled by GNU `as`. This is valuable for a future hand-emitted/JIT path, but the N64 VR4300 instruction semantics are not the PS2 R5900/Emotion Engine semantics.
 
-The resulting approach is deliberately hybrid in evidence, not in code: BT3XBx guides the PS2-to-Xenon port structure and phase gates; Ibara360 and xSDK guide the open SDK, title packaging and console-facing subsystems; PCSX2 and PS2Recomp remain independent references for PS2 instruction behavior and translated-code correctness. Do not import code across these projects without file-level license/provenance review.
+**Complementary precedent — Ibara360:** it proves another xSDK-based native XEX can integrate Xenos display, audio, controllers, storage, saves and launcher behavior on real RGH/JTAG hardware. Its game core is different: the arcade's SH-3 program is recompiled and the PS2 Arrange mode is applied as SH-3 patches. It does not provide R5900/EE execution semantics.
+
+The resulting approach is deliberately hybrid in evidence, not in code: BT3XBx guides the PS2-to-Xenon port structure and phase gates; Laika64 guides only Xenon dynarec/code-cache/cache-coherency experiments; Ibara360 and xSDK guide the open SDK, title packaging and console-facing subsystems; PCSX2 and PS2Recomp remain independent references for PS2 instruction behavior and translated-code correctness. Do not import code across these projects without file-level license/provenance review.
 
 ## Architecture target
 
@@ -92,10 +94,12 @@ If xSDK fails the C++20 smoke build, stop and investigate a specific missing fea
 ### X3 — Recompiler/runtime on PowerPC
 - Compile a small, deterministic translated EE test program from the same source/vector set for the desktop reference and the PowerPC target.
 - Emit a stable state trace at fixed checkpoints: PC, selected 128-bit GPRs, HI/LO, retired-instruction count and guest-memory bytes touched by the test.
-- Verify integer, MMI, load/store, branch-delay, exception and floating-point behavior before wiring the generated program into the full runtime.
+- Verify integer, supported MMI, load/store, branch-delay, exception and floating-point behavior before wiring the generated program into the full runtime.
 - Measure memory use and frame/tick cost on the console.
+- Keep the initial approach ahead-of-time: generate C++ on the host and compile it with the pinned xSDK toolchain. Laika64 shows that a Xenon MIPS-to-PowerPC JIT is possible, but does not by itself justify replacing this simpler path.
+- Only if profiling later justifies runtime code emission, add separate acceptance tests for PowerPC emitter words versus GNU `as`, executable-section/permission behavior, and data/instruction-cache synchronization. Laika64's `.jitc` and I-cache procedure are a reference for test design, not code to transplant.
 
-**Acceptance:** the same input trace produces identical integer/register/memory state and documented floating-point tolerances on the desktop and Xenon builds. CI compilation alone is not the acceptance test; a console run must capture the state trace and timing.
+**Acceptance:** the same input trace produces identical integer/register/memory state and documented floating-point tolerances on the desktop and Xenon builds. CI compilation alone is not the acceptance test; a console run must capture the state trace and timing. Any JIT experiment has its own hardware gate and must not become the default path without measured benefit.
 
 ### X4 — GS renderer
 - Implement command submission, state, textures, CLUTs, framebuffer/depth, blending and transfers.
@@ -129,10 +133,12 @@ If xSDK fails the C++20 smoke build, stop and investigate a specific missing fea
 
 1. Keep the desktop runtime as the behavioral reference until the console backend is proven.
 2. Follow BT3XBx's phase-gated workflow: deterministic headless parity before full game integration, and hardware evidence before claiming a console milestone.
-3. Follow Ibara360/xSDK's separation of host-side preparation from the small native XEX and its console-facing services; keep the SDK external and pinned.
-4. Do not enable fast-math or floating-point contraction for PS2-derived code until differential tests prove the resulting values are acceptable.
-5. Do not introduce guessed guest behavior, fake readiness flags or forced scene skips to hide missing emulation.
-6. Every platform-specific workaround needs a focused regression test and hardware evidence where applicable.
-7. Do not claim a phase is complete based only on compilation; use the phase's stated acceptance test.
-8. Record compiler, commit, game executable hash, configuration, logs and console model/kernel for every hardware result.
-9. Do not publish game data, proprietary SDK files, extracted assets, memory dumps or generated translations.
+3. Follow Laika64's testing discipline for any future native code emitter: compare PPC instruction words to an independent assembler and verify generated-code cache coherency on real hardware; do not copy its N64/VR4300 semantics into the EE.
+4. Follow Ibara360/xSDK's separation of host-side preparation from the small native XEX and its console-facing services; keep the SDK external and pinned.
+5. Keep ahead-of-time recompilation as the default; a runtime JIT is an experiment that requires a measured need and separate approval gates.
+6. Do not enable fast-math or floating-point contraction for PS2-derived code until differential tests prove the resulting values are acceptable.
+7. Do not introduce guessed guest behavior, fake readiness flags or forced scene skips to hide missing emulation.
+8. Every platform-specific workaround needs a focused regression test and hardware evidence where applicable.
+9. Do not claim a phase is complete based only on compilation; use the phase's stated acceptance test.
+10. Record compiler, commit, game executable hash, configuration, logs and console model/kernel for every hardware result.
+11. Do not publish game data, proprietary SDK files, extracted assets, memory dumps or generated translations.
