@@ -91,4 +91,35 @@ constexpr void pmtlo(HiLoState &state, const Vector128 &source) noexcept
     return {{{state.lo.words[0], state.hi.words[0],
               state.lo.words[2], state.hi.words[2]}}};
 }
+
+// PMSUBH subtracts each signed-halfword product from the same eight independent
+// 32-bit accumulator words used by PMADDH. Unsigned subtraction intentionally
+// gives modulo-2^32 wraparound without signed-overflow undefined behavior.
+[[nodiscard]] constexpr Vector128 pmsubh(HiLoState &state,
+                                         const Vector128 &rs,
+                                         const Vector128 &rt) noexcept
+{
+    for (std::size_t product = 0; product < 8u; ++product)
+    {
+        const std::size_t word = product / 2u;
+        const unsigned shift = (product & 1u) * 16u;
+        const auto lhsBits = static_cast<std::uint16_t>(rs.words[word] >> shift);
+        const auto rhsBits = static_cast<std::uint16_t>(rt.words[word] >> shift);
+        const std::int32_t lhs = std::bit_cast<std::int16_t>(lhsBits);
+        const std::int32_t rhs = std::bit_cast<std::int16_t>(rhsBits);
+        const std::uint32_t productBits = static_cast<std::uint32_t>(lhs * rhs);
+
+        if (product < 2u)
+            state.lo.words[product] -= productBits;
+        else if (product < 4u)
+            state.hi.words[product - 2u] -= productBits;
+        else if (product < 6u)
+            state.lo.words[product - 2u] -= productBits;
+        else
+            state.hi.words[product - 4u] -= productBits;
+    }
+
+    return {{{state.lo.words[0], state.hi.words[0],
+              state.lo.words[2], state.hi.words[2]}}};
+}
 } // namespace ps2::mmi

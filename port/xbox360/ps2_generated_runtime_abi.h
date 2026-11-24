@@ -110,6 +110,18 @@ inline void Ps2MmiPmaddh(R5900Context *ctx,
     Ps2MmiWriteGprVector(ctx, rd, destination);
 }
 
+inline void Ps2MmiPmsubh(R5900Context *ctx,
+                         std::uint32_t rs,
+                         std::uint32_t rt,
+                         std::uint32_t rd) noexcept
+{
+    auto state = Ps2MmiReadHiLo(ctx);
+    const auto destination = ps2::mmi::pmsubh(
+        state, Ps2MmiReadGprVector(ctx, rs), Ps2MmiReadGprVector(ctx, rt));
+    Ps2MmiWriteHiLo(ctx, state);
+    Ps2MmiWriteGprVector(ctx, rd, destination);
+}
+
 class PS2Runtime
 {
 public:

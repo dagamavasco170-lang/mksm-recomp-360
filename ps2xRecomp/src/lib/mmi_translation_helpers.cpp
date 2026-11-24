@@ -413,15 +413,9 @@ namespace ps2recomp
 
     std::string CodeGenerator::translatePMSUBH(const Instruction &inst)
     {
-        return fmt::format("{{ __m128i prod = _mm_madd_epi16(GPR_VEC(ctx, {}), GPR_VEC(ctx, {})); \n"
-                           "   int32_t p0 = _mm_cvtsi128_si32(prod); \n"
-                           "   int32_t p1 = _mm_cvtsi128_si32(_mm_srli_si128(prod, 4)); \n"
-                           "   int32_t p2 = _mm_cvtsi128_si32(_mm_srli_si128(prod, 8)); \n"
-                           "   int32_t p3 = _mm_cvtsi128_si32(_mm_srli_si128(prod, 12)); \n"
-                           "   int64_t acc = Ps2HiLoToU64(ctx->hi, ctx->lo); \n"
-                           "   acc -= (int64_t)p0 + (int64_t)p1 + (int64_t)p2 + (int64_t)p3; \n"
-                           "   ctx->lo = (uint32_t)acc; ctx->hi = (uint32_t)(acc >> 32); \n"
-                           "   SET_GPR_U64(ctx, {}, acc); }}",
+        // Subtract all eight products independently from the full 128-bit
+        // HI and LO accumulator banks.
+        return fmt::format("Ps2MmiPmsubh(ctx, {}, {}, {});",
                            inst.rs, inst.rt, inst.rd);
     }
 

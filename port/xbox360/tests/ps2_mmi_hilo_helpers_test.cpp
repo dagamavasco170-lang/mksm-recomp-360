@@ -32,6 +32,14 @@ int main()
     assert((destination.words == std::array<std::uint32_t, 4>{
         0x00000114u, 0x00000088u, 0x0000042Cu, 0x00000260u}));
 
+    const auto subDestination = ps2::mmi::pmsubh(state, lhs, rhs);
+    assert((state.lo.words == std::array<std::uint32_t, 4>{
+        0x00000100u, 0x00000200u, 0x00000300u, 0x00000400u}));
+    assert((state.hi.words == std::array<std::uint32_t, 4>{
+        0x00000010u, 0x00000020u, 0x00000030u, 0x00000040u}));
+    assert((subDestination.words == std::array<std::uint32_t, 4>{
+        0x00000100u, 0x00000010u, 0x00000300u, 0x00000030u}));
+
     // The signed minimum times itself is positive 2^30. Accumulator wrap is
     // independently modulo 2^32, rather than a shared 64-bit reduction.
     HiLoState wrap{};
