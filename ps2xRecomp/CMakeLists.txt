@@ -176,6 +176,18 @@ if(PS2X_BUILD_XBOX360_CODEGEN_PROBE)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT APPLE)
         target_compile_options(mksm_xbox360_codegen_probe PRIVATE -msse4.1)
     endif()
+
+    # Compile and execute the same generated function with the target's
+    # explicit little-endian, RDRAM-only ABI shim on the host.
+    add_executable(mksm_xbox360_codegen_memory_probe
+        "${MKSM_XBOX360_GENERATED_CPP}"
+        "${CMAKE_SOURCE_DIR}/port/xbox360/tests/ps2_recomp_generated_memory_probe_runner.cpp")
+    target_include_directories(mksm_xbox360_codegen_memory_probe PRIVATE
+        "${MKSM_XBOX360_CODEGEN_DIR}/generated"
+        "${CMAKE_SOURCE_DIR}/port/xbox360")
+    target_compile_definitions(mksm_xbox360_codegen_memory_probe PRIVATE
+        PS2X_GENERATED_RUNTIME_ABI=1)
+    target_compile_features(mksm_xbox360_codegen_memory_probe PRIVATE cxx_std_20)
 endif()
 
 if(PS2X_BUILD_BRANCH64_CHECK)
