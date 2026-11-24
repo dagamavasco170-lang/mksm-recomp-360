@@ -81,7 +81,7 @@ runGeneratedMmiProbe(std::uint8_t *rdram)
     if (result.hi != kExpectedHi || result.lo != kExpectedLo)
         result.failures |= 1u << 3u;
 
-    const auto state = Ps2MmiReadHiLo(ctx);
+    // Verify PMTHL.LW both in HI/LO and through the generated destination GPRs.\n    const auto state = Ps2MmiReadHiLo(ctx);
     constexpr std::array<std::uint32_t, 4> kExpectedPmthlHi{
         0xCAFEBABEu, 0x00000020u, 0x8BADF00Du, 0x00000040u};
     constexpr std::array<std::uint32_t, 4> kExpectedPmthlLo{
