@@ -101,6 +101,8 @@ If xSDK fails the C++20 smoke build, stop and investigate a specific missing fea
 
 **Acceptance:** the same input trace produces identical integer/register/memory state and documented floating-point tolerances on the desktop and Xenon builds. CI compilation alone is not the acceptance test; a console run must capture the state trace and timing. Any JIT experiment has its own hardware gate and must not become the default path without measured benefit.
 
+**Current progress (2026-11-24):** a game-data-free 17-instruction EE dispatcher program is shared by the portable host test and the Xbox smoke title. The host regression run passes with signature `4F63CD2AAFC519CE`, `PC=0x48`, 17 retired instructions and zero failure bits. The same code is included in an xSDK-built XEX (CI run #45307286166). The XEX has not yet been run on the physical console; matching the signature from its `mksm_xbox360_smoke.log` is the next hardware acceptance check. This probe executes the experimental dispatcher itself on both builds; it is **not yet** a PS2Recomp-generated game translation or a comparison against the full desktop game runtime. See [EE_PARITY_TEST.md](EE_PARITY_TEST.md).
+
 ### X4 — GS renderer
 - Implement command submission, state, textures, CLUTs, framebuffer/depth, blending and transfers.
 - Start with diagnostic triangles and clear operations, then the opening/menu scenes.

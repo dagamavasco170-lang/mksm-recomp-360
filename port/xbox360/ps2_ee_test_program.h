@@ -9,6 +9,8 @@
 
 namespace ps2::xbox360::ee::test_program
 {
+inline constexpr std::uint64_t kExpectedTraceSignature = 0x4F63CD2AAFC519CEull;
+
 struct TraceReport
 {
     bool passed{};
@@ -180,6 +182,7 @@ inline void hashU64(std::uint64_t &hash, std::uint64_t value) noexcept
     hashU32(hash, cpu.branchTarget);
     for (std::size_t i = 0x80u; i < 0x94u; ++i)
         hashByte(hash, ram[i]);
+    if (hash != kExpectedTraceSignature) failureMask |= 1u << 6u;
 
     return {failureMask == 0u, hash, failureMask, cpu.pc, cpu.retiredInstructions};
 }

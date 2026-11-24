@@ -17,7 +17,11 @@ It draws a solid background only. It does not load the retail game, render the P
 
 The revised run #76 XEX has now been tested on the physical console. The supplied log records ABI, C++20 and little-endian guest-memory checks, 1280×720 presentation, the Xbox Back → PS2 Select event, 122 presented frames and clean shutdown (exit 0). See [the hardware report](../../docs/xbox360/HARDWARE_SMOKE_2026-11-22.md).
 
-The scalar PS2 packed-vector reference covers signed comparisons, min/max, absolute value, saturation, variable shifts, packing, interleave and PMADDH semantics. The EE dispatcher now executes a deliberately small MMI slice: PMADDH, PMFHI, PMFLO, PMTHI and PMTLO. The new host regression test covers HI/LO effects, 128-bit GPR transfers, MMI in a branch delay slot and atomic rejection of unsupported MMI encodings; the portable EE workflow passes on commit `b871e08`. This is not a complete MMI implementation, an SSE replacement or a VMX128 backend; the full game runtime remains outside the Xbox target.
+The scalar PS2 packed-vector reference covers signed comparisons, min/max, absolute value, saturation, variable shifts, packing, interleave and PMADDH semantics. The EE dispatcher now executes a deliberately small MMI slice: PMADDH, PMFHI, PMFLO, PMTHI and PMTLO. Host regressions cover HI/LO effects, 128-bit GPR transfers, MMI in a branch delay slot and atomic rejection of unsupported encodings.
+
+A shared, game-data-free EE program is now run by the portable host test and the Xbox smoke title. It executes 17 instructions across immediate arithmetic, SW/LW, ADDU, a taken BEQ with its delay slot, HI/LO transfers and PMADDH. The host golden signature is `4F63CD2AAFC519CE` (`PC=0x48`, 17 retired instructions); CI passed the host run and built the XEX containing the same check on commit `68346dd`. The XEX has not yet been run on a physical console, so host/Xenon trace equality remains pending. See [the deterministic EE trace test](../../docs/xbox360/EE_PARITY_TEST.md).
+
+This is not a complete MMI implementation, an SSE replacement or a VMX128 backend; the full game runtime remains outside the Xbox target.
 
 ## Preferred SDK
 
@@ -62,7 +66,7 @@ A GitHub Actions workflow builds this target on updates to the `xbox360/**` bran
 
 ## Hardware test
 
-Copy the XEX to a folder on the RGH/JTAG console using Aurora's FTP service, then launch it from the dashboard's file browser. The screen should show a solid 720p background. The target source reads controller 1 through the XAM adapter, converts it into the same 32-byte PS2 pad report used by the runtime, and exits when Xbox Back arrives as the PS2 Select bit. The run #76 controller path was confirmed on hardware; the newer run #80 XEX also includes scalar SIMD probes and requires its own console retest. The title writes `mksm_xbox360_smoke.log` beside the XEX; retain the log and the exact console/kernel details with the test report.
+Copy the XEX to a folder on the RGH/JTAG console using Aurora's FTP service, then launch it from the dashboard's file browser. The screen should show a solid 720p background. The target source reads controller 1 through the XAM adapter, converts it into the same 32-byte PS2 pad report used by the runtime, and exits when Xbox Back arrives as the PS2 Select bit. The run #76 controller path was confirmed on hardware; the newer run #80 XEX also includes scalar SIMD probes and requires its own console retest. The title writes `mksm_xbox360_smoke.log` beside the XEX. The deterministic EE probe should emit `MKSM_EE_TRACE signature=4F63CD2AAFC519CE failures=00000000 pc=00000048 retired=17`; compare it with the host signature and retain the log plus console/kernel details. This particular probe still needs its first physical-console execution.
 
 Unsigned xSDK titles require RGH/JTAG. They do not run on an unmodified retail console.
 
