@@ -62,7 +62,32 @@ enum class MmiStatus : std::uint8_t
     }
 
     bool executed = false;
-    if (instruction.mmiSubfamily == MmiSubfamily::Mmi2)
+    if (instruction.mmiSubfamily == MmiSubfamily::Mmi0)
+    {
+        switch (instruction.sa)
+        {
+        case 0x00: // PADDW: wrapping packed 32-bit addition
+        case 0x01: // PSUBW: wrapping packed 32-bit subtraction
+        {
+            const auto &lhs = state.readGpr(instruction.rs);
+            const auto &rhs = state.readGpr(instruction.rt);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 4u; ++lane)
+            {
+                const auto a = simd::readLane<std::uint32_t>(lhs, lane);
+                const auto b = simd::readLane<std::uint32_t>(rhs, lane);
+                simd::writeLane<std::uint32_t>(value, lane,
+                    instruction.sa == 0x00u ? a + b : a - b);
+            }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
+        default:
+            break;
+        }
+    }
+    else if (instruction.mmiSubfamily == MmiSubfamily::Mmi2)
     {
         switch (instruction.sa)
         {

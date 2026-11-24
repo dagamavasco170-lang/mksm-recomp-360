@@ -30,7 +30,7 @@ void store(std::span<std::uint8_t> ram, std::uint32_t address, std::uint32_t wor
 
 int main()
 {
-    std::array<std::uint8_t, 128> ram{};
+    std::array<std::uint8_t, 256> ram{};
     CpuState cpu{};
 
     // PMADDH: signed halfword products accumulate across the HI/LO word banks,
@@ -188,6 +188,24 @@ int main()
     assert(result.status == StepStatus::Unsupported);
     assert(cpu.pc == beforePc && cpu.retiredInstructions == beforeRetired);
     assert(cpu.hilo.hi.bytes == beforeHi && cpu.hilo.lo.bytes == beforeLo);
+
+    // MMI0 PADDW/PSUBW use wrapping arithmetic independently in each 32-bit lane.
+    Vector128 wordA{}, wordB{};
+    wordA.words = {0xFFFFFFFFu, 0x7FFFFFFFu, 0x80000000u, 0x12345678u};
+    wordB.words = {0x00000001u, 0x00000001u, 0xFFFFFFFFu, 0x87654321u};
+    cpu.writeGpr(19u, wordA);
+    cpu.writeGpr(20u, wordB);
+    cpu.pc = 0x40u;
+    store(ram, 0x40u, encodeMmi(19u, 20u, 21u, 0x00u, 0x08u)); // MMI0/PADDW
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x44u);
+    assert((cpu.readGpr(21u).words == std::array<std::uint32_t, 4>{
+        0u, 0x80000000u, 0x7FFFFFFFu, 0x99999999u}));
+    store(ram, 0x44u, encodeMmi(19u, 20u, 22u, 0x01u, 0x08u)); // MMI0/PSUBW
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x48u);
+    assert((cpu.readGpr(22u).words == std::array<std::uint32_t, 4>{
+        0xFFFFFFFEu, 0x7FFFFFFEu, 0x80000001u, 0x88888888u}));
 
     return 0;
 }
