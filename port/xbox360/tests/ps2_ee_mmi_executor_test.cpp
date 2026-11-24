@@ -217,5 +217,22 @@ int main()
     assert(readLane<std::uint32_t>(cpu.readGpr(22u), 2u) == 0x80000001u);
     assert(readLane<std::uint32_t>(cpu.readGpr(22u), 3u) == 0x8ACF1357u);
 
+    // MMI0 PCGTW and PMAXW use signed comparisons across four word lanes.
+    cpu.pc = 0x48u;
+    store(ram, 0x48u, encodeMmi(19u, 20u, 23u, 0x02u, 0x08u)); // PCGTW
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x4Cu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(23u), 0u) == 0u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(23u), 1u) == 0xFFFFFFFFu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(23u), 2u) == 0u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(23u), 3u) == 0xFFFFFFFFu);
+    store(ram, 0x4Cu, encodeMmi(19u, 20u, 24u, 0x03u, 0x08u)); // PMAXW
+    result = step(cpu, ram);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x50u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(24u), 0u) == 1u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(24u), 1u) == 0x7FFFFFFFu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(24u), 2u) == 0xFFFFFFFFu);
+    assert(readLane<std::uint32_t>(cpu.readGpr(24u), 3u) == 0x12345678u);
+
     return 0;
 }

@@ -3,6 +3,7 @@
 #include "ps2_ee_cpu_state.h"
 #include "ps2_ee_instruction_decode.h"
 
+#include <bit>
 #include <cstdint>
 
 namespace ps2::xbox360::ee
@@ -68,6 +69,8 @@ enum class MmiStatus : std::uint8_t
         {
         case 0x00: // PADDW: wrapping packed 32-bit addition
         case 0x01: // PSUBW: wrapping packed 32-bit subtraction
+        case 0x02: // PCGTW: signed packed greater-than word
+        case 0x03: // PMAXW: signed packed maximum word
         {
             const auto &lhs = state.readGpr(instruction.rs);
             const auto &rhs = state.readGpr(instruction.rt);
@@ -76,8 +79,22 @@ enum class MmiStatus : std::uint8_t
             {
                 const auto a = simd::readLane<std::uint32_t>(lhs, lane);
                 const auto b = simd::readLane<std::uint32_t>(rhs, lane);
-                simd::writeLane<std::uint32_t>(value, lane,
-                    instruction.sa == 0x00u ? a + b : a - b);
+                std::uint32_t result{};
+                switch (instruction.sa)
+                {
+                case 0x00: result = a + b; break;
+                case 0x01: result = a - b; break;
+                case 0x02:
+                    result = std::bit_cast<std::int32_t>(a) >
+                             std::bit_cast<std::int32_t>(b) ? 0xFFFFFFFFu : 0u;
+                    break;
+                case 0x03:
+                    result = std::bit_cast<std::int32_t>(a) >
+                             std::bit_cast<std::int32_t>(b) ? a : b;
+                    break;
+                default: break;
+                }
+                simd::writeLane<std::uint32_t>(value, lane, result);
             }
             state.writeGpr(instruction.rd, value);
             executed = true;
