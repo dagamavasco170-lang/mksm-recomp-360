@@ -1,4 +1,5 @@
 #include "ps2_recompiled_functions.h"
+#include "mksm_generated_probe_entry.h"
 #include "ps2_runtime_macros.h"
 
 #include <cstdint>
@@ -19,7 +20,7 @@ int main()
     SET_GPR_U32(ctx, 16, 0x5Au);
     SET_GPR_U32(ctx, 18, 0xBEEFu);
 
-    mksm_ee_codegen_probe_0x100000(rdram.data(), ctx, nullptr);
+    MKSM_RECOMP_GENERATED_PROBE_ENTRY(rdram.data(), ctx, nullptr);
 
     std::uint32_t failures = 0u;
     const std::uint32_t r1 = GPR_U32(ctx, 1);

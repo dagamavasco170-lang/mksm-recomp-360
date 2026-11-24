@@ -6,6 +6,7 @@ on:
     paths:
       - "port/xbox360/ps2_ee_*.h"
       - "port/xbox360/ps2_guest_memory.h"
+      - "port/xbox360/ps2_rdram_address.h"
       - "port/xbox360/ps2_pad_mapping.*"
       - "port/xbox360/tests/**"
       - "ps2xRuntime/include/**"
@@ -50,6 +51,7 @@ jobs:
             "build/host-tests/$name"
           }
           compile_run ps2_rdram_address_test -Iport/xbox360 port/xbox360/tests/ps2_rdram_address_test.cpp
+          compile_run ps2_memory_region_test -Iport/xbox360 port/xbox360/tests/ps2_memory_region_test.cpp
           compile_run ps2_generated_abi_memory_test -Iport/xbox360/tests -Iport/xbox360 port/xbox360/tests/ps2_generated_abi_memory_test.cpp
           compile_run ps2_guest_memory_test -Iport/xbox360 port/xbox360/tests/ps2_guest_memory_test.cpp
           compile_run ps2_mmi_hilo_state_test -Iport/xbox360 port/xbox360/tests/ps2_mmi_hilo_state_test.cpp
