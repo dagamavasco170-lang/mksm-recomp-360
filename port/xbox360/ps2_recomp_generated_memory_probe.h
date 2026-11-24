@@ -46,7 +46,7 @@ struct Ps2GeneratedMemoryProbeResult
     R5900Context context{};
     PS2Runtime *runtime = nullptr;
     SET_GPR_U32(&context, 31u, kReturnPc);
-    SET_GPR_U32(&context, 8u, 0x01FFFFFFu); // SW crosses the 32 MiB RDRAM boundary.
+    SET_GPR_U32(&context, 8u, 0x01FFFFF8u); // Last aligned RDRAM word; later ops verify mirrored aliases.
     SET_GPR_U32(&context, 9u, 0xA1B2C3D4u);
     SET_GPR_U64(&context, 14u, 0x0123456789ABCDEFull);
     SET_GPR_U32(&context, 16u, 0x5Au);
@@ -92,11 +92,15 @@ struct Ps2GeneratedMemoryProbeResult
 
     constexpr std::uint32_t kRdramMask =
         static_cast<std::uint32_t>(ps2::xbox360::generated_abi::kGuestRdramSize - 1u);
-    if (rdram[kRdramMask] != 0xD4u || rdram[0] != 0xC3u ||
-        rdram[1] != 0xB2u || rdram[2] != 0xA1u ||
-        rdram[7] != 0xEFu || rdram[8] != 0xCDu ||
-        rdram[13] != 0x23u || rdram[14] != 0x5Au ||
-        rdram[15] != 0xEFu || rdram[16] != 0xBEu)
+    if (rdram[kRdramMask - 7u] != 0xD4u ||
+        rdram[kRdramMask - 6u] != 0xC3u ||
+        rdram[kRdramMask - 5u] != 0xB2u ||
+        rdram[kRdramMask - 4u] != 0xA1u ||
+        rdram[0] != 0xEFu || rdram[1] != 0xCDu ||
+        rdram[2] != 0xABu || rdram[3] != 0x89u ||
+        rdram[4] != 0x67u || rdram[5] != 0x45u ||
+        rdram[6] != 0x23u || rdram[7] != 0x5Au ||
+        rdram[8] != 0xEFu || rdram[9] != 0xBEu)
         result.failures |= 1u << 7u;
     if (GPR_U32(&context, 0u) != 0u || context.r[0].low64 != 0u)
         result.failures |= 1u << 8u;
