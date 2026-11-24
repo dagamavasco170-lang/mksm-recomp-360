@@ -50,6 +50,7 @@ jobs:
           compile_run ps2_memory_region_test -Iport/xbox360 port/xbox360/tests/ps2_memory_region_test.cpp
           compile_run ps2_generated_abi_memory_test -Iport/xbox360/tests -Iport/xbox360 port/xbox360/tests/ps2_generated_abi_memory_test.cpp
           compile_run ps2_guest_memory_test -Iport/xbox360 port/xbox360/tests/ps2_guest_memory_test.cpp
+          compile_run ps2_mmi_hilo_helpers_test -Ips2xRuntime/include port/xbox360/tests/ps2_mmi_hilo_helpers_test.cpp
           compile_run ps2_mmi_hilo_state_test -Iport/xbox360 port/xbox360/tests/ps2_mmi_hilo_state_test.cpp
           compile_run ps2_mmi_hilo_transfers_test -Iport/xbox360 port/xbox360/tests/ps2_mmi_hilo_transfers_test.cpp
           compile_run ps2_ee_cpu_state_test -Iport/xbox360 port/xbox360/tests/ps2_ee_cpu_state_test.cpp

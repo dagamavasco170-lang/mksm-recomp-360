@@ -2,6 +2,7 @@
 
 #include "ps2_generated_runtime_abi.h"
 #include "mksm_generated_probe_entry.h"
+#include "ps2_recomp_generated_mmi_probe.h"
 
 #include <cstdint>
 #include <vector>
@@ -31,6 +32,7 @@ struct Ps2GeneratedMemoryProbeResult
     std::uint32_t scratchpadAliasWord{};
     std::uint32_t scratchpadAliasByte{};
     std::uint32_t scratchpadIsolationWord{};
+    Ps2GeneratedMmiProbeResult mmi{};
 };
 
 // Shared by the host differential runner and the Xenon smoke XEX so both
@@ -165,6 +167,10 @@ struct Ps2GeneratedMemoryProbeResult
         scratchpad[19] != 0xDEu || rdram[0x10u] != 0u ||
         rdram[0x11u] != 0u || rdram[0x12u] != 0u || rdram[0x13u] != 0u)
         result.failures |= 1u << 20u;
+
+    result.mmi = runGeneratedMmiProbe(rdram.data());
+    if (result.mmi.failures != 0u)
+        result.failures |= 1u << 21u;
 
     return result;
 }

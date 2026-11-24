@@ -25,12 +25,12 @@ int main()
                          0x003C0032u, 0x00500046u}};
     const auto destination = ps2::mmi::pmaddh(state, lhs, rhs);
 
-    assert(state.lo.words == std::array<std::uint32_t, 4>{
-        0x00000114u, 0x0000023Cu, 0x0000042Cu, 0x000005A4u});
-    assert(state.hi.words == std::array<std::uint32_t, 4>{
-        0x00000088u, 0x000000E8u, 0x00000260u, 0x00000310u});
-    assert(destination.words == std::array<std::uint32_t, 4>{
-        0x00000114u, 0x00000088u, 0x0000042Cu, 0x00000260u});
+    assert((state.lo.words == std::array<std::uint32_t, 4>{
+        0x00000114u, 0x0000023Cu, 0x0000042Cu, 0x000005A4u}));
+    assert((state.hi.words == std::array<std::uint32_t, 4>{
+        0x00000088u, 0x000000E8u, 0x00000260u, 0x00000310u}));
+    assert((destination.words == std::array<std::uint32_t, 4>{
+        0x00000114u, 0x00000088u, 0x0000042Cu, 0x00000260u}));
 
     // The signed minimum times itself is positive 2^30. Accumulator wrap is
     // independently modulo 2^32, rather than a shared 64-bit reduction.

@@ -1,5 +1,6 @@
 #include "ps2_recompiled_functions.h"
 #include "mksm_generated_probe_entry.h"
+#include "ps2_recomp_generated_mmi_probe.h"
 #include "ps2_runtime_macros.h"
 
 #include <cstdint>
@@ -77,5 +78,24 @@ int main()
                 static_cast<unsigned long long>(r12),
                 static_cast<unsigned>(GPR_U32(ctx, 13)),
                 static_cast<unsigned long long>(r15));
-    return failures == 0u ? 0 : 1;
+
+    const auto mmi = runGeneratedMmiProbe(rdram.data());
+    std::printf("MKSM_RECOMP_MMI_TRACE failures=%08X pc=%08X "
+                "dest=%08X/%08X/%08X/%08X hi=%08X/%08X/%08X/%08X "
+                "lo=%08X/%08X/%08X/%08X\n",
+                static_cast<unsigned>(mmi.failures),
+                static_cast<unsigned>(mmi.pc),
+                static_cast<unsigned>(mmi.destination[0]),
+                static_cast<unsigned>(mmi.destination[1]),
+                static_cast<unsigned>(mmi.destination[2]),
+                static_cast<unsigned>(mmi.destination[3]),
+                static_cast<unsigned>(mmi.hi[0]),
+                static_cast<unsigned>(mmi.hi[1]),
+                static_cast<unsigned>(mmi.hi[2]),
+                static_cast<unsigned>(mmi.hi[3]),
+                static_cast<unsigned>(mmi.lo[0]),
+                static_cast<unsigned>(mmi.lo[1]),
+                static_cast<unsigned>(mmi.lo[2]),
+                static_cast<unsigned>(mmi.lo[3]));
+    return (failures == 0u && mmi.failures == 0u) ? 0 : 1;
 }

@@ -9,7 +9,8 @@ int main()
                 "r3=%08X r4=%08X r5=%08X r6=%08X r7=%08X "
                 "lw=%08X lbu=%08X lb=%016llX lhu=%04X ld=%016llX "
                 "lbu_after=%02X lhu_after=%04X spw=%08X spb=%02X "
-                "sph=%04X spd=%016llX aliasw=%08X aliasb=%02X isolated=%08X\n",
+                "sph=%04X spd=%016llX aliasw=%08X aliasb=%02X isolated=%08X "
+                "mmi=%08X dest=%08X/%08X/%08X/%08X\n",
                 static_cast<unsigned>(result.failures),
                 static_cast<unsigned>(result.pc),
                 static_cast<unsigned>(result.r1), static_cast<unsigned>(result.r2),
@@ -29,6 +30,11 @@ int main()
                 static_cast<unsigned long long>(result.scratchpadDouble),
                 static_cast<unsigned>(result.scratchpadAliasWord),
                 static_cast<unsigned>(result.scratchpadAliasByte),
-                static_cast<unsigned>(result.scratchpadIsolationWord));
+                static_cast<unsigned>(result.scratchpadIsolationWord),
+                static_cast<unsigned>(result.mmi.failures),
+                static_cast<unsigned>(result.mmi.destination[0]),
+                static_cast<unsigned>(result.mmi.destination[1]),
+                static_cast<unsigned>(result.mmi.destination[2]),
+                static_cast<unsigned>(result.mmi.destination[3]));
     return result.failures == 0u ? 0 : 1;
 }
