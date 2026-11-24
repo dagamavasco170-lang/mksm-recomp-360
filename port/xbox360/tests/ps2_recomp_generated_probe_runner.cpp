@@ -1,7 +1,7 @@
 #include "ps2_recompiled_functions.h"
 #include "mksm_generated_probe_entry.h"
-#include "ps2_recomp_generated_mmi_probe.h"
 #include "ps2_runtime_macros.h"
+#include "ps2_recomp_generated_mmi_probe.h"
 
 #include <cstdint>
 #include <cstdio>
