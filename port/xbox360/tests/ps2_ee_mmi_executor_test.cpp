@@ -1,6 +1,7 @@
 #include "ps2_ee_dispatcher.h"
 
 #include <array>
+#include <bit>
 #include <cassert>
 #include <cstdint>
 #include <span>

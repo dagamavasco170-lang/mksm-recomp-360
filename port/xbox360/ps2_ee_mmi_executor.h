@@ -108,6 +108,26 @@ enum class MmiStatus : std::uint8_t
     {
         switch (instruction.sa)
         {
+        case 0x06: // PCEQH: packed 16-bit equality
+        case 0x07: // PMINH: signed packed 16-bit minimum
+        {
+            const auto &lhs = state.readGpr(instruction.rs);
+            const auto &rhs = state.readGpr(instruction.rt);
+            simd::Vector128 value{};
+            for (std::size_t lane = 0; lane < 8u; ++lane)
+            {
+                const auto a = simd::readLane<std::uint16_t>(lhs, lane);
+                const auto b = simd::readLane<std::uint16_t>(rhs, lane);
+                const std::uint16_t result = instruction.sa == 0x06u
+                    ? (a == b ? 0xFFFFu : 0u)
+                    : (std::bit_cast<std::int16_t>(a) <
+                       std::bit_cast<std::int16_t>(b) ? a : b);
+                simd::writeLane<std::uint16_t>(value, lane, result);
+            }
+            state.writeGpr(instruction.rd, value);
+            executed = true;
+            break;
+        }
         case 0x02: // PCEQW: packed 32-bit equality
         case 0x03: // PMINW: signed packed 32-bit minimum
         {
