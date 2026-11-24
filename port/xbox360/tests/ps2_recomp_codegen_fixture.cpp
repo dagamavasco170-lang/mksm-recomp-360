@@ -17,6 +17,7 @@ namespace
 {
 constexpr std::uint32_t kGuestStart = 0x00100000u;
 constexpr std::uint32_t kScratchpadProbeStart = kGuestStart + 0x100u;
+constexpr std::uint32_t kMmiProbeStart = kGuestStart + 0x200u;
 
 constexpr std::array<std::uint32_t, 23> makeProbeWords()
 {
@@ -70,6 +71,22 @@ constexpr std::array<std::uint32_t, 15> makeScratchpadProbeWords()
     };
 }
 
+constexpr std::array<std::uint32_t, 9> makeMmiProbeWords()
+{
+    using namespace ps2::xbox360::ee::test_program::detail;
+    return {
+        mmi(1u, 0u, 0u, 0x08u, 0x29u), // PMTHI r1: set full 128-bit HI
+        mmi(2u, 0u, 0u, 0x09u, 0x29u), // PMTLO r2: set full 128-bit LO
+        mmi(0u, 0u, 3u, 0x08u, 0x09u), // PMFHI r3: read all 128 HI bits
+        mmi(0u, 0u, 4u, 0x09u, 0x09u), // PMFLO r4: read all 128 LO bits
+        mmi(5u, 6u, 7u, 0x10u, 0x09u), // PMADDH r7,r5,r6: eight independent accumulators
+        mmi(0u, 0u, 8u, 0x08u, 0x09u), // PMFHI r8: inspect updated HI bank
+        mmi(0u, 0u, 9u, 0x09u, 0x09u), // PMFLO r9: inspect updated LO bank
+        rType(31u, 0u, 0u, 0x08u),      // JR r31
+        0u                               // delay slot: NOP
+    };
+}
+
 bool writeFixtureElf(const std::filesystem::path &path)
 {
     ELFIO::elfio writer;
@@ -81,10 +98,13 @@ bool writeFixtureElf(const std::filesystem::path &path)
 
     constexpr auto words = makeProbeWords();
     constexpr auto scratchpadWords = makeScratchpadProbeWords();
+    constexpr auto mmiWords = makeMmiProbeWords();
     constexpr std::size_t kScratchpadOffset =
         static_cast<std::size_t>(kScratchpadProbeStart - kGuestStart);
+    constexpr std::size_t kMmiOffset =
+        static_cast<std::size_t>(kMmiProbeStart - kGuestStart);
     std::vector<char> textBytes(
-        kScratchpadOffset + scratchpadWords.size() * sizeof(std::uint32_t), 0);
+        kMmiOffset + mmiWords.size() * sizeof(std::uint32_t), 0);
 
     const auto writeWords = [&](const auto &program, std::size_t offset)
     {
@@ -99,6 +119,7 @@ bool writeFixtureElf(const std::filesystem::path &path)
     };
     writeWords(words, 0u);
     writeWords(scratchpadWords, kScratchpadOffset);
+    writeWords(mmiWords, kMmiOffset);
 
     ELFIO::section *text = writer.sections.add(".text");
     text->set_type(ELFIO::SHT_PROGBITS);
@@ -128,6 +149,10 @@ bool writeFixtureElf(const std::filesystem::path &path)
     symbols.add_symbol(strings, "mksm_ee_scratchpad_probe", kScratchpadProbeStart,
                        static_cast<ELFIO::Elf_Word>(
                            scratchpadWords.size() * sizeof(std::uint32_t)),
+                       ELFIO::STB_GLOBAL, ELFIO::STT_FUNC, 0u, text->get_index());
+    symbols.add_symbol(strings, "mksm_ee_mmi_probe", kMmiProbeStart,
+                       static_cast<ELFIO::Elf_Word>(
+                           mmiWords.size() * sizeof(std::uint32_t)),
                        ELFIO::STB_GLOBAL, ELFIO::STT_FUNC, 0u, text->get_index());
 
     ELFIO::segment *segment = writer.segments.add();
@@ -227,6 +252,14 @@ int main(int argc, char **argv)
     if (!containsAll(source, {
             "mksm_ee_codegen_probe_0x100000",
             "mksm_ee_scratchpad_probe_0x100100",
+            "mksm_ee_mmi_probe_0x100200",
+            "Ps2MmiPmthi(ctx, 1);",
+            "Ps2MmiPmtlo(ctx, 2);",
+            "Ps2MmiPmfhi(ctx, 3);",
+            "Ps2MmiPmflo(ctx, 4);",
+            "Ps2MmiPmaddh(ctx, 5, 6, 7);",
+            "Ps2MmiPmfhi(ctx, 8);",
+            "Ps2MmiPmflo(ctx, 9);",
             "SET_GPR_S32(ctx, 1",
             "SET_GPR_U64(ctx, 1",
             "SET_GPR_S32(ctx, 2",
@@ -287,12 +320,16 @@ int main(int argc, char **argv)
         extractFunctionName("mksm_ee_codegen_probe_0x100000");
     const std::string scratchpadEntryName =
         extractFunctionName("mksm_ee_scratchpad_probe_0x100100");
-    if (entryName.empty() || scratchpadEntryName.empty() ||
+    const std::string mmiEntryName =
+        extractFunctionName("mksm_ee_mmi_probe_0x100200");
+    if (entryName.empty() || scratchpadEntryName.empty() || mmiEntryName.empty() ||
         source.find("void " + entryName + "(") == std::string::npos ||
-        source.find("void " + scratchpadEntryName + "(") == std::string::npos)
+        source.find("void " + scratchpadEntryName + "(") == std::string::npos ||
+        source.find("void " + mmiEntryName + "(") == std::string::npos)
     {
         std::cerr << "Generated header entries do not match generated C++: "
-                  << entryName << ", " << scratchpadEntryName << '\n';
+                  << entryName << ", " << scratchpadEntryName << ", "
+                  << mmiEntryName << '\n';
         return 1;
     }
 
@@ -307,15 +344,17 @@ int main(int argc, char **argv)
                 << "#include \"ps2_recompiled_functions.h\"\n"
                 << "#define MKSM_RECOMP_GENERATED_PROBE_ENTRY " << entryName << "\n"
                 << "#define MKSM_RECOMP_GENERATED_SCRATCHPAD_ENTRY "
-                << scratchpadEntryName << "\n";
+                << scratchpadEntryName << "\n"
+                << "#define MKSM_RECOMP_GENERATED_MMI_ENTRY "
+                << mmiEntryName << "\n";
     if (!entryOutput)
     {
         std::cerr << "Could not finish generated probe entry adapter header\n";
         return 1;
     }
 
-    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+15 entry=00100000/00100100 symbols="
-              << entryName << "," << scratchpadEntryName
+    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+15+9 entry=00100000/00100100/00100200 symbols="
+              << entryName << "," << scratchpadEntryName << "," << mmiEntryName
               << " output=" << generatedCpp.string() << '\n';
     return 0;
 }

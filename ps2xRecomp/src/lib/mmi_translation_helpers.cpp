@@ -141,9 +141,9 @@ namespace ps2recomp
         case MMI2_PMSUBW:
             return translatePMSUBW(inst);
         case MMI2_PMFHI:
-            return fmt::format("SET_GPR_U64(ctx, {}, ctx->hi);", rd);
+            return fmt::format("Ps2MmiPmfhi(ctx, {});", rd);
         case MMI2_PMFLO:
-            return fmt::format("SET_GPR_U64(ctx, {}, ctx->lo);", rd);
+            return fmt::format("Ps2MmiPmflo(ctx, {});", rd);
         case MMI2_PINTH:
             return fmt::format("SET_GPR_VEC(ctx, {}, PS2_PINTH(GPR_VEC(ctx, {}), GPR_VEC(ctx, {})));", rd, rs, rt);
         case MMI2_PMULTW:
@@ -384,16 +384,9 @@ namespace ps2recomp
 
     std::string CodeGenerator::translatePMADDH(const Instruction &inst)
     {
-        // Parallel multiply add halfword -> results to HI/LO and rd
-        return fmt::format("{{ __m128i prod = _mm_madd_epi16(GPR_VEC(ctx, {}), GPR_VEC(ctx, {})); \n" // Packed multiply and add adjacent pairs
-                           "   int32_t p0 = _mm_cvtsi128_si32(prod); \n"
-                           "   int32_t p1 = _mm_cvtsi128_si32(_mm_srli_si128(prod, 4)); \n"
-                           "   int32_t p2 = _mm_cvtsi128_si32(_mm_srli_si128(prod, 8)); \n"
-                           "   int32_t p3 = _mm_cvtsi128_si32(_mm_srli_si128(prod, 12)); \n"
-                           "   int64_t acc = Ps2HiLoToU64(ctx->hi, ctx->lo); \n"
-                           "   acc += (int64_t)p0 + (int64_t)p1 + (int64_t)p2 + (int64_t)p3; \n"
-                           "   ctx->lo = (uint32_t)acc; ctx->hi = (uint32_t)(acc >> 32); \n"
-                           "   SET_GPR_U64(ctx, {}, acc); }}",
+        // All eight signed-halfword products update their corresponding
+        // 32-bit words across the complete 128-bit HI and LO banks.
+        return fmt::format("Ps2MmiPmaddh(ctx, {}, {}, {});",
                            inst.rs, inst.rt, inst.rd);
     }
 
@@ -585,13 +578,13 @@ namespace ps2recomp
 
     std::string CodeGenerator::translatePMTHI(const Instruction &inst)
     {
-        return fmt::format("ctx->hi = GPR_U32(ctx, {});", inst.rs); // PMTHI uses standard HI/LO
+        return fmt::format("Ps2MmiPmthi(ctx, {});", inst.rs);
     }
 
 
     std::string CodeGenerator::translatePMTLO(const Instruction &inst)
     {
-        return fmt::format("ctx->lo = GPR_U32(ctx, {});", inst.rs); // PMTLO uses standard HI/LO
+        return fmt::format("Ps2MmiPmtlo(ctx, {});", inst.rs);
     }
 
 
