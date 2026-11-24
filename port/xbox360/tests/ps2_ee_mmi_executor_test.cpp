@@ -139,9 +139,9 @@ int main()
     const auto preservedLo3 = readLane<std::uint32_t>(cpu.hilo.lo, 3u);
     const auto preservedHi1 = readLane<std::uint32_t>(cpu.hilo.hi, 1u);
     const auto preservedHi3 = readLane<std::uint32_t>(cpu.hilo.hi, 3u);
-    store(ram, 0x18u, encodeMmi(17u, 0u, 0u, 0x00u, 0x31u)); // PMTHL.LW
+    store(ram, 0x28u, encodeMmi(17u, 0u, 0u, 0x00u, 0x31u)); // PMTHL.LW
     result = step(cpu, ram);
-    assert(result.status == StepStatus::Executed && cpu.pc == 0x1Cu);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x2Cu);
     assert(readLane<std::uint32_t>(cpu.hilo.lo, 0u) == 0xDEADBEEFu);
     assert(readLane<std::uint32_t>(cpu.hilo.lo, 1u) == preservedLo1);
     assert(readLane<std::uint32_t>(cpu.hilo.lo, 2u) == 0x0BADF00Du);
@@ -152,9 +152,9 @@ int main()
     assert(readLane<std::uint32_t>(cpu.hilo.hi, 3u) == preservedHi3);
 
     // PMFHL.LW reads the same four selected words into a GPR.
-    store(ram, 0x1Cu, encodeMmi(0u, 0u, 18u, 0x00u, 0x30u)); // PMFHL.LW
+    store(ram, 0x2Cu, encodeMmi(0u, 0u, 18u, 0x00u, 0x30u)); // PMFHL.LW
     result = step(cpu, ram);
-    assert(result.status == StepStatus::Executed && cpu.pc == 0x20u);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x30u);
     assert(readLane<std::uint32_t>(cpu.readGpr(18u), 0u) == 0xDEADBEEFu);
     assert(readLane<std::uint32_t>(cpu.readGpr(18u), 1u) == 0xCAFEBABEu);
     assert(readLane<std::uint32_t>(cpu.readGpr(18u), 2u) == 0x0BADF00Du);
@@ -162,24 +162,24 @@ int main()
 
     // A supported MMI operation in a branch delay slot must retire, then branch.
     const std::uint32_t beq = (0x04u << 26u) | (1u << 21u) | (1u << 16u) | 1u;
-    store(ram, 0x20u, beq);
-    store(ram, 0x24u, encodeMmi(0u, 0u, 8u, 0x08u, 0x09u)); // PMFHI in delay slot
-    store(ram, 0x28u, 0x24090001u); // ADDIU r9, r0, 1
+    store(ram, 0x30u, beq);
+    store(ram, 0x34u, encodeMmi(0u, 0u, 8u, 0x08u, 0x09u)); // PMFHI in delay slot
+    store(ram, 0x38u, 0x24090001u); // ADDIU r9, r0, 1
     Vector128 one{};
     writeLane<std::uint32_t>(one, 0u, 1u);
     cpu.writeGpr(1u, one);
-    cpu.pc = 0x20u;
+    cpu.pc = 0x30u;
     result = step(cpu, ram);
-    assert(result.status == StepStatus::Executed && cpu.pc == 0x24u && cpu.branchDelayPending);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x34u && cpu.branchDelayPending);
     result = step(cpu, ram);
-    assert(result.status == StepStatus::Executed && cpu.pc == 0x28u && !cpu.branchDelayPending);
+    assert(result.status == StepStatus::Executed && cpu.pc == 0x38u && !cpu.branchDelayPending);
     assert(cpu.readGpr(8u).bytes == cpu.hilo.hi.bytes);
     result = step(cpu, ram);
     assert(result.status == StepStatus::Executed);
     assert(readLane<std::uint32_t>(cpu.readGpr(9u), 0u) == 1u);
 
     // Unimplemented MMI operations are explicitly rejected without retiring.
-    store(ram, 0x2Cu, encodeMmi(1u, 2u, 10u, 0x1Fu, 0x09u));
+    store(ram, 0x3Cu, encodeMmi(1u, 2u, 10u, 0x1Fu, 0x09u));
     const auto beforePc = cpu.pc;
     const auto beforeRetired = cpu.retiredInstructions;
     const auto beforeHi = cpu.hilo.hi.bytes;
