@@ -1,47 +1,28 @@
-#include "ps2_generated_runtime_abi.h"
+#include "ps2_recomp_generated_memory_probe.h"
 
 #include "xsdk/log.h"
 
-#include <array>
 #include <cstdint>
 
 bool checkGeneratedRecompProbe()
 {
-    constexpr std::uint32_t kReturnPc = 0xCAFE1234u;
-    R5900Context context{};
-    std::array<std::uint8_t, 16> unusedGuestMemory{};
-    PS2Runtime *runtime = nullptr;
-
-    SET_GPR_U32(&context, 31u, kReturnPc);
-    mksm_ee_codegen_probe_0x100000(unusedGuestMemory.data(), &context, runtime);
-
-    std::uint32_t failures = 0u;
-    const std::uint32_t r1 = GPR_U32(&context, 1u);
-    const std::uint32_t r2 = GPR_U32(&context, 2u);
-    const std::uint32_t r3 = GPR_U32(&context, 3u);
-    const std::uint32_t r4 = GPR_U32(&context, 4u);
-    const std::uint32_t r5 = GPR_U32(&context, 5u);
-    const std::uint32_t r6 = GPR_U32(&context, 6u);
-    const std::uint32_t r7 = GPR_U32(&context, 7u);
-
-    if (r1 != 0x12345678u || r2 != 0x12345677u || r3 != 0x12345688u)
-        failures |= 1u << 0u;
-    if (r4 != 0x12345688u || r5 != 0x2468AD10u)
-        failures |= 1u << 1u;
-    if (r6 != 9u || r7 != 12u)
-        failures |= 1u << 2u;
-    if (context.pc != kReturnPc || context.in_delay_slot)
-        failures |= 1u << 3u;
-    if (GPR_U32(&context, 0u) != 0u || context.r[0].low64 != 0u)
-        failures |= 1u << 4u;
-
+    const auto result = runGeneratedMemoryProbe();
     xsdk_log_write("MKSM_RECOMP_XENON_TRACE failures=%08X pc=%08X r1=%08X r2=%08X "
-                   "r3=%08X r4=%08X r5=%08X r6=%08X r7=%08X",
-                   static_cast<unsigned>(failures),
-                   static_cast<unsigned>(context.pc),
-                   static_cast<unsigned>(r1), static_cast<unsigned>(r2),
-                   static_cast<unsigned>(r3), static_cast<unsigned>(r4),
-                   static_cast<unsigned>(r5), static_cast<unsigned>(r6),
-                   static_cast<unsigned>(r7));
-    return failures == 0u;
+                   "r3=%08X r4=%08X r5=%08X r6=%08X r7=%08X "
+                   "lw=%08X lbu=%08X lb=%016llX lhu=%04X ld=%016llX "
+                   "lbu_after=%02X lhu_after=%04X",
+                   static_cast<unsigned>(result.failures),
+                   static_cast<unsigned>(result.pc),
+                   static_cast<unsigned>(result.r1), static_cast<unsigned>(result.r2),
+                   static_cast<unsigned>(result.r3), static_cast<unsigned>(result.r4),
+                   static_cast<unsigned>(result.r5), static_cast<unsigned>(result.r6),
+                   static_cast<unsigned>(result.r7),
+                   static_cast<unsigned>(result.loadWord),
+                   static_cast<unsigned>(result.loadByte),
+                   static_cast<unsigned long long>(result.loadSignedByte),
+                   static_cast<unsigned>(result.loadHalf),
+                   static_cast<unsigned long long>(result.loadDouble),
+                   static_cast<unsigned>(result.loadByteAfterStore),
+                   static_cast<unsigned>(result.loadHalfAfterStore));
+    return result.failures == 0u;
 }
