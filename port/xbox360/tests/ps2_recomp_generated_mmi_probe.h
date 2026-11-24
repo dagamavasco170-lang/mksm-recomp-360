@@ -82,7 +82,11 @@ runGeneratedMmiProbe(std::uint8_t *rdram)
         result.failures |= 1u << 3u;
 
     const auto state = Ps2MmiReadHiLo(ctx);
-    if (state.hi.words != kInitialHi.words || state.lo.words != kInitialLo.words)
+    constexpr std::array<std::uint32_t, 4> kExpectedPmthlHi{
+        0xCAFEBABEu, 0x00000020u, 0x8BADF00Du, 0x00000040u};
+    constexpr std::array<std::uint32_t, 4> kExpectedPmthlLo{
+        0xDEADBEEFu, 0x00000200u, 0x0BADF00Du, 0x00000400u};
+    if (state.hi.words != kExpectedPmthlHi || state.lo.words != kExpectedPmthlLo)
         result.failures |= 1u << 4u;
     if (result.subDestination != kExpectedSubDestination ||
         result.subHi != kInitialHi.words || result.subLo != kInitialLo.words)
