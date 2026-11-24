@@ -329,6 +329,55 @@ struct PmaddhResult
     return result;
 }
 
+// PS2 PMSUBH subtracts the same signed-halfword products from the HI/LO
+// accumulator words used by PMADDH. Unsigned lane arithmetic defines wraparound.
+[[nodiscard]] constexpr PmaddhResult pmsubh(const Vector128 &rs,
+                                             const Vector128 &rt,
+                                             const Vector128 &initialHi,
+                                             const Vector128 &initialLo) noexcept
+{
+    PmaddhResult result{};
+    result.hi = initialHi;
+    result.lo = initialLo;
+
+    for (std::size_t product = 0; product < 8u; ++product)
+    {
+        const std::int64_t lhs = detail::asSigned(readLane<std::uint16_t>(rs, product));
+        const std::int64_t rhs = detail::asSigned(readLane<std::uint16_t>(rt, product));
+        const std::uint32_t productBits = static_cast<std::uint32_t>(lhs * rhs);
+
+        if (product < 2u)
+        {
+            const std::uint32_t accum = readLane<std::uint32_t>(result.lo, product);
+            writeLane<std::uint32_t>(result.lo, product, accum - productBits);
+        }
+        else if (product < 4u)
+        {
+            const std::size_t lane = product - 2u;
+            const std::uint32_t accum = readLane<std::uint32_t>(result.hi, lane);
+            writeLane<std::uint32_t>(result.hi, lane, accum - productBits);
+        }
+        else if (product < 6u)
+        {
+            const std::size_t lane = product - 2u;
+            const std::uint32_t accum = readLane<std::uint32_t>(result.lo, lane);
+            writeLane<std::uint32_t>(result.lo, lane, accum - productBits);
+        }
+        else
+        {
+            const std::size_t lane = product - 4u;
+            const std::uint32_t accum = readLane<std::uint32_t>(result.hi, lane);
+            writeLane<std::uint32_t>(result.hi, lane, accum - productBits);
+        }
+    }
+
+    writeLane<std::uint32_t>(result.destination, 0u, readLane<std::uint32_t>(result.lo, 0u));
+    writeLane<std::uint32_t>(result.destination, 1u, readLane<std::uint32_t>(result.hi, 0u));
+    writeLane<std::uint32_t>(result.destination, 2u, readLane<std::uint32_t>(result.lo, 2u));
+    writeLane<std::uint32_t>(result.destination, 3u, readLane<std::uint32_t>(result.hi, 2u));
+    return result;
+}
+
 [[nodiscard]] constexpr Vector128 shiftLeftVariable32(const Vector128 &v,
                                                        const Vector128 &counts) noexcept
 {
