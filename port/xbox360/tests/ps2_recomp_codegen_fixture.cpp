@@ -17,7 +17,7 @@ namespace
 {
 constexpr std::uint32_t kGuestStart = 0x00100000u;
 
-constexpr std::array<std::uint32_t, 12> makeProbeWords()
+constexpr std::array<std::uint32_t, 23> makeProbeWords()
 {
     using namespace ps2::xbox360::ee::test_program::detail;
     return {
@@ -31,6 +31,17 @@ constexpr std::array<std::uint32_t, 12> makeProbeWords()
         iType(0x09u, 0u, 6u, 0x0009u),            // delay slot: ADDIU r6,r0,9
         iType(0x09u, 0u, 7u, 0x0063u),            // skipped
         iType(0x09u, 6u, 7u, 0x0003u),            // target: ADDIU r7,r6,3
+        iType(0x2Bu, 8u, 9u, 0x0000u),            // SW r9,0(r8)
+        iType(0x23u, 8u, 10u, 0x0000u),           // LW r10,0(r8)
+        iType(0x24u, 8u, 11u, 0x0001u),           // LBU r11,1(r8)
+        iType(0x20u, 8u, 12u, 0x0003u),           // LB r12,3(r8)
+        iType(0x25u, 8u, 13u, 0x0002u),           // LHU r13,2(r8)
+        iType(0x3Fu, 8u, 14u, 0x0008u),           // SD r14,8(r8)
+        iType(0x37u, 8u, 15u, 0x0008u),           // LD r15,8(r8)
+        iType(0x28u, 8u, 16u, 0x000Fu),           // SB r16,15(r8)
+        iType(0x24u, 8u, 17u, 0x000Fu),           // LBU r17,15(r8)
+        iType(0x29u, 8u, 18u, 0x0010u),           // SH r18,16(r8)
+        iType(0x25u, 8u, 19u, 0x0010u),           // LHU r19,16(r8)
         rType(31u, 0u, 0u, 0x08u),                // JR r31
         0u                                         // delay slot: NOP
     };
@@ -183,7 +194,15 @@ int main(int argc, char **argv)
             "SET_GPR_S32(ctx, 2",
             "SET_GPR_U64(ctx, 3",
             "branch_taken_0x100018",
-            "goto label_100024"
+            "goto label_100024",
+            "WRITE32(",
+            "READ32(",
+            "READ16(",
+            "READ8(",
+            "WRITE64(",
+            "READ64(",
+            "WRITE8(",
+            "WRITE16("
         }))
     {
         recompiler.printReport();
