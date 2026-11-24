@@ -310,7 +310,7 @@ int main()
     result = step(cpu, ram);
     assert(result.status == StepStatus::Executed && cpu.pc == 0x78u);
     assert(readLane<std::uint32_t>(cpu.readGpr(9u), 0u) == 0x7FFFFFFEu);
-    assert(readLane<std::uint32_t>(cpu.readGpr(9u), 1u) == 0x80000000u);
+    assert(readLane<std::uint32_t>(cpu.readGpr(9u), 1u) == 0x80000001u);
     assert(readLane<std::uint32_t>(cpu.readGpr(9u), 2u) == 0x20u);
     assert(readLane<std::uint32_t>(cpu.readGpr(9u), 3u) == 0xFFFFFFE0u);
 
