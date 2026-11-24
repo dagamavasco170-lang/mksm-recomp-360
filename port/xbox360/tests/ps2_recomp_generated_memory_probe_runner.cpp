@@ -10,7 +10,8 @@ int main()
                 "lw=%08X lbu=%08X lb=%016llX lhu=%04X ld=%016llX "
                 "lbu_after=%02X lhu_after=%04X spw=%08X spb=%02X "
                 "sph=%04X spd=%016llX aliasw=%08X aliasb=%02X isolated=%08X "
-                "mmi=%08X dest=%08X/%08X/%08X/%08X "
+                "mmi=%08X pmfhl=%08X/%08X/%08X/%08X "
+                "dest=%08X/%08X/%08X/%08X "
                 "subdest=%08X/%08X/%08X/%08X\n",
                 static_cast<unsigned>(result.failures),
                 static_cast<unsigned>(result.pc),
@@ -33,6 +34,10 @@ int main()
                 static_cast<unsigned>(result.scratchpadAliasByte),
                 static_cast<unsigned>(result.scratchpadIsolationWord),
                 static_cast<unsigned>(result.mmi.failures),
+                static_cast<unsigned>(result.mmi.pmfhlLw[0]),
+                static_cast<unsigned>(result.mmi.pmfhlLw[1]),
+                static_cast<unsigned>(result.mmi.pmfhlLw[2]),
+                static_cast<unsigned>(result.mmi.pmfhlLw[3]),
                 static_cast<unsigned>(result.mmi.destination[0]),
                 static_cast<unsigned>(result.mmi.destination[1]),
                 static_cast<unsigned>(result.mmi.destination[2]),

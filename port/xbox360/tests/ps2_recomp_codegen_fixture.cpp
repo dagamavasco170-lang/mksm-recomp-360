@@ -71,14 +71,15 @@ constexpr std::array<std::uint32_t, 15> makeScratchpadProbeWords()
     };
 }
 
-constexpr std::array<std::uint32_t, 12> makeMmiProbeWords()
+constexpr std::array<std::uint32_t, 13> makeMmiProbeWords()
 {
     using namespace ps2::xbox360::ee::test_program::detail;
     return {
         mmi(1u, 0u, 0u, 0x08u, 0x29u), // PMTHI r1: set full 128-bit HI
         mmi(2u, 0u, 0u, 0x09u, 0x29u), // PMTLO r2: set full 128-bit LO
+        mmi(0u, 0u, 13u, 0x00u, 0x30u), // PMFHL.LW r13: LO0,HI0,LO2,HI2 across 128 bits
         mmi(0u, 0u, 3u, 0x08u, 0x09u), // PMFHI r3: read all 128 HI bits
-        mmi(0u, 0u, 4u, 0x09u, 0x09u), // PMFLO r4: read all 128 LO bits
+        mmi(0u, 0u, 4u, 0x09u, 0x09u) // PMFLO r4: read all 128 LO bits
         mmi(5u, 6u, 7u, 0x10u, 0x09u), // PMADDH r7,r5,r6: eight independent accumulators
         mmi(0u, 0u, 8u, 0x08u, 0x09u), // PMFHI r8: inspect PMADDH HI bank
         mmi(0u, 0u, 9u, 0x09u, 0x09u), // PMFLO r9: inspect PMADDH LO bank
@@ -262,6 +263,7 @@ int main(int argc, char **argv)
             "Ps2MmiPmflo(ctx, 4);",
             "Ps2MmiPmaddh(ctx, 5, 6, 7);",
             "Ps2MmiPmsubh(ctx, 5, 6, 12);",
+            "Ps2MmiPmfhlLw(ctx, 13);",
             "Ps2MmiPmfhi(ctx, 8);",
             "Ps2MmiPmflo(ctx, 9);",
             "SET_GPR_S32(ctx, 1",
@@ -357,7 +359,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+15+12 entry=00100000/00100100/00100200 symbols="
+    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+15+13 entry=00100000/00100100/00100200 symbols="
               << entryName << "," << scratchpadEntryName << "," << mmiEntryName
               << " output=" << generatedCpp.string() << '\n';
     return 0;

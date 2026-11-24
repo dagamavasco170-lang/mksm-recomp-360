@@ -81,12 +81,17 @@ int main()
 
     const auto mmi = runGeneratedMmiProbe(rdram.data());
     std::printf("MKSM_RECOMP_MMI_TRACE failures=%08X pc=%08X "
+                "pmfhl=%08X/%08X/%08X/%08X "
                 "dest=%08X/%08X/%08X/%08X hi=%08X/%08X/%08X/%08X "
                 "lo=%08X/%08X/%08X/%08X "
                 "subdest=%08X/%08X/%08X/%08X "
                 "subhi=%08X/%08X/%08X/%08X sublo=%08X/%08X/%08X/%08X\n",
                 static_cast<unsigned>(mmi.failures),
                 static_cast<unsigned>(mmi.pc),
+                static_cast<unsigned>(mmi.pmfhlLw[0]),
+                static_cast<unsigned>(mmi.pmfhlLw[1]),
+                static_cast<unsigned>(mmi.pmfhlLw[2]),
+                static_cast<unsigned>(mmi.pmfhlLw[3]),
                 static_cast<unsigned>(mmi.destination[0]),
                 static_cast<unsigned>(mmi.destination[1]),
                 static_cast<unsigned>(mmi.destination[2]),

@@ -12,6 +12,7 @@ struct Ps2GeneratedMmiProbeResult
     std::uint32_t pc{};
     std::array<std::uint32_t, 4> initialHi{};
     std::array<std::uint32_t, 4> initialLo{};
+    std::array<std::uint32_t, 4> pmfhlLw{};
     std::array<std::uint32_t, 4> destination{};
     std::array<std::uint32_t, 4> hi{};
     std::array<std::uint32_t, 4> lo{};
@@ -53,6 +54,7 @@ runGeneratedMmiProbe(std::uint8_t *rdram)
     result.pc = ctx->pc;
     result.initialHi = Ps2MmiReadGprVector(ctx, 3u).words;
     result.initialLo = Ps2MmiReadGprVector(ctx, 4u).words;
+    result.pmfhlLw = Ps2MmiReadGprVector(ctx, 13u).words;
     result.destination = Ps2MmiReadGprVector(ctx, 7u).words;
     result.hi = Ps2MmiReadGprVector(ctx, 8u).words;
     result.lo = Ps2MmiReadGprVector(ctx, 9u).words;
@@ -64,6 +66,9 @@ runGeneratedMmiProbe(std::uint8_t *rdram)
         result.failures |= 1u << 0u;
     if (result.initialHi != kInitialHi.words || result.initialLo != kInitialLo.words)
         result.failures |= 1u << 1u;
+    if (result.pmfhlLw != std::array<std::uint32_t, 4>{
+            0x00000100u, 0x00000010u, 0x00000300u, 0x00000030u})
+        result.failures |= 1u << 7u;
     if (result.destination != kExpectedDestination)
         result.failures |= 1u << 2u;
     if (result.hi != kExpectedHi || result.lo != kExpectedLo)
