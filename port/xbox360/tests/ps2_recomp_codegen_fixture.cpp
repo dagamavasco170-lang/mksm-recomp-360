@@ -16,6 +16,7 @@
 namespace
 {
 constexpr std::uint32_t kGuestStart = 0x00100000u;
+constexpr std::uint32_t kScratchpadProbeStart = kGuestStart + 0x100u;
 
 constexpr std::array<std::uint32_t, 23> makeProbeWords()
 {
@@ -47,6 +48,28 @@ constexpr std::array<std::uint32_t, 23> makeProbeWords()
     };
 }
 
+constexpr std::array<std::uint32_t, 14> makeScratchpadProbeWords()
+{
+    using namespace ps2::xbox360::ee::test_program::detail;
+    return {
+        iType(0x2Bu, 8u, 9u, 0x0000u),   // SW r9,0(r8): canonical scratchpad
+        iType(0x23u, 8u, 10u, 0x0000u),  // LW r10,0(r8)
+        iType(0x28u, 8u, 11u, 0x0004u),  // SB r11,4(r8)
+        iType(0x24u, 8u, 12u, 0x0004u),  // LBU r12,4(r8)
+        iType(0x29u, 8u, 13u, 0x0006u),  // SH r13,6(r8)
+        iType(0x25u, 8u, 14u, 0x0006u),  // LHU r14,6(r8)
+        iType(0x3Fu, 8u, 15u, 0x0008u),  // SD r15,8(r8)
+        iType(0x37u, 8u, 16u, 0x0008u),  // LD r16,8(r8)
+        iType(0x23u, 17u, 18u, 0x0000u), // LW r18,0(r17): bit-31 scratchpad alias
+        iType(0x28u, 17u, 19u, 0x0009u), // SB r19,9(r17): alias write
+        iType(0x24u, 8u, 20u, 0x0009u),  // LBU r20,9(r8): canonical reads alias write
+        iType(0x2Bu, 8u, 21u, 0x0010u),  // SW r21,16(r8): verify RAM isolation
+        iType(0x23u, 8u, 22u, 0x0010u),  // LW r22,16(r8)
+        rType(31u, 0u, 0u, 0x08u),       // JR r31
+        0u                                // delay slot: NOP
+    };
+}
+
 bool writeFixtureElf(const std::filesystem::path &path)
 {
     ELFIO::elfio writer;
@@ -57,15 +80,25 @@ bool writeFixtureElf(const std::filesystem::path &path)
     writer.set_entry(kGuestStart);
 
     constexpr auto words = makeProbeWords();
-    std::array<char, words.size() * sizeof(std::uint32_t)> textBytes{};
-    for (std::size_t i = 0; i < words.size(); ++i)
+    constexpr auto scratchpadWords = makeScratchpadProbeWords();
+    constexpr std::size_t kScratchpadOffset =
+        static_cast<std::size_t>(kScratchpadProbeStart - kGuestStart);
+    std::vector<char> textBytes(
+        kScratchpadOffset + scratchpadWords.size() * sizeof(std::uint32_t), 0);
+
+    const auto writeWords = [&](const auto &program, std::size_t offset)
     {
-        for (unsigned byte = 0; byte < 4u; ++byte)
+        for (std::size_t i = 0; i < program.size(); ++i)
         {
-            textBytes[i * 4u + byte] =
-                static_cast<char>((words[i] >> (byte * 8u)) & 0xFFu);
+            for (unsigned byte = 0; byte < 4u; ++byte)
+            {
+                textBytes[offset + i * 4u + byte] =
+                    static_cast<char>((program[i] >> (byte * 8u)) & 0xFFu);
+            }
         }
-    }
+    };
+    writeWords(words, 0u);
+    writeWords(scratchpadWords, kScratchpadOffset);
 
     ELFIO::section *text = writer.sections.add(".text");
     text->set_type(ELFIO::SHT_PROGBITS);
@@ -90,7 +123,11 @@ bool writeFixtureElf(const std::filesystem::path &path)
     symbols.add_symbol(strings, "", 0u, 0u, ELFIO::STB_LOCAL,
                        ELFIO::STT_NOTYPE, 0u, ELFIO::SHN_UNDEF);
     symbols.add_symbol(strings, "mksm_ee_codegen_probe", kGuestStart,
-                       static_cast<ELFIO::Elf_Word>(textBytes.size()),
+                       static_cast<ELFIO::Elf_Word>(words.size() * sizeof(std::uint32_t)),
+                       ELFIO::STB_GLOBAL, ELFIO::STT_FUNC, 0u, text->get_index());
+    symbols.add_symbol(strings, "mksm_ee_scratchpad_probe", kScratchpadProbeStart,
+                       static_cast<ELFIO::Elf_Word>(
+                           scratchpadWords.size() * sizeof(std::uint32_t)),
                        ELFIO::STB_GLOBAL, ELFIO::STT_FUNC, 0u, text->get_index());
 
     ELFIO::segment *segment = writer.segments.add();
@@ -189,6 +226,7 @@ int main(int argc, char **argv)
 
     if (!containsAll(source, {
             "mksm_ee_codegen_probe_0x100000",
+            "mksm_ee_scratchpad_probe_0x100100",
             "SET_GPR_S32(ctx, 1",
             "SET_GPR_U64(ctx, 1",
             "SET_GPR_S32(ctx, 2",
@@ -230,11 +268,31 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    const std::string entryName = headerText.substr(nameStart, nameEnd - nameStart);
-    if (source.find("void " + entryName + "(") == std::string::npos)
+    const auto extractFunctionName = [&](const std::string &symbolName)
     {
-        std::cerr << "Generated header entry does not match generated C++: "
-                  << entryName << '\n';
+        const auto marker = headerText.find(symbolName);
+        if (marker == std::string::npos)
+            return std::string{};
+        const auto declarationStart = headerText.rfind("void ", marker);
+        const auto declarationEnd = headerText.find('(', marker);
+        if (declarationStart == std::string::npos ||
+            declarationEnd == std::string::npos ||
+            declarationEnd <= declarationStart + 5u)
+            return std::string{};
+        return headerText.substr(declarationStart + 5u,
+                                 declarationEnd - (declarationStart + 5u));
+    };
+
+    const std::string entryName =
+        extractFunctionName("mksm_ee_codegen_probe_0x100000");
+    const std::string scratchpadEntryName =
+        extractFunctionName("mksm_ee_scratchpad_probe_0x100100");
+    if (entryName.empty() || scratchpadEntryName.empty() ||
+        source.find("void " + entryName + "(") == std::string::npos ||
+        source.find("void " + scratchpadEntryName + "(") == std::string::npos)
+    {
+        std::cerr << "Generated header entries do not match generated C++: "
+                  << entryName << ", " << scratchpadEntryName << '\n';
         return 1;
     }
 
@@ -247,14 +305,17 @@ int main(int argc, char **argv)
     }
     entryOutput << "#pragma once\n"
                 << "#include \"ps2_recompiled_functions.h\"\n"
-                << "#define MKSM_RECOMP_GENERATED_PROBE_ENTRY " << entryName << "\n";
+                << "#define MKSM_RECOMP_GENERATED_PROBE_ENTRY " << entryName << "\n"
+                << "#define MKSM_RECOMP_GENERATED_SCRATCHPAD_ENTRY "
+                << scratchpadEntryName << "\n";
     if (!entryOutput)
     {
         std::cerr << "Could not finish generated probe entry adapter header\n";
         return 1;
     }
 
-    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23 entry=00100000 symbol="
-              << entryName << " output=" << generatedCpp.string() << '\n';
+    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+14 entry=00100000/00100100 symbols="
+              << entryName << "," << scratchpadEntryName
+              << " output=" << generatedCpp.string() << '\n';
     return 0;
 }

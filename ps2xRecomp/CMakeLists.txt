@@ -157,6 +157,7 @@ if(PS2X_BUILD_XBOX360_CODEGEN_PROBE)
         BYPRODUCTS
             "${MKSM_XBOX360_CODEGEN_DIR}/generated/ps2_recompiled_functions.h"
             "${MKSM_XBOX360_CODEGEN_DIR}/generated/ps2_recompiled_stubs.h"
+            "${MKSM_XBOX360_CODEGEN_DIR}/generated/mksm_generated_probe_entry.h"
         COMMAND ${CMAKE_COMMAND} -E make_directory "${MKSM_XBOX360_CODEGEN_DIR}"
         COMMAND $<TARGET_FILE:mksm_xbox360_codegen_fixture> "${MKSM_XBOX360_CODEGEN_DIR}"
         DEPENDS mksm_xbox360_codegen_fixture

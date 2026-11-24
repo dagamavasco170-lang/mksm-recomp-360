@@ -10,7 +10,8 @@ bool checkGeneratedRecompProbe()
     xsdk_log_write("MKSM_RECOMP_XENON_TRACE failures=%08X pc=%08X r1=%08X r2=%08X "
                    "r3=%08X r4=%08X r5=%08X r6=%08X r7=%08X "
                    "lw=%08X lbu=%08X lb=%016llX lhu=%04X ld=%016llX "
-                   "lbu_after=%02X lhu_after=%04X",
+                   "lbu_after=%02X lhu_after=%04X spw=%08X spb=%02X "
+                   "sph=%04X spd=%016llX aliasw=%08X aliasb=%02X isolated=%08X",
                    static_cast<unsigned>(result.failures),
                    static_cast<unsigned>(result.pc),
                    static_cast<unsigned>(result.r1), static_cast<unsigned>(result.r2),
@@ -23,6 +24,13 @@ bool checkGeneratedRecompProbe()
                    static_cast<unsigned>(result.loadHalf),
                    static_cast<unsigned long long>(result.loadDouble),
                    static_cast<unsigned>(result.loadByteAfterStore),
-                   static_cast<unsigned>(result.loadHalfAfterStore));
+                   static_cast<unsigned>(result.loadHalfAfterStore),
+                   static_cast<unsigned>(result.scratchpadWord),
+                   static_cast<unsigned>(result.scratchpadByte),
+                   static_cast<unsigned>(result.scratchpadHalf),
+                   static_cast<unsigned long long>(result.scratchpadDouble),
+                   static_cast<unsigned>(result.scratchpadAliasWord),
+                   static_cast<unsigned>(result.scratchpadAliasByte),
+                   static_cast<unsigned>(result.scratchpadIsolationWord));
     return result.failures == 0u;
 }
