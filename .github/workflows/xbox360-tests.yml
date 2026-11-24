@@ -4,11 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "port/xbox360/ps2_ee_*.h"
-      - "port/xbox360/ps2_guest_memory.h"
-      - "port/xbox360/ps2_rdram_address.h"
-      - "port/xbox360/ps2_pad_mapping.*"
-      - "port/xbox360/tests/**"
+      - "port/xbox360/**"
       - "ps2xRuntime/include/**"
       - ".github/workflows/xbox360-tests.yml"
   workflow_dispatch:
