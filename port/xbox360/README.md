@@ -17,7 +17,7 @@ It draws a solid background only. It does not load the retail game, render the P
 
 The revised run #76 XEX has now been tested on the physical console. The supplied log records ABI, C++20 and little-endian guest-memory checks, 1280×720 presentation, the Xbox Back → PS2 Select event, 122 presented frames and clean shutdown (exit 0). See [the hardware report](../../docs/xbox360/HARDWARE_SMOKE_2026-11-22.md).
 
-The scalar PS2 packed-vector reference now also covers signed comparisons, min/max, absolute value, saturating 32-bit arithmetic, variable shifts, saturating 32-to-16 packing and even-lane packing. The expanded host tests run in CI; run #80 also compiled a smoke XEX with a target-side probe for a subset. This is not yet an SSE replacement or a VMX128 backend; the full runtime remains outside the Xbox target.
+The scalar PS2 packed-vector reference covers signed comparisons, min/max, absolute value, saturation, variable shifts, packing, interleave and PMADDH semantics. The EE dispatcher now executes a deliberately small MMI slice: PMADDH, PMFHI, PMFLO, PMTHI and PMTLO. Host tests verify the HI/LO effects, GPR transfers, branch-delay retirement and atomic rejection of unsupported MMI encodings. This is not a complete MMI implementation, an SSE replacement or a VMX128 backend; the full game runtime remains outside the Xbox target.
 
 ## Preferred SDK
 
@@ -68,4 +68,4 @@ Unsigned xSDK titles require RGH/JTAG. They do not run on an unmodified retail c
 
 ## What comes next
 
-The revised XAM/ABI/endian smoke build has passed its recorded console run. The next software gate is to expand the scalar SIMD reference and build a full guest-memory/address-translation layer before integrating runtime services, audio and the GS-to-Xenos renderer. Keep host-side recompilation/generation separate from the PowerPC target build. See [the port roadmap](../../docs/xbox360/PORT_PLAN.md), [the source audit](../../docs/xbox360/SOURCE_AUDIT.md), [the guest-memory groundwork](../../docs/xbox360/GUEST_MEMORY.md), [the SIMD compatibility audit](../../docs/xbox360/SIMD_COMPATIBILITY.md) and [the SDK evaluation](../../docs/xbox360/SDK_EVALUATION.md).
+The revised XAM/ABI/endian smoke build has passed its recorded console run. The first dispatcher-connected MMI slice is host-tested only; before extending it, compare each operation against the PS2 instruction references and add differential vectors. Next gates are a real translated EE test program with deterministic state-trace parity, then a full guest-memory/address-translation layer and the platform services. Keep host-side recompilation/generation separate from the PowerPC target build. See [the port roadmap](../../docs/xbox360/PORT_PLAN.md), [the source audit](../../docs/xbox360/SOURCE_AUDIT.md), [the guest-memory groundwork](../../docs/xbox360/GUEST_MEMORY.md), [the SIMD compatibility audit](../../docs/xbox360/SIMD_COMPATIBILITY.md) and [the SDK evaluation](../../docs/xbox360/SDK_EVALUATION.md).

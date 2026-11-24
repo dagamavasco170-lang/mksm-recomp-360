@@ -28,6 +28,14 @@ See [the initial source/build-graph audit](SOURCE_AUDIT.md) for verified CMake t
 - The two technical references are documented in [REFERENCES.md](REFERENCES.md): [Tenkaichi3Decomp](https://github.com/z3xox/Tenkaichi3Decomp) for code reconstruction/organization and [BT3XBx](https://github.com/Lucas-Tito/bt3xbx) for native Xbox 360 architecture, platform layers and hardware validation. Treat them as study references, not code/toolchain drop-ins; check file-level provenance and license obligations before adapting code.
 - CI run #106 built the smoke XEX successfully after the SIMD oracle test fix. This is a CI build result, not a new physical-console run; run #80 remains the latest hardware evidence.
 
+## Alignment with existing Xbox 360 ports
+
+**Direct precedent — BT3XBx:** this is the closest known project doing the same PS2-to-Xbox-360 class of work. It keeps Xbox code in `port/x360/`, has a staged build/hardware roadmap, uses a deterministic headless replay to check x86/PPC behavior before full console integration, and only promotes optimizations after image/gameplay evidence. Adopt those practices. Do not copy its XDK setup: this project uses the pinned, open xSDK toolchain instead.
+
+**Complementary precedent — Ibara360:** it proves a second xSDK-based native XEX can integrate Xenos display, audio, controllers, storage, saves and launcher behavior on real RGH/JTAG hardware. Its game core is different: the arcade's SH-3 program is recompiled and the PS2 Arrange mode is applied as SH-3 patches. It does not provide R5900/EE execution semantics.
+
+The resulting approach is deliberately hybrid in evidence, not in code: BT3XBx guides the PS2-to-Xenon port structure and phase gates; Ibara360 and xSDK guide the open SDK, title packaging and console-facing subsystems; PCSX2 and PS2Recomp remain independent references for PS2 instruction behavior and translated-code correctness. Do not import code across these projects without file-level license/provenance review.
+
 ## Architecture target
 
 Keep the existing desktop build as the correctness/reference backend. Add an isolated target backend under `port/xbox360/`; do not replace or destabilize the existing PC runtime.
@@ -82,11 +90,12 @@ If xSDK fails the C++20 smoke build, stop and investigate a specific missing fea
 **Acceptance:** platform layer builds for Xbox and desktop; desktop regression suite stays green.
 
 ### X3 — Recompiler/runtime on PowerPC
-- Compile a small, deterministic translated EE test program.
-- Verify integer, load/store, branch, exception and floating-point behavior against the desktop reference.
+- Compile a small, deterministic translated EE test program from the same source/vector set for the desktop reference and the PowerPC target.
+- Emit a stable state trace at fixed checkpoints: PC, selected 128-bit GPRs, HI/LO, retired-instruction count and guest-memory bytes touched by the test.
+- Verify integer, MMI, load/store, branch-delay, exception and floating-point behavior before wiring the generated program into the full runtime.
 - Measure memory use and frame/tick cost on the console.
 
-**Acceptance:** the same test vectors and state transitions match the desktop reference within explicitly documented hardware/precision rules.
+**Acceptance:** the same input trace produces identical integer/register/memory state and documented floating-point tolerances on the desktop and Xenon builds. CI compilation alone is not the acceptance test; a console run must capture the state trace and timing.
 
 ### X4 — GS renderer
 - Implement command submission, state, textures, CLUTs, framebuffer/depth, blending and transfers.
@@ -119,8 +128,11 @@ If xSDK fails the C++20 smoke build, stop and investigate a specific missing fea
 ## Engineering rules
 
 1. Keep the desktop runtime as the behavioral reference until the console backend is proven.
-2. Do not introduce guessed guest behavior, fake readiness flags or forced scene skips to hide missing emulation.
-3. Every platform-specific workaround needs a focused regression test and hardware evidence where applicable.
-4. Do not claim a phase is complete based only on compilation; use the phase's stated acceptance test.
-5. Record compiler, commit, game executable hash, configuration, logs and console model/kernel for every hardware result.
-6. Do not publish game data, proprietary SDK files, extracted assets, memory dumps or generated translations.
+2. Follow BT3XBx's phase-gated workflow: deterministic headless parity before full game integration, and hardware evidence before claiming a console milestone.
+3. Follow Ibara360/xSDK's separation of host-side preparation from the small native XEX and its console-facing services; keep the SDK external and pinned.
+4. Do not enable fast-math or floating-point contraction for PS2-derived code until differential tests prove the resulting values are acceptable.
+5. Do not introduce guessed guest behavior, fake readiness flags or forced scene skips to hide missing emulation.
+6. Every platform-specific workaround needs a focused regression test and hardware evidence where applicable.
+7. Do not claim a phase is complete based only on compilation; use the phase's stated acceptance test.
+8. Record compiler, commit, game executable hash, configuration, logs and console model/kernel for every hardware result.
+9. Do not publish game data, proprietary SDK files, extracted assets, memory dumps or generated translations.

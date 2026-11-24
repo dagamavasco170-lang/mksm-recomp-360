@@ -2,6 +2,7 @@
 #include "ps2_ee_instruction_decode.h"
 #include "ps2_ee_immediate_executor.h"
 #include "ps2_ee_load_store_executor.h"
+#include "ps2_ee_mmi_executor.h"
 #include "ps2_ee_special_executor.h"
 #include "ps2_guest_memory.h"
 #include <bit>
@@ -89,6 +90,10 @@ struct StepResult { StepStatus status{StepStatus::Unsupported}; std::uint32_t in
     else if (d.opcode == 0x09u || d.opcode == 0x0Cu || d.opcode == 0x0Du || d.opcode == 0x0Eu || d.opcode == 0x0Fu)
     {
         status = executeImmediate(state, d) == ImmediateStatus::Executed ? StepStatus::Executed : StepStatus::Unsupported;
+    }
+    else if (d.kind == InstructionKind::Mmi)
+    {
+        status = executeMmi(state, d) == MmiStatus::Executed ? StepStatus::Executed : StepStatus::Unsupported;
     }
     else if (d.kind == InstructionKind::LoadStore)
     {
