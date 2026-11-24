@@ -104,15 +104,17 @@ bool checkDeterministicEeTrace()
     const auto trace = ps2::xbox360::ee::test_program::runDeterministicTrace();
     if (!trace.passed)
     {
-        xsdk_log_write("MKSM smoke: EE deterministic trace FAILED at pc=%08X retired=%u",
+        xsdk_log_write("MKSM smoke: EE deterministic trace FAILED mask=%08X pc=%08X retired=%u",
+                       static_cast<unsigned>(trace.failureMask),
                        static_cast<unsigned>(trace.pc),
                        static_cast<unsigned>(trace.retiredInstructions));
         return false;
     }
 
-    xsdk_log_write("MKSM_EE_TRACE signature=%08X%08X pc=%08X retired=%u",
+    xsdk_log_write("MKSM_EE_TRACE signature=%08X%08X failures=%08X pc=%08X retired=%u",
                    static_cast<unsigned>(trace.signature >> 32u),
                    static_cast<unsigned>(trace.signature),
+                   static_cast<unsigned>(trace.failureMask),
                    static_cast<unsigned>(trace.pc),
                    static_cast<unsigned>(trace.retiredInstructions));
     return true;

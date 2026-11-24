@@ -13,6 +13,7 @@ struct TraceReport
 {
     bool passed{};
     std::uint64_t signature{};
+    std::uint32_t failureMask{};
     std::uint32_t pc{};
     std::uint64_t retiredInstructions{};
 };
@@ -109,7 +110,7 @@ inline void hashU64(std::uint64_t &hash, std::uint64_t value) noexcept
     {
         if (!guest_memory::writeLittleEndian(
                 memory, static_cast<std::uint32_t>(i * sizeof(std::uint32_t)), program[i]))
-            return {false, 0u, cpu.pc, cpu.retiredInstructions};
+            return {false, 0u, 0x80000000u, cpu.pc, cpu.retiredInstructions};
     }
 
     constexpr std::uint64_t kExpectedRetired = 17u;
@@ -117,7 +118,7 @@ inline void hashU64(std::uint64_t &hash, std::uint64_t value) noexcept
     {
         const auto result = step(cpu, memory);
         if (result.status != StepStatus::Executed)
-            return {false, 0u, cpu.pc, cpu.retiredInstructions};
+            return {false, 0u, 0x80000000u, cpu.pc, cpu.retiredInstructions};
     }
 
     std::uint32_t storedAt80{};
@@ -126,10 +127,11 @@ inline void hashU64(std::uint64_t &hash, std::uint64_t value) noexcept
         guest_memory::readLittleEndian(std::span<const std::uint8_t>(ram), 0x80u, storedAt80) &&
         guest_memory::readLittleEndian(std::span<const std::uint8_t>(ram), 0x90u, storedAt90);
 
-    const bool architecturalStateMatches =
-        cpu.pc == 0x48u &&
-        cpu.retiredInstructions == kExpectedRetired &&
-        !cpu.branchDelayPending &&
+    std::uint32_t failureMask = 0u;
+    const bool controlMatches =
+        cpu.pc == 0x48u && cpu.retiredInstructions == kExpectedRetired &&
+        !cpu.branchDelayPending;
+    const bool basicRegistersMatch =
         readLane<std::uint32_t>(cpu.readGpr(0u), 0u) == 0u &&
         readLane<std::uint32_t>(cpu.readGpr(1u), 0u) == 0x12345678u &&
         readLane<std::uint32_t>(cpu.readGpr(2u), 0u) == 0x12345677u &&
@@ -137,19 +139,29 @@ inline void hashU64(std::uint64_t &hash, std::uint64_t value) noexcept
         readLane<std::uint32_t>(cpu.readGpr(4u), 0u) == 0x12345688u &&
         readLane<std::uint32_t>(cpu.readGpr(5u), 0u) == 0x2468AD10u &&
         readLane<std::uint32_t>(cpu.readGpr(6u), 0u) == 9u &&
-        readLane<std::uint32_t>(cpu.readGpr(7u), 0u) == 12u &&
+        readLane<std::uint32_t>(cpu.readGpr(7u), 0u) == 12u;
+    const bool hiloTransfersMatch =
         cpu.readGpr(8u).bytes == cpu.hilo.hi.bytes &&
-        cpu.readGpr(9u).bytes == cpu.hilo.lo.bytes &&
+        cpu.readGpr(9u).bytes == cpu.hilo.lo.bytes;
+    const bool pmaddhRegistersMatch =
         readLane<std::uint32_t>(cpu.readGpr(10u), 0u) == 0x2F68D850u &&
         readLane<std::uint32_t>(cpu.readGpr(10u), 1u) == 0x2468AD10u &&
         readLane<std::uint32_t>(cpu.readGpr(10u), 2u) == 0u &&
         readLane<std::uint32_t>(cpu.readGpr(10u), 3u) == 0u &&
-        readLane<std::uint32_t>(cpu.readGpr(11u), 0u) == 0x2F68D850u &&
+        readLane<std::uint32_t>(cpu.readGpr(11u), 0u) == 0x2F68D850u;
+    const bool hiloAccumulatorMatches =
         cpu.hilo.loWord(0u) == 0x2F68D850u &&
         cpu.hilo.loWord(1u) == 0x014B5A90u &&
-        cpu.hilo.hiWord(0u) == 0x2468AD10u &&
-        storedAt80 == 0x12345688u &&
-        storedAt90 == 0x2F68D850u;
+        cpu.hilo.hiWord(0u) == 0x2468AD10u;
+    const bool memoryValuesMatch =
+        memoryMatches && storedAt80 == 0x12345688u && storedAt90 == 0x2F68D850u;
+
+    if (!controlMatches) failureMask |= 1u << 0u;
+    if (!basicRegistersMatch) failureMask |= 1u << 1u;
+    if (!hiloTransfersMatch) failureMask |= 1u << 2u;
+    if (!pmaddhRegistersMatch) failureMask |= 1u << 3u;
+    if (!hiloAccumulatorMatches) failureMask |= 1u << 4u;
+    if (!memoryValuesMatch) failureMask |= 1u << 5u;
 
     std::uint64_t hash = 14695981039346656037ull;
     for (const auto &gpr : cpu.gpr)
@@ -166,6 +178,6 @@ inline void hashU64(std::uint64_t &hash, std::uint64_t value) noexcept
     for (std::size_t i = 0x80u; i < 0x94u; ++i)
         hashByte(hash, ram[i]);
 
-    return {architecturalStateMatches && memoryMatches, hash, cpu.pc, cpu.retiredInstructions};
+    return {failureMask == 0u, hash, failureMask, cpu.pc, cpu.retiredInstructions};
 }
 } // namespace ps2::xbox360::ee::test_program
