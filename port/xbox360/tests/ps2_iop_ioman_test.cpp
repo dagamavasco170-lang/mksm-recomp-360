@@ -57,6 +57,20 @@ int main()
     assert(ioman.dispatch(IomanCommand::Close, static_cast<std::uint32_t>(fd),
                           0u, 0u, ram) == -EBADF);
 
+    // Exhaust the descriptor table and verify deterministic EMFILE behavior.
+    std::array<std::int32_t, RetailFileIo::MaxOpenFiles> descriptors{};
+    for (auto &descriptor : descriptors)
+    {
+        descriptor = ioman.dispatch(IomanCommand::Open, 8u, 1u, 0u, ram);
+        assert(descriptor >= RetailFileIo::FirstDescriptor);
+    }
+    assert(ioman.openFileCount() == RetailFileIo::MaxOpenFiles);
+    assert(ioman.dispatch(IomanCommand::Open, 8u, 1u, 0u, ram) == -EMFILE);
+    for (const auto descriptor : descriptors)
+        assert(ioman.dispatch(IomanCommand::Close, static_cast<std::uint32_t>(descriptor),
+                             0u, 0u, ram) == 0);
+    assert(ioman.openFileCount() == 0u);
+
     fs::remove_all(root);
     return 0;
 }
