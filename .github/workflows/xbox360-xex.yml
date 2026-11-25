@@ -103,6 +103,8 @@ jobs:
           $exe = Get-ChildItem xenia -Recurse -Filter xenia_canary.exe | Select-Object -First 1
           if (-not $exe) { throw 'xenia_canary.exe not found in downloaded archive.' }
           "XENIA_EXE=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          # Force the emulator's Null GPU backend so the runner's virtual display/GPU is not required.
+          Set-Content -Path (Join-Path (Split-Path $exe) 'xenia-canary-config.toml') -Value 'gpu = "null"'
       - name: Attempt to boot diagnostic XEX in Xenia (non-blocking experiment)
         id: emulator
         continue-on-error: true
@@ -114,7 +116,7 @@ jobs:
           $exe = $env:XENIA_EXE
           if (-not $exe -or -not (Test-Path $exe)) { throw 'Xenia executable path missing.' }
           'Attempting Xenia Canary launch on GitHub Windows runner; this runner may lack GPU support.' | Tee-Object emulator-logs/summary.txt
-          $proc = Start-Process -FilePath $exe -ArgumentList @('--target', $xex) -WorkingDirectory (Split-Path $exe) -PassThru -RedirectStandardOutput (Join-Path $PWD 'emulator-logs/stdout.txt') -RedirectStandardError (Join-Path $PWD 'emulator-logs/stderr.txt')
+          $proc = Start-Process -FilePath $exe -ArgumentList @($xex) -WorkingDirectory (Split-Path $exe) -PassThru -RedirectStandardOutput (Join-Path $PWD 'emulator-logs/stdout.txt') -RedirectStandardError (Join-Path $PWD 'emulator-logs/stderr.txt')
           try {
             Wait-Process -Id $proc.Id -Timeout 45 -ErrorAction Stop
             $proc.Refresh()
