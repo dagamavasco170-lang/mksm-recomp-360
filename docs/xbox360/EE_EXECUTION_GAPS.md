@@ -25,18 +25,17 @@ The SPECIAL function-code audit enumerates all 64 function codes against an expl
 
 ## Known gaps and risks
 
-- COP0/COP1/COP2 are decoded into categories but not dispatched by the execution step. COP0 exception/status behavior and COP2/VU transfers may be critical.
-- SPECIAL gaps include trapping ADD/SUB and exception-generating SYSCALL/BREAK; SYNC semantics still need an explicit implementation decision.
+- COP0 register-transfer instructions (MFC0/MTC0/ERET) are not yet dispatched. A minimal COP0 exception state now records Status, Cause, EPC, and BadVAddr, with EXL/BEV handling and the general level-1 vector; TLB, interrupt, coprocessor-unusable, and level-2 exception paths remain unimplemented.
+- SPECIAL exception slice: ADD/SUB overflow, SYSCALL, and BREAK enter the EE level-1 general exception path; SYNC semantics still need an explicit implementation decision.
 - Generated runtime ABI shim is partial: no complete R5900Context, MMIO, scheduling, IOP, VU/GS, DMAC scratchpad, full MMI, or exception/syscall implementation.
 - LQ/SQ in focused dispatcher path move raw 128-bit bytes. The separate generated-code ABI probe does not establish full LQ/SQ coverage for all emitted code paths.
-- Delay-slot, exception, interrupt, and privileged-state semantics remain incomplete. Unsupported instructions must fail visibly, not act as no-ops.
+- Delay-slot branch-in-branch behavior, interrupt delivery, TLB, and broader privileged-state semantics remain incomplete. Unsupported instructions must fail visibly, not act as no-ops.
 
 ## Recommended priority
 
-1. Add trapping ADD/SUB only after a coherent COP0 exception model captures Cause/EPC and branch-delay BD state.
-2. Implement a defined minimal COP0 model and tests; do not fake success for unknown privileged operations.
-3. Expand SPECIAL boundary tests and compare behavior against authoritative EE references.
-4. Prioritize remaining COP2/VU, DMAC, GS, and runtime ABI work using generated retail-game function traces rather than synthetic instruction counts.
+1. Add MFC0/MTC0/ERET with privilege and Status-stack semantics, then test exception return.
+2. Extend the exception path to address errors and coprocessor unusable only with verified EE behavior.
+3. Prioritize remaining COP2/VU, DMAC, GS, and runtime ABI work using generated retail-game function traces rather than synthetic instruction counts.
 
 ## Evidence boundary
 
