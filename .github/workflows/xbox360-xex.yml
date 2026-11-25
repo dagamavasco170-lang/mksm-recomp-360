@@ -152,7 +152,7 @@ jobs:
             "Launching Xenia Canary with headless diagnostics XEX: $xex" | Tee-Object (Join-Path $logRoot 'summary.txt')
             # Xenia documents --log_file=stdout; put flags before the XEX path so
             # both emulator and guest DbgPrint lines are visible to the CI poller.
-            $proc = Start-Process -FilePath $exe -ArgumentList @('--gpu=null', '--log_file=stdout', '--log_level=3', $xex) -WorkingDirectory $xeniaDir -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError (Join-Path $logRoot 'stderr.txt')
+            $proc = Start-Process -FilePath $exe -ArgumentList @($xex, '--log_file=stdout', '--log_level=3') -WorkingDirectory $xeniaDir -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError (Join-Path $logRoot 'stderr.txt')
             $deadline = [DateTime]::UtcNow.AddSeconds(90)
             $content = ''
             while ([DateTime]::UtcNow -lt $deadline) {
