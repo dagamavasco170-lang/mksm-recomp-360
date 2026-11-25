@@ -144,6 +144,14 @@ int main()
     assert(readLow64(state.hilo.lo) == 0x000000007FFFFFFFull);
     assert(readLow64(state.hilo.hi) == 1ull);
 
+    // Signed overflow follows the EE-defined quotient/remainder result.
+    writeLow64(state.gpr[1], 0xFFFFFFFF80000000ull); // INT32_MIN
+    writeLow64(state.gpr[2], 0xFFFFFFFFFFFFFFFFull); // -1
+    auto divOverflowDecoded = decodeInstruction(encodeSpecial(1, 2, 0, 0, 0x1A));
+    assert(executeSpecial(state, divOverflowDecoded) == ExecuteStatus::Executed);
+    assert(readLow64(state.hilo.lo) == 0xFFFFFFFF80000000ull);
+    assert(readLow64(state.hilo.hi) == 0ull);
+
     // A zero divisor is architecturally undefined: reject atomically.
     writeLow64(state.gpr[2], 0ull);
     const auto divZeroPc = state.pc;
