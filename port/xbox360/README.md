@@ -85,3 +85,23 @@ Unsigned xSDK titles require RGH/JTAG. They do not run on an unmodified retail c
 ## What comes next
 
 The run #80 smoke XEX passed its recorded console checks, but it predates the current generated-code ABI and scratchpad changes. The current generated ABI has scalar RDRAM and separate 16 KiB scratchpad load/store helpers with host regression coverage; its new XEX has not yet been exercised on a physical console. The first dispatcher-connected MMI slice remains host-tested only. The next memory gate is to execute the revised XEX on a physical RGH/JTAG console and confirm the generated-memory trace plus `MKSM_SPR_DMA_TRACE`. This implementation is a synchronous normal-mode SPR DMA model only; then continue with separately tested DMAC channel families, device MMIO and runtime services in isolated slices. Keep host-side recompilation/generation separate from the PowerPC target build. See [the port roadmap](../../docs/xbox360/PORT_PLAN.md), [the source audit](../../docs/xbox360/SOURCE_AUDIT.md), [the guest-memory groundwork](../../docs/xbox360/GUEST_MEMORY.md), [the SIMD compatibility audit](../../docs/xbox360/SIMD_COMPATIBILITY.md) and [the SDK evaluation](../../docs/xbox360/SDK_EVALUATION.md).
+
+
+## Console-side retail file probe
+
+The current ioman smoke probe is opt-in: set `MKSM_DISC_ROOT` to the root of an extracted disc tree before launching the XEX. The root must contain the probe file `GAMEDATA.WAD`. If the variable is unset, the XEX logs `MKSM_IOMAN_BRIDGE status=not-configured` and skips only this retail-file probe; it does not imply the file bridge passed.
+
+Recommended extracted layout on the console storage device:
+
+```
+<storage>/MKSM/
+  GAMEDATA.WAD
+  IOP/
+    (retail IRX files, if present)
+  MOVIES/
+    (retail movie files, if present)
+```
+
+For the current probe, configure `MKSM_DISC_ROOT` to `<storage>/MKSM`. The XEX opens `GAMEDATA.WAD` read-only, reads 16 bytes, seeks back to offset 0, reads those bytes again into a separate IOP-RAM region, compares both reads, and closes the descriptor. A pass is logged as `MKSM_IOMAN_BRIDGE status=pass`. Open failures include a negative errno-style result. The test does not yet mount the DVD drive, parse the WAD, run the IOP FILEIO RPC inside PS2Runtime, or start game code.
+
+Do not commit retail files or copyrighted assets. The extraction tree stays local to the console storage device. Keep the smoke log and report the exact `MKSM_IOMAN_BRIDGE` line when testing on hardware.
