@@ -28,7 +28,7 @@ The SPECIAL function-code audit enumerates all 64 function codes against an expl
 - COP0 subset now dispatches MFC0/MTC0 for Status, Cause (software-interrupt writable bits only), and EPC; MFC0 sign-extends its 32-bit word. ERET requires EXL, clears EXL, restores PC from EPC, and cancels pending branch-delay state. Other COP0 registers/privileged semantics remain incomplete. A minimal COP0 exception state now records Status, Cause, EPC, and BadVAddr, with EXL/BEV handling and the general level-1 vector; TLB, interrupt, coprocessor-unusable, and level-2 exception paths remain unimplemented.
 - SPECIAL exception slice: ADD/SUB overflow, SYSCALL, and BREAK enter the EE level-1 general exception path; SYNC semantics still need an explicit implementation decision.
 - Generated runtime ABI shim is partial: no complete R5900Context, MMIO, scheduling, IOP, VU/GS, DMAC scratchpad, full MMI, or exception/syscall implementation.
-- LQ/SQ in focused dispatcher path move raw 128-bit bytes. The separate generated-code ABI probe does not establish full LQ/SQ coverage for all emitted code paths.
+- LQ/SQ in the focused dispatcher path move raw 128-bit bytes. The generated Xenon-ABI probe exercises LQ/SQ and LWL/LWR/SWL/SWR on both an uncached RDRAM alias and per-runtime scratchpad, checking all four byte offsets, merged register values, upper-half preservation, and store byte masks. This is targeted coverage only—not full memory-instruction, address-error, TLB, cache, or timing behavior.
 - Delay-slot branch-in-branch behavior, interrupt delivery, TLB, and broader privileged-state semantics remain incomplete. Unsupported instructions must fail visibly, not act as no-ops.
 
 ## Recommended priority
