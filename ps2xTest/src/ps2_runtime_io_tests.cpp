@@ -537,6 +537,59 @@ void register_ps2_runtime_io_tests()
                      "sceMcSync after sceMcEnd should report that no command is active");
         });
 
+        tc.Run("sceOpen sceRead sceLseek use the configured CD root", [](TestCase &t)
+        {
+            TestContext test;
+            const std::string payload = "0123456789abcdef";
+            {
+                std::ofstream out(test.paths.cdRoot / "GAMEDATA.WAD", std::ios::binary);
+                out.write(payload.data(), static_cast<std::streamsize>(payload.size()));
+            }
+
+            constexpr uint32_t pathAddr = GUEST_STRING_AREA_START + 0xC00;
+            constexpr uint32_t readBufAddr = GUEST_BUFFER_AREA_START + 0x1D00;
+            writeGuestString(test.rdram.data(), pathAddr, "cdrom0:/GAMEDATA.WAD;1");
+
+            clearContext(test.ctx);
+            setRegU32(test.ctx, 4, pathAddr);
+            setRegU32(test.ctx, 5, PS2_FIO_O_RDONLY);
+            ps2_stubs::sceOpen(test.rdram.data(), &test.ctx, nullptr);
+            const int32_t fd = getRegS32(&test.ctx, 2);
+            t.IsTrue(fd >= 0, "sceOpen should resolve cdrom0 paths beneath the configured CD root");
+            if (fd < 0)
+                return;
+
+            clearContext(test.ctx);
+            setRegU32(test.ctx, 4, static_cast<uint32_t>(fd));
+            setRegU32(test.ctx, 5, readBufAddr);
+            setRegU32(test.ctx, 6, 4u);
+            ps2_stubs::sceRead(test.rdram.data(), &test.ctx, nullptr);
+            t.Equals(getRegS32(&test.ctx, 2), 4, "sceRead should return the number of bytes read");
+            t.Equals(std::string(reinterpret_cast<const char *>(test.rdram.data() + readBufAddr), 4u),
+                     std::string("0123"), "sceRead should copy file bytes into guest RDRAM");
+
+            clearContext(test.ctx);
+            setRegU32(test.ctx, 4, static_cast<uint32_t>(fd));
+            setRegU32(test.ctx, 5, 6u);
+            setRegU32(test.ctx, 6, PS2_FIO_SEEK_SET);
+            ps2_stubs::sceLseek(test.rdram.data(), &test.ctx, nullptr);
+            t.Equals(getRegS32(&test.ctx, 2), 6, "sceLseek should return the new file position");
+
+            clearContext(test.ctx);
+            setRegU32(test.ctx, 4, static_cast<uint32_t>(fd));
+            setRegU32(test.ctx, 5, readBufAddr);
+            setRegU32(test.ctx, 6, 4u);
+            ps2_stubs::sceRead(test.rdram.data(), &test.ctx, nullptr);
+            t.Equals(getRegS32(&test.ctx, 2), 4, "sceRead should work after seeking");
+            t.Equals(std::string(reinterpret_cast<const char *>(test.rdram.data() + readBufAddr), 4u),
+                     std::string("6789"), "sceLseek should reposition the subsequent sceRead");
+
+            clearContext(test.ctx);
+            setRegU32(test.ctx, 4, static_cast<uint32_t>(fd));
+            ps2_stubs::sceClose(test.rdram.data(), &test.ctx, nullptr);
+            t.Equals(getRegS32(&test.ctx, 2), 0, "sceClose should release the file descriptor");
+        });
+
         tc.Run("sceIoctl cmd1 updates wait flag state", [](TestCase &t)
         {
             TestContext test;
