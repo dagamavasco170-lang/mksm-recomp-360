@@ -34,6 +34,36 @@ enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
 
     switch (d.special)
     {
+    case SpecialOperation::Dsll:
+    case SpecialOperation::Dsrl:
+    case SpecialOperation::Dsra:
+    case SpecialOperation::Dsll32:
+    case SpecialOperation::Dsrl32:
+    case SpecialOperation::Dsra32:
+    {
+        std::uint64_t value = 0;
+        for (std::size_t byte = 0; byte < 8u; ++byte)
+            value |= static_cast<std::uint64_t>(rt.bytes[byte]) << (byte * 8u);
+        const bool shift32 = d.special == SpecialOperation::Dsll32 ||
+                             d.special == SpecialOperation::Dsrl32 ||
+                             d.special == SpecialOperation::Dsra32;
+        const unsigned shift = static_cast<unsigned>(d.sa) + (shift32 ? 32u : 0u);
+        std::uint64_t shifted = value;
+        if (d.special == SpecialOperation::Dsll || d.special == SpecialOperation::Dsll32)
+            shifted = value << shift;
+        else if (d.special == SpecialOperation::Dsrl || d.special == SpecialOperation::Dsrl32)
+            shifted = value >> shift;
+        else if (shift != 0u)
+        {
+            shifted = value >> shift;
+            if ((value & (std::uint64_t{1} << 63u)) != 0u)
+                shifted |= (~std::uint64_t{0}) << (64u - shift);
+        }
+        result = state.gpr[d.rd];
+        for (std::size_t byte = 0; byte < 8u; ++byte)
+            result.bytes[byte] = static_cast<std::uint8_t>(shifted >> (byte * 8u));
+        break;
+    }
     case SpecialOperation::And: result = simd::bitAnd(rs, rt); break;
     case SpecialOperation::Or: result = simd::bitOr(rs, rt); break;
     case SpecialOperation::Xor: result = simd::bitXor(rs, rt); break;
