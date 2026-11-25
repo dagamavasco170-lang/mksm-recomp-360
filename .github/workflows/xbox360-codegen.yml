@@ -1,6 +1,14 @@
 name: Xbox 360 PS2Recomp code-generation probe
 
 on:
+  push:
+    branches: [xbox360/bootstrap]
+    paths:
+      - "port/xbox360/**"
+      - "ps2xRecomp/**"
+      - "ps2xRuntime/include/**"
+      - "ps2xIOP/include/**"
+      - ".github/workflows/xbox360-codegen.yml"
   pull_request:
     branches: [main, xbox360/bootstrap]
     paths:
