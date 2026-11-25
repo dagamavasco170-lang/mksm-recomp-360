@@ -121,6 +121,13 @@ jobs:
           $xeniaDir = Split-Path $exe.FullName
           # Canary reads this exact filename. The previous workflow wrote a misspelled config filename.
           New-Item -ItemType File -Force -Path (Join-Path $xeniaDir 'portable.txt') | Out-Null
+          # Xenia Canary shows a blocking first-run disclaimer on Windows.
+          # Pre-acknowledge it in this ephemeral CI user's registry so the
+          # non-interactive runner can initialize the emulator normally.
+          $flagsPath = 'HKCU:\Software\Xenia'
+          New-Item -Path $flagsPath -Force | Out-Null
+          New-ItemProperty -LiteralPath $flagsPath -Name 'XEFLAGS' -PropertyType QWord -Value ([long]1) -Force | Out-Null
+          "XENIA_XEFLAGS=$((Get-ItemProperty -LiteralPath $flagsPath).XEFLAGS)" | Out-File -FilePath $env:GITHUB_ENV -Append
           @'
           [General]
           discord = false
