@@ -134,8 +134,8 @@ bool checkEeLqSq()
     std::array<uint8_t, 256> ram{};
     CpuState cpu{};
 
-    simd::Vector128 base{}, source{};
-    simd::writeLane<uint32_t>(base, 0u, 0x5Bu); // deliberately unaligned
+    ps2::xbox360::simd::Vector128 base{}, source{};
+    ps2::xbox360::simd::writeLane<uint32_t>(base, 0u, 0x5Bu); // deliberately unaligned
     for (size_t i = 0; i < source.bytes.size(); ++i)
         source.bytes[i] = static_cast<uint8_t>(0xD0u + i);
     cpu.writeGpr(1u, base);
@@ -146,9 +146,9 @@ bool checkEeLqSq()
                (static_cast<uint32_t>(rs) << 21u) |
                (static_cast<uint32_t>(rt) << 16u);
     };
-    bool ok = guest_memory::writeLittleEndian(std::span<uint8_t>(ram), 0u,
+    bool ok = ps2::xbox360::guest_memory::writeLittleEndian(std::span<uint8_t>(ram), 0u,
                                                encode(0x1Fu, 1u, 2u)) && // SQ
-              guest_memory::writeLittleEndian(std::span<uint8_t>(ram), 4u,
+              ps2::xbox360::guest_memory::writeLittleEndian(std::span<uint8_t>(ram), 4u,
                                                encode(0x1Eu, 1u, 3u));   // LQ
     const auto stored = step(cpu, ram);
     ok = ok && stored.status == StepStatus::Executed;
