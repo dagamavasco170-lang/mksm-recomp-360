@@ -22,7 +22,7 @@ enum class Cop0Status : std::uint8_t { Executed, Unsupported };
     if (d.rs == 0u) // MFC0, word sign-extended
     {
         const std::uint32_t value = readCop0(state, d.rd);
-        const std::uint64_t extended = static_cast<std::uint64_t>(static_cast<std int64_t>(static_cast<std::int32_t>(value)));
+        const std::uint64_t extended = static_cast<std::uint64_t>(static_cast<std::int64_t>(static_cast<std::int32_t>(value)));
         auto out = state.gpr[d.rt]; for (std::size_t i=0;i<8u;++i) out.bytes[i]=static_cast<std::uint8_t>(extended>>(i*8u));
         state.writeGpr(d.rt,out); state.advancePc(); state.recordRetiredInstruction(); return Cop0Status::Executed;
     }
