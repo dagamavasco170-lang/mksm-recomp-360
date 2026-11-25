@@ -210,7 +210,55 @@ private:
                 return false;
         }
 
-        result = (root_ / relative).lexically_normal();
+        // Resolve components against the extracted tree using ASCII
+        // case-insensitive matching. PS2 paths are commonly case-insensitive,
+        // while extraction hosts (Linux in particular) may not be.
+        std::filesystem::path current = root_;
+        for (const auto &part : relative)
+        {
+            std::error_code directoryError;
+            if (!std::filesystem::is_directory(current, directoryError))
+            {
+                current /= part;
+                continue;
+            }
+
+            const auto equalInsensitive = [](std::string_view lhs, std::string_view rhs)
+            {
+                if (lhs.size() != rhs.size())
+                    return false;
+                for (std::size_t i = 0; i < lhs.size(); ++i)
+                {
+                    const auto lower = [](unsigned char c)
+                    {
+                        return c >= 'A' && c <= 'Z'
+                                   ? static_cast<unsigned char>(c - 'A' + 'a')
+                                   : c;
+                    };
+                    if (lower(static_cast<unsigned char>(lhs[i])) !=
+                        lower(static_cast<unsigned char>(rhs[i])))
+                        return false;
+                }
+                return true;
+            };
+
+            bool matched = false;
+            std::error_code iterationError;
+            for (std::filesystem::directory_iterator it(current, iterationError), end;
+                 !iterationError && it != end; it.increment(iterationError))
+            {
+                if (equalInsensitive(it->path().filename().string(), part.string()))
+                {
+                    current = it->path();
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched)
+                current /= part;
+        }
+
+        result = current.lexically_normal();
         return true;
     }
 
