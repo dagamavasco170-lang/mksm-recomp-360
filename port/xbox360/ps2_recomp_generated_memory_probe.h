@@ -228,13 +228,13 @@ struct Ps2GeneratedMemoryProbeResult
     constexpr std::array<std::uint32_t, 4> kExpectedSwr{
         0xAABBCCDDu, 0xBBCCDD11u, 0xCCDD2211u, 0xDD332211u};
     const auto runUnalignedMergeProbe = [&](std::uint32_t baseAddress) {
-        bool ok = generated_abi::writeGuestMemory<std::uint32_t>(
+        bool ok = ps2::xbox360::generated_abi::writeGuestMemory<std::uint32_t>(
                       rdram.data(), runtime, baseAddress, 0xF2332211u);
         for (std::uint32_t i = 0; i < 4u; ++i) {
-            ok = ok && generated_abi::writeGuestMemory<std::uint32_t>(
+            ok = ok && ps2::xbox360::generated_abi::writeGuestMemory<std::uint32_t>(
                 rdram.data(), runtime, baseAddress + 0x20u + i * 4u,
                 0x44332211u);
-            ok = ok && generated_abi::writeGuestMemory<std::uint32_t>(
+            ok = ok && ps2::xbox360::generated_abi::writeGuestMemory<std::uint32_t>(
                 rdram.data(), runtime, baseAddress + 0x40u + i * 4u,
                 0x44332211u);
         }
@@ -276,9 +276,9 @@ struct Ps2GeneratedMemoryProbeResult
                 mergeContext.r[24u + i].high64 == 0x5060708010203040ull;
 
             std::uint32_t swlWord{}, swrWord{};
-            const bool swlRead = generated_abi::readGuestMemory<std::uint32_t>(
+            const bool swlRead = ps2::xbox360::generated_abi::readGuestMemory<std::uint32_t>(
                 rdram.data(), runtime, baseAddress + 0x20u + i * 4u, swlWord);
-            const bool swrRead = generated_abi::readGuestMemory<std::uint32_t>(
+            const bool swrRead = ps2::xbox360::generated_abi::readGuestMemory<std::uint32_t>(
                 rdram.data(), runtime, baseAddress + 0x40u + i * 4u, swrWord);
             ok = ok && swlRead && swrRead &&
                  swlWord == kExpectedSwl[i] && swrWord == kExpectedSwr[i];
