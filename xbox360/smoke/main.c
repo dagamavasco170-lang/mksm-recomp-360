@@ -33,7 +33,7 @@ static uint32_t frame_pixel(uint32_t address, uint32_t width, uint32_t y)
 {
     XsdkTexture frame;
     if (width > MAX_WIDTH ||
-        !NT_SUCCESS(xsdk_texture_init(&frame, XSDK_FORMAT_A8R8G8B8, width, 720, 1, true)))
+        !NT_SUCCESS(xsdk_texture_init(&frame, XSDK_FORMAT_A8R8G8B8, width, height, 1, true)))
         return 0;
 
     xsdk_texture_attach(&frame, xsdk_present_pixels(address));
@@ -48,7 +48,7 @@ static bool check_first_frame(uint32_t address, uint32_t width)
     if (!NT_SUCCESS(status))
         xsdk_log_write("smoke: GPU fence wait failed: 0x%08X", (unsigned)status);
 
-    uint32_t pixel = frame_pixel(address, width, 360);
+    uint32_t pixel = frame_pixel(address, width, height, height / 2);
     xsdk_log_write("smoke: center pixel=0x%08X expected=0x%08X",
                    (unsigned)pixel, (unsigned)CLEAR_ARGB);
     bool ok = NT_SUCCESS(status) && pixel == CLEAR_ARGB;
@@ -101,7 +101,7 @@ int main(void)
 
         xsdk_gpu_resolve(address, width, height, CLEAR_ARGB);
         if (frames == 1) {
-            first_frame_checked = check_first_frame(address, width);
+            first_frame_checked = check_first_frame(address, width, height);
         }
         xsdk_present_end();
         ++frames;
