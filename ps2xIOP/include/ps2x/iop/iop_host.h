@@ -71,10 +71,10 @@ namespace ps2x::iop
 
         // Optional copied stereo PCM sink. Counters exclude underrun silence and
         // remain monotonic until close. Unsupported hosts retain IOP ownership.
-        virtual bool pcmConfigure(uint32_t key, uint32_t rate, bool playing) { return false; }
-        virtual bool pcmSubmit(uint32_t key, std::span<const int16_t> stereo) { return false; }
-        virtual uint64_t pcmConsumed(uint32_t key) const { return 0; }
-        virtual void pcmClose(uint32_t key) {}
+        virtual bool pcmConfigure(uint32_t, uint32_t, bool) { return false; }
+        virtual bool pcmSubmit(uint32_t, std::span<const int16_t>) { return false; }
+        virtual uint64_t pcmConsumed(uint32_t) const { return 0; }
+        virtual void pcmClose(uint32_t) {}
 
         virtual std::string hostPath(HostPathKind kind) const = 0;
         virtual std::string translateGuestPath(std::string_view path) const = 0;
@@ -102,9 +102,9 @@ namespace ps2x::iop
 
         // Optional IOP backing storage, distinct from EE allocateGuest memory.
         // The public C plugin ABI remains unchanged; these are built-in services.
-        virtual uint32_t allocateIopMemory(uint32_t size) { return 0; }
-        virtual void freeIopMemory(uint32_t address) {}
+        virtual uint32_t allocateIopMemory(uint32_t) { return 0; }
+        virtual void freeIopMemory(uint32_t) {}
         // Only bytes actually uploaded to sound RAM are readable for voice playback.
-        virtual bool readSoundMemory(uint32_t address, void* destination, size_t size) const { return false; }
+        virtual bool readSoundMemory(uint32_t, void*, size_t) const { return false; }
     };
 }
