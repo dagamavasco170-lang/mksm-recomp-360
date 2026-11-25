@@ -170,7 +170,10 @@ namespace ps2_syscalls
         uint32_t bufAddr = getRegU32(ctx, 5); // $a1
         size_t size = getRegU32(ctx, 6);      // $a2
 
-        uint8_t *hostBuf = getMemPtr(rdram, bufAddr);
+        uint32_t guestOffset = 0;
+        bool scratch = false;
+        const bool validGuestRange = rdram && resolveEeGuestRange(bufAddr, size, guestOffset, scratch);
+        uint8_t *hostBuf = validGuestRange ? getMemPtr(rdram, bufAddr) : nullptr;
         FILE *fp = getHostFile(ps2Fd);
 
         if (!hostBuf)
