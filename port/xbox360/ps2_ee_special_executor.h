@@ -22,6 +22,13 @@ enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
     const auto &rt = state.readGpr(d.rt);
     simd::Vector128 result{};
     bool writesRd = true;
+    const auto isWordValue = [](const simd::Vector128 &value) constexpr {
+        const std::uint32_t low = simd::readLane<std::uint32_t>(value, 0);
+        const std::uint64_t low64 = simd::readLane<std::uint64_t>(value, 0);
+        const std::uint64_t expected =
+            static_cast<std::uint64_t>(static_cast<std::int64_t>(simd::detail::asSigned(low)));
+        return low64 == expected;
+    };
 
     switch (d.special)
     {
@@ -84,6 +91,8 @@ enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
     case SpecialOperation::Mult:
     case SpecialOperation::Multu:
     {
+        if (!isWordValue(rs) || !isWordValue(rt))
+            return ExecuteStatus::Unsupported;
         const std::uint32_t lhsBits = simd::readLane<std::uint32_t>(rs, 0);
         const std::uint32_t rhsBits = simd::readLane<std::uint32_t>(rt, 0);
         std::uint64_t product = 0;
@@ -117,6 +126,53 @@ enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
         result = state.gpr[d.rd];
         for (std::size_t byte = 0; byte < 8u; ++byte)
             result.bytes[byte] = static_cast<std::uint8_t>(loValue >> (byte * 8u));
+        break;
+    }
+    case SpecialOperation::Div:
+    case SpecialOperation::Divu:
+    {
+        if (!isWordValue(rs) || !isWordValue(rt))
+            return ExecuteStatus::Unsupported;
+        const std::uint32_t lhsBits = simd::readLane<std::uint32_t>(rs, 0);
+        const std::uint32_t rhsBits = simd::readLane<std::uint32_t>(rt, 0);
+        if (rhsBits == 0u)
+            return ExecuteStatus::Unsupported; // EE manual defines the result as undefined.
+
+        std::uint32_t quotientBits = 0;
+        std::uint32_t remainderBits = 0;
+        if (d.special == SpecialOperation::Div)
+        {
+            const std::int64_t lhs = simd::detail::asSigned(lhsBits);
+            const std::int64_t rhs = simd::detail::asSigned(rhsBits);
+            if (lhsBits == 0x80000000u && rhsBits == 0xFFFFFFFFu)
+            {
+                quotientBits = 0x80000000u;
+                remainderBits = 0u;
+            }
+            else
+            {
+                quotientBits = static_cast<std::uint32_t>(lhs / rhs);
+                remainderBits = static_cast<std::uint32_t>(lhs % rhs);
+            }
+        }
+        else
+        {
+            quotientBits = lhsBits / rhsBits;
+            remainderBits = lhsBits % rhsBits;
+        }
+
+        const auto signExtendWord = [](std::uint32_t word) constexpr {
+            return static_cast<std::uint64_t>(
+                static_cast<std::int64_t>(simd::detail::asSigned(word)));
+        };
+        const std::uint64_t loValue = signExtendWord(quotientBits);
+        const std::uint64_t hiValue = signExtendWord(remainderBits);
+        for (std::size_t byte = 0; byte < 8u; ++byte)
+        {
+            state.hilo.lo.bytes[byte] = static_cast<std::uint8_t>(loValue >> (byte * 8u));
+            state.hilo.hi.bytes[byte] = static_cast<std::uint8_t>(hiValue >> (byte * 8u));
+        }
+        writesRd = false;
         break;
     }
     case SpecialOperation::Addu:
