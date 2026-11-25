@@ -154,6 +154,36 @@ int main()
     assert(state.pc == divZeroPc && state.retiredInstructions == divZeroRetired);
     for (std::size_t byte = 0; byte < 16; ++byte)\n    {\n        assert(state.hilo.lo.bytes[byte] == divZeroLo.bytes[byte]);\n        assert(state.hilo.hi.bytes[byte] == divZeroHi.bytes[byte]);\n    }
 
+    // R5900 64-bit shifts operate on GPR low64 and preserve its upper 64 bits.
+    writeLow64(state.gpr[2], 0x8000000000000001ull);
+    for (std::size_t byte = 8; byte < 16; ++byte)
+    {
+        state.gpr[2].bytes[byte] = 0xCC;
+        state.gpr[20].bytes[byte] = 0xDD;
+    }
+    auto dsllDecoded = decodeInstruction(encodeSpecial(0, 2, 20, 1, 0x38));
+    assert(executeSpecial(state, dsllDecoded) == ExecuteStatus::Executed);
+    assert(readLow64(state.gpr[20]) == 2ull);
+    for (std::size_t byte = 8; byte < 16; ++byte) assert(state.gpr[20].bytes[byte] == 0xDD);
+
+    auto dsrlDecoded = decodeInstruction(encodeSpecial(0, 2, 20, 1, 0x3A));
+    assert(executeSpecial(state, dsrlDecoded) == ExecuteStatus::Executed);
+    assert(readLow64(state.gpr[20]) == 0x4000000000000000ull);
+    auto dsraDecoded = decodeInstruction(encodeSpecial(0, 2, 20, 1, 0x3B));
+    assert(executeSpecial(state, dsraDecoded) == ExecuteStatus::Executed);
+    assert(readLow64(state.gpr[20]) == 0xC000000000000000ull);
+
+    auto dsll32Decoded = decodeInstruction(encodeSpecial(0, 2, 20, 0, 0x3C));
+    assert(executeSpecial(state, dsll32Decoded) == ExecuteStatus::Executed);
+    assert(readLow64(state.gpr[20]) == 0x0000000100000000ull);
+    auto dsrl32Decoded = decodeInstruction(encodeSpecial(0, 2, 20, 0, 0x3E));
+    assert(executeSpecial(state, dsrl32Decoded) == ExecuteStatus::Executed);
+    assert(readLow64(state.gpr[20]) == 0x0000000080000000ull);
+    auto dsra32Decoded = decodeInstruction(encodeSpecial(0, 2, 20, 0, 0x3F));
+    assert(executeSpecial(state, dsra32Decoded) == ExecuteStatus::Executed);
+    assert(readLow64(state.gpr[20]) == 0xFFFFFFFF80000000ull);
+    for (std::size_t byte = 8; byte < 16; ++byte) assert(state.gpr[20].bytes[byte] == 0xDD);
+
     auto unsupported = decodeInstruction(encodeSpecial(1, 2, 7, 0, 0x20)); // ADD (trapping, intentionally unsupported)
     const auto pcBefore = state.pc;
     const auto retiredBefore = state.retiredInstructions;
