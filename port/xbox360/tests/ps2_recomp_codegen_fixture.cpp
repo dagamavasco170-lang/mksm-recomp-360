@@ -95,7 +95,7 @@ constexpr std::array<std::uint32_t, 16> makeMmiProbeWords()
     };
 }
 
-constexpr std::array<std::uint32_t, 56> makeSprDmaProbeWords()
+constexpr std::array<std::uint32_t, 57> makeSprDmaProbeWords()
 {
     using namespace ps2::xbox360::ee::test_program::detail;
     return {
