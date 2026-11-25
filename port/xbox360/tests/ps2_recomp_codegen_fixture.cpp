@@ -19,6 +19,7 @@ constexpr std::uint32_t kGuestStart = 0x00100000u;
 constexpr std::uint32_t kScratchpadProbeStart = kGuestStart + 0x100u;
 constexpr std::uint32_t kMmiProbeStart = kGuestStart + 0x200u;
 constexpr std::uint32_t kSprDmaProbeStart = kGuestStart + 0x300u;
+constexpr std::uint32_t kLqSqProbeStart = kGuestStart + 0x400u;
 
 constexpr std::array<std::uint32_t, 23> makeProbeWords()
 {
@@ -95,6 +96,19 @@ constexpr std::array<std::uint32_t, 16> makeMmiProbeWords()
     };
 }
 
+constexpr std::array<std::uint32_t, 6> makeLqSqProbeWords()
+{
+    using namespace ps2::xbox360::ee::test_program::detail;
+    return {
+        iType(0x1Fu, 1u, 2u, 0x0000u), // SQ r2,0(r1): 16-byte aligned-down store
+        iType(0x1Eu, 1u, 3u, 0x0000u), // LQ r3,0(r1): full 128-bit reload
+        iType(0x1Fu, 1u, 0u, 0x0010u), // SQ r0,16(r1): store a zero quadword
+        iType(0x1Eu, 1u, 0u, 0x0010u), // LQ r0,16(r1): perform access, discard result
+        rType(31u, 0u, 0u, 0x08u),     // JR r31
+        0u                              // delay slot: NOP
+    };
+}
+
 constexpr std::array<std::uint32_t, 57> makeSprDmaProbeWords()
 {
     using namespace ps2::xbox360::ee::test_program::detail;
@@ -145,14 +159,17 @@ bool writeFixtureElf(const std::filesystem::path &path)
     constexpr auto scratchpadWords = makeScratchpadProbeWords();
     constexpr auto mmiWords = makeMmiProbeWords();
     constexpr auto sprDmaWords = makeSprDmaProbeWords();
+    constexpr auto lqSqWords = makeLqSqProbeWords();
     constexpr std::size_t kScratchpadOffset =
         static_cast<std::size_t>(kScratchpadProbeStart - kGuestStart);
     constexpr std::size_t kMmiOffset =
         static_cast<std::size_t>(kMmiProbeStart - kGuestStart);
     constexpr std::size_t kSprDmaOffset =
         static_cast<std::size_t>(kSprDmaProbeStart - kGuestStart);
+    constexpr std::size_t kLqSqOffset =
+        static_cast<std::size_t>(kLqSqProbeStart - kGuestStart);
     std::vector<char> textBytes(
-        kSprDmaOffset + sprDmaWords.size() * sizeof(std::uint32_t), 0);
+        kLqSqOffset + lqSqWords.size() * sizeof(std::uint32_t), 0);
 
     const auto writeWords = [&](const auto &program, std::size_t offset)
     {
@@ -169,6 +186,7 @@ bool writeFixtureElf(const std::filesystem::path &path)
     writeWords(scratchpadWords, kScratchpadOffset);
     writeWords(mmiWords, kMmiOffset);
     writeWords(sprDmaWords, kSprDmaOffset);
+    writeWords(lqSqWords, kLqSqOffset);
 
     ELFIO::section *text = writer.sections.add(".text");
     text->set_type(ELFIO::SHT_PROGBITS);
@@ -206,6 +224,10 @@ bool writeFixtureElf(const std::filesystem::path &path)
     symbols.add_symbol(strings, "mksm_ee_spr_dma_probe", kSprDmaProbeStart,
                        static_cast<ELFIO::Elf_Word>(
                            sprDmaWords.size() * sizeof(std::uint32_t)),
+                       ELFIO::STB_GLOBAL, ELFIO::STT_FUNC, 0u, text->get_index());
+    symbols.add_symbol(strings, "mksm_ee_lq_sq_probe", kLqSqProbeStart,
+                       static_cast<ELFIO::Elf_Word>(
+                           lqSqWords.size() * sizeof(std::uint32_t)),
                        ELFIO::STB_GLOBAL, ELFIO::STT_FUNC, 0u, text->get_index());
 
     ELFIO::segment *segment = writer.segments.add();
