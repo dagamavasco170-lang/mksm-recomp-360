@@ -28,6 +28,7 @@ class RetailFileIo
 {
 public:
     static constexpr std::size_t MaxOpenFiles = 32;
+    static constexpr std::int32_t OpenReadOnly = 0x0001;
     static constexpr std::int32_t FirstDescriptor = 3;
 
     explicit RetailFileIo(std::filesystem::path extractionRoot)
@@ -35,13 +36,13 @@ public:
     {
     }
 
-    // IOP O_RDONLY is zero. Writes and create/truncate flags are unsupported.
+    // PS2SDK FIO_O_RDONLY is 0x0001. Writes and create/truncate flags are unsupported.
     [[nodiscard]] std::int32_t sceOpen(std::string_view path,
-                                       std::int32_t flags = 0)
+                                       std::int32_t flags = OpenReadOnly)
     {
         if (path.empty())
             return -EINVAL;
-        if (flags != 0)
+        if (flags != OpenReadOnly)
             return -EACCES;
 
         std::uint64_t size = 0;
