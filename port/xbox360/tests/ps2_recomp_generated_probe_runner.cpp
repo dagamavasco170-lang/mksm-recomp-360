@@ -79,6 +79,30 @@ int main()
                 static_cast<unsigned>(GPR_U32(ctx, 13)),
                 static_cast<unsigned long long>(r15));
 
+    // Execute the generated quadword function on the desktop runtime too.
+    // The effective address is intentionally unaligned and must round down.
+    constexpr std::uint64_t quadLow = 0x0706050403020100ull;
+    constexpr std::uint64_t quadHigh = 0x0F0E0D0C0B0A0908ull;
+    R5900Context quadContext{};
+    R5900Context *quadCtx = &quadContext;
+    SET_GPR_U32(quadCtx, 31, returnPc);
+    SET_GPR_U32(quadCtx, 1, 0x2000105Bu);
+    SET_GPR_VEC(quadCtx, 2, _mm_set_epi64x(
+        static_cast<long long>(quadHigh), static_cast<long long>(quadLow)));
+    mksm_ee_lq_sq_probe(rdram.data(), quadCtx, nullptr);
+    bool quadFailures = quadContext.pc != returnPc || quadContext.in_delay_slot;
+    quadFailures = quadFailures ||
+        static_cast<std::uint64_t>(PS2_EXTRACT_EPI64_0(quadContext.r[3])) != quadLow ||
+        static_cast<std::uint64_t>(PS2_EXTRACT_EPI64_1(quadContext.r[3])) != quadHigh;
+    for (std::uint32_t i = 0; i < 16u; ++i) {
+        quadFailures = quadFailures || rdram[0x1050u + i] != i ||
+                       rdram[0x1060u + i] != 0u;
+    }
+    std::printf("MKSM_RECOMP_LQ_SQ_TRACE failures=%08X\\n",
+                static_cast<unsigned>(quadFailures ? 1u : 0u));
+    if (quadFailures)
+        failures |= 1u << 8u;
+
     const auto mmi = runGeneratedMmiProbe(rdram.data());
     std::printf("MKSM_RECOMP_MMI_TRACE failures=%08X pc=%08X "
                 "pmfhl=%08X/%08X/%08X/%08X "
