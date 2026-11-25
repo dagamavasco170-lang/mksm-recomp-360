@@ -6,6 +6,7 @@ on:
     paths:
       - "port/xbox360/**"
       - "ps2xRuntime/include/**"
+      - "ps2xIOP/**"
       - ".github/workflows/xbox360-tests.yml"
   pull_request:
     branches: [main, xbox360/bootstrap]
@@ -23,6 +24,21 @@ permissions:
   contents: read
 
 jobs:
+  iop-fileio-rpc-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and run PS2 FILEIO RPC service test
+        run: |
+          set -euo pipefail
+          mkdir -p build/host-tests
+          c++ -std=c++20 -Wall -Wextra -Werror \
+            -Ips2xIOP/include -Ips2xIOP/src \
+            ps2xIOP/src/modules/fileio.cpp ps2xIOP/tests/fileio_rpc_test.cpp \
+            -o build/host-tests/fileio_rpc_test
+          build/host-tests/fileio_rpc_test
+
   controller-tests:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
