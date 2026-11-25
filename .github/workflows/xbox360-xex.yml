@@ -2,7 +2,7 @@ name: Xbox 360 smoke XEX build
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, xbox360/bootstrap]
     paths:
       - "port/xbox360/**"
       - "ps2xRecomp/**"
