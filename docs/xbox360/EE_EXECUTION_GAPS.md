@@ -11,6 +11,12 @@ This inventory reflects the Xbox bootstrap dispatcher/executors at the time of i
 - Load/store slice: LB/LBU/LH/LHU/LW/LWU, SB/SH/SW, LWL/LWR/SWL/SWR, LQ/SQ byte transfer, plus focused generated-ABI RDRAM and scratchpad scalar probes.
 - MMI: selected packed byte/halfword/word operations, HI/LO transfer and tested PMADDH/PMSUBH paths.
 
+## SPECIAL multiply/divide semantics research
+
+- EE MULT and MULTU are 32-bit word operations whose 64-bit product is split into 32-bit LO and HI words. The EE manual requires source operands to be sign-extended 32-bit word values; otherwise the result is undefined. The 32-bit result halves are sign-extended into the scalar 64-bit HI/LO views. Do not treat these as 128-bit multiplies.
+- DIV and DIVU return a 32-bit quotient in LO and a 32-bit remainder in HI. Zero-divisor and signed-overflow cases require EE-specific behavior to be verified and tested before implementation; reference implementations disagree on some upper-word extension details.
+- EE multiply/divide operations are asynchronous on hardware, with HI/LO interlocks. The current portable executor is instruction-at-a-time and does not model latency. This is acceptable only as an explicitly documented functional approximation; do not claim cycle accuracy.
+
 ## Known gaps and risks
 
 - COP0/COP1/COP2 are decoded into categories but are not dispatched by the execution step. The game may depend on COP0 status/exception behavior and COP2/VU transfers.
@@ -22,11 +28,12 @@ This inventory reflects the Xbox bootstrap dispatcher/executors at the time of i
 ## Recommended priority
 
 1. Add deterministic instruction-coverage tests that enumerate decoder-recognized SPECIAL encodings and assert implemented instructions execute while known gaps return Unsupported. This prevents decode/execution mismatch.
-2. Implement remaining SPECIAL arithmetic (MULT/MULTU/DIV/DIVU) only after confirming EE edge-case semantics, with signedness, zero divisor, overflow, and HI/LO preservation tests.
-3. Implement 64-bit SPECIAL shifts and add edge-case tests (shift boundaries, upper/lower halves, sign behavior).
-4. Add trapping ADD/SUB and overflow tests before enabling them in a game path.
-5. Implement COP0 only with a defined minimal register/exception model and dedicated tests; avoid fake success for unknown privileged operations.
-6. Use generated retail-game function traces to prioritize the next instructions. Do not expand solely based on synthetic instruction counts.
+2. Implement MULT/MULTU with the documented word operand restrictions and scalar 64-bit HI/LO layout. Keep zero-divisor and signed-overflow DIV/DIVU cases gated on EE-specific verification.
+3. Implement DIV/DIVU with the verified EE edge cases and signedness tests.
+4. Implement 64-bit SPECIAL shifts and add edge-case tests (shift boundaries, upper/lower halves, sign behavior).
+5. Add trapping ADD/SUB and overflow tests before enabling them in a game path.
+6. Implement COP0 only with a defined minimal register/exception model and dedicated tests; avoid fake success for unknown privileged operations.
+7. Use generated retail-game function traces to prioritize the next instructions. Do not expand solely based on synthetic instruction counts.
 
 ## Evidence boundary
 
