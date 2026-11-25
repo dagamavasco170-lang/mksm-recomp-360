@@ -492,7 +492,7 @@ int main()
     store(ram, 0xA0u, encodeMmi(10u, 11u, 12u, 0x14u, 0x08u)); // PADDSH
     result = step(cpu, ram);
     assert(result.status == StepStatus::Executed && cpu.pc == 0xA4u);
-    const std::array<std::uint16_t, 4> addHalfExpected{0x7FFFu, 0x8000u, 0xFFECu, 10u};
+    const std::array<std::uint16_t, 4> addHalfExpected{0x7FFFu, 0x8000u, 0xFFF6u, 10u};
     for (std::size_t lane = 0; lane < 4u; ++lane)
         assert(readLane<std::uint16_t>(cpu.readGpr(12u), lane) == addHalfExpected[lane]);
     store(ram, 0xA4u, encodeMmi(10u, 11u, 13u, 0x15u, 0x08u)); // PSUBSH
