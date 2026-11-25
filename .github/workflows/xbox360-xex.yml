@@ -122,8 +122,17 @@ jobs:
           # Canary reads this exact filename. The previous workflow wrote a misspelled config filename.
           New-Item -ItemType File -Force -Path (Join-Path $xeniaDir 'portable.txt') | Out-Null
           @'
+          [General]
+          discord = false
+
+          [APU]
+          apu = "nop"
+
           [GPU]
           gpu = "null"
+
+          [HID]
+          hid = "nop"
 
           [Logging]
           flush_log = true
@@ -153,8 +162,8 @@ jobs:
           $passed = $false
           try {
             "Launching Xenia Canary with headless diagnostics XEX: $xex" | Tee-Object (Join-Path $logRoot 'summary.txt')
-            # Xenia documents --log_file=stdout; put flags before the XEX path so
-            # both emulator and guest DbgPrint lines are visible to the CI poller.
+            # Xenia expects the XEX path before launch flags; stdout captures
+            # emulator and guest DbgPrint lines for the CI poller.
             $argumentLine = '"{0}" --log_file=stdout --log_level=3' -f $xex
             $proc = Start-Process -FilePath $exe -ArgumentList $argumentLine -WorkingDirectory $xeniaDir -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError (Join-Path $logRoot 'stderr.txt')
             $processInfo = Get-CimInstance Win32_Process -Filter "ProcessId=$($proc.Id)" -ErrorAction SilentlyContinue
