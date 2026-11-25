@@ -31,8 +31,8 @@ int main()
 
     // SLTI/SLTIU use a sign-extended 16-bit immediate; SLTI is signed,
     // while SLTIU treats the sign-extended immediate as an unsigned value.
-    simd::Vector128 negative{};
-    simd::writeLane<std::uint32_t>(negative,0,0xFFFFFFFFu);
+    ps2::xbox360::simd::Vector128 negative{};
+    ps2::xbox360::simd::writeLane<std::uint32_t>(negative,0,0xFFFFFFFFu);
     cpu.writeGpr(12,negative);
     const std::array<std::uint32_t,6> compareCode{
         (0x0Au<<26)|(12u<<21)|(4u<<16)|0xFFFFu, // SLTI r4,r12,-1 -> 0
@@ -47,11 +47,11 @@ int main()
             mem,cpu.pc+static_cast<std::uint32_t>(i*4),compareCode[i]));
     for (auto word:compareCode)
         assert(step(cpu,mem).status==StepStatus::Executed);
-    assert(simd::readLane<std::uint32_t>(cpu.readGpr(4),0)==0u);
-    assert(simd::readLane<std::uint32_t>(cpu.readGpr(5),0)==1u);
-    assert(simd::readLane<std::uint32_t>(cpu.readGpr(6),0)==0u);
-    assert(simd::readLane<std::uint32_t>(cpu.readGpr(7),0)==1u);
-    assert(simd::readLane<std::uint32_t>(cpu.readGpr(8),0)==0u);
-    assert(simd::readLane<std::uint32_t>(cpu.readGpr(0),0)==0u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(4),0)==0u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(5),0)==1u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(6),0)==0u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(7),0)==1u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(8),0)==0u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(0),0)==0u);
     assert(cpu.pc==0x68u && cpu.retiredInstructions==10u);
 }
