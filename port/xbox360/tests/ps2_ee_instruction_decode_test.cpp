@@ -53,7 +53,7 @@ int main()
     assert(unknownMmi.kind == InstructionKind::Mmi && unknownMmi.mmiSubfamily == MmiSubfamily::Unknown);
 
     // Unknown primary opcode must remain explicitly unsupported.
-    const auto unknown = decodeInstruction(0x7C000000u);
+    const auto unknown = decodeInstruction(0x74000000u);
     assert(unknown.kind == InstructionKind::Unsupported && !unknown.isRecognized());
     return 0;
 }
