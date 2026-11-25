@@ -87,7 +87,8 @@ struct StepResult { StepStatus status{StepStatus::Unsupported}; std::uint32_t in
     {
         status = executeSpecial(state, d) == ExecuteStatus::Executed ? StepStatus::Executed : StepStatus::Unsupported;
     }
-    else if (d.opcode == 0x09u || d.opcode == 0x0Cu || d.opcode == 0x0Du || d.opcode == 0x0Eu || d.opcode == 0x0Fu)
+    else if (d.opcode == 0x09u || d.opcode == 0x0Au || d.opcode == 0x0Bu ||
+             d.opcode == 0x0Cu || d.opcode == 0x0Du || d.opcode == 0x0Eu || d.opcode == 0x0Fu)
     {
         status = executeImmediate(state, d) == ImmediateStatus::Executed ? StepStatus::Executed : StepStatus::Unsupported;
     }

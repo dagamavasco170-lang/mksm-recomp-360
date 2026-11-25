@@ -22,6 +22,16 @@ enum class ImmediateStatus : std::uint8_t { Executed, Unsupported };
         simd::writeLane<std::uint32_t>(value, 0, rs + static_cast<std::uint32_t>(
             static_cast<std::int32_t>(std::bit_cast<std::int16_t>(d.immediate))));
         break;
+    case 0x0A: // SLTI: signed compare against sign-extended immediate
+        simd::writeLane<std::uint32_t>(value, 0,
+            std::bit_cast<std::int32_t>(rs) <
+            static_cast<std::int32_t>(std::bit_cast<std::int16_t>(d.immediate)) ? 1u : 0u);
+        break;
+    case 0x0B: // SLTIU: unsigned compare against sign-extended immediate
+        simd::writeLane<std::uint32_t>(value, 0,
+            rs < static_cast<std::uint32_t>(
+                static_cast<std::int32_t>(std::bit_cast<std::int16_t>(d.immediate))) ? 1u : 0u);
+        break;
     case 0x0C: // ANDI
         simd::writeLane<std::uint32_t>(value, 0, rs & imm);
         break;
