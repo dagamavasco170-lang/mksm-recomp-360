@@ -47,7 +47,7 @@ int main()
     for (std::size_t i=0;i<compareCode.size();++i)
         assert(step(cpu,mem).status==StepStatus::Executed);
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(4),0)==0u);
-    assert(ps2::xbox::simd::readLane<std::uint32_t>(cpu.readGpr(5),0)==1u);
+    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(5),0)==1u);
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(6),0)==0u);
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(7),0)==1u);
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(8),0)==0u);
