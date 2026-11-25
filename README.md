@@ -8,7 +8,8 @@ An experimental native-PC recompilation project for **Mortal Kombat: Shaolin Mon
 
 - [Build and run](docs/BUILDING.md): supply your own retail files and regenerate C++ locally.
 - [Current status and next tasks](docs/STATUS.md): concrete blockers and evidence.
-- [Xbox 360 / Xenon port plan](docs/XBOX360_PORT_PLAN.md): staged NXDK/XEX strategy, dependency audit, and technical gates.
+- [Xbox 360 / Xenon port plan](docs/XBOX360_PORT_PLAN.md): staged xsdk/XEX strategy, dependency audit, and technical gates.
+- [Xbox 360 smoke target](xbox360/README.md): isolated initial XEX target (not yet built or hardware-tested).
 - [Contributing](CONTRIBUTING.md): pick work, reproduce a failure, test a change, submit a PR.
 - [Detailed investigation history](games/mk-shaolin-monks/docs/WORKFLOW.md).
 - [Runtime inspector](games/mk-shaolin-monks/docs/INSPECTOR.md), [IOP/RPC findings](games/mk-shaolin-monks/docs/SFSV-RPC.md), [prototype symbol notes](games/mk-shaolin-monks/docs/PROTOTYPE.md).
