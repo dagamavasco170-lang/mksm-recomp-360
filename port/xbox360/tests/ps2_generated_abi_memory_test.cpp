@@ -135,6 +135,41 @@ int main()
                0x1234ABCDu,
            "guest-memory dispatcher preserves RDRAM mappings");
 
+    constexpr std::uint32_t sprRamAddress=0x00080000u,sprStart=0x00003FF0u;
+    for(std::uint32_t i=0;i<32u;++i)
+        runtime->eeScratchpad()[(sprStart+i)&0x3FFFu]=static_cast<std::uint8_t>(0x40u+i);
+    WRITE32(0x1000E000u,0x21u);
+    WRITE32(0x1000D010u,0xA0080000u);
+    WRITE32(0x1000D020u,2u);
+    WRITE32(0x1000D080u,sprStart);
+    WRITE32(0x1000D000u,0x100u);
+    expect(READ32(0x1000D010u)==0x20080020u,"SPR-to-RDRAM MADR advances after copy");
+    expect(READ32(0x1000D020u)==0u&&READ32(0x1000D080u)==0x10u&&READ32(0x1000D000u)==0u,
+           "SPR-to-RDRAM QWC, SADR and CHCR complete");
+    bool sprCopyMatches=true;
+    for(std::uint32_t i=0;i<32u;++i)sprCopyMatches=sprCopyMatches&&rdram[sprRamAddress+i]==static_cast<std::uint8_t>(0x40u+i);
+    expect(sprCopyMatches,"SPR-to-RDRAM copies wrapped scratchpad bytes");
+    expect(READ32(0x1000E060u)==0x20080020u,"stall-control mode updates D_STADR");
+    expect((READ32(0x1000E010u)&(1u<<8u))!=0u,"SPR-to-RDRAM raises DMAC cause 8");
+
+    for(std::uint32_t i=0;i<32u;++i)rdram[0x00090000u+i]=static_cast<std::uint8_t>(0xA0u+i);
+    WRITE32(0x1000D410u,0x00090000u);
+    WRITE32(0x1000D420u,2u);
+    WRITE32(0x1000D480u,sprStart);
+    WRITE32(0x1000D400u,0x100u);
+    bool rdramCopyMatches=true;
+    for(std::uint32_t i=0;i<32u;++i)
+        rdramCopyMatches=rdramCopyMatches&&runtime->eeScratchpad()[(sprStart+i)&0x3FFFu]==static_cast<std::uint8_t>(0xA0u+i);
+    expect(rdramCopyMatches,"RDRAM-to-SPR copies bytes across scratchpad wrap");
+    expect(READ32(0x1000D410u)==0x00090020u&&READ32(0x1000D420u)==0u&&READ32(0x1000D480u)==0x10u&&
+               (READ32(0x1000E010u)&(1u<<9u))!=0u,"RDRAM-to-SPR updates registers and cause 9");
+
+    WRITE32(0x1000E010u,1u<<24u);
+    expect((READ32(0x1000E010u)&(1u<<31u))!=0u,"enabled D_STAT completion mask raises IP");
+    WRITE32(0x1000E010u,(1u<<8u)|(1u<<9u));
+    expect((READ32(0x1000E010u)&((1u<<31u)|(1u<<8u)|(1u<<9u)))==0u,
+           "D_STAT write-one-to-clear removes completion status");
+
     // Exercise the exact memory macros emitted by PS2Recomp as well.
     WRITE32(0x70000020u, 0x89ABCDEFu);
     expect(READ32(0x70000020u) == 0x89ABCDEFu,

@@ -3,6 +3,7 @@
 #include "ps2_guest_memory.h"
 #include "ps2_mmi_hilo_helpers.h"
 #include "ps2_rdram_address.h"
+#include "ps2_spr_dma.h"
 #include "ps2_recompiled_functions.h"
 
 #include <array>
@@ -152,9 +153,21 @@ public:
         return std::span<const std::uint8_t>(scratchpad_);
     }
 
+    [[nodiscard]] bool readEeIo32(std::uint32_t address,std::uint32_t &value) const noexcept
+    {
+        return ps2::xbox360::dmac::readRegister(dmac_,address,value);
+    }
+
+    [[nodiscard]] ps2::xbox360::dmac::WriteResult writeEeIo32(
+        std::span<std::uint8_t> rdram,std::uint32_t address,std::uint32_t value) noexcept
+    {
+        return ps2::xbox360::dmac::writeRegister(dmac_,rdram,eeScratchpad(),address,value);
+    }
+
 private:
-    // Scratchpad is per EE runtime and deliberately separate from main RDRAM.
+    // Scratchpad and the initial SPR DMAC register bank are per EE runtime.
     std::array<std::uint8_t, kScratchpadSize> scratchpad_{};
+    ps2::xbox360::dmac::ControllerState dmac_{};
 };
 
 namespace ps2::xbox360::generated_abi
@@ -228,17 +241,21 @@ template <typename UInt>
 {
     if (rdram == nullptr)
         throw std::invalid_argument("PS2 generated ABI: null RDRAM pointer");
-
-    if (rdram_address::classifyRegion(address) != rdram_address::RegionKind::Scratchpad)
-        return readRdram<UInt>(rdram, address);
-
-    if (runtime == nullptr)
-        throw std::invalid_argument("PS2 generated ABI: scratchpad access requires an EE runtime");
-
+    const auto region=rdram_address::classifyRegion(address);
+    if(region==rdram_address::RegionKind::EeIo){
+        if constexpr(sizeof(UInt)==sizeof(std::uint32_t)){
+            if(runtime==nullptr)throw std::invalid_argument("PS2 generated ABI: EE I/O read requires a runtime");
+            const auto physical=(address>=0x80000000u&&address<0xC0000000u)?(address&0x1FFFFFFFu):address;
+            std::uint32_t value{};
+            if(!runtime->readEeIo32(physical,value))throw std::out_of_range("PS2 generated ABI: unsupported EE I/O register read");
+            return static_cast<UInt>(value);
+        }else throw std::out_of_range("PS2 generated ABI: only aligned 32-bit EE I/O reads are supported");
+    }
+    if(region!=rdram_address::RegionKind::Scratchpad)return readRdram<UInt>(rdram,address);
+    if(runtime==nullptr)throw std::invalid_argument("PS2 generated ABI: scratchpad access requires an EE runtime");
     UInt value{};
-    const auto offset = static_cast<std::size_t>(
-        rdram_address::scratchpadOffset(address));
-    if (!guest_memory::readLittleEndianBounded(runtime->eeScratchpad(), offset, value))
+    const auto offset=static_cast<std::size_t>(rdram_address::scratchpadOffset(address));
+    if(!guest_memory::readLittleEndianBounded(runtime->eeScratchpad(),offset,value))
         throw std::out_of_range("PS2 generated ABI: scratchpad read crosses its 16 KiB boundary");
     return value;
 }
@@ -249,21 +266,29 @@ inline void writeGuestMemory(std::uint8_t *rdram,
                              std::uint32_t address,
                              UInt value)
 {
-    if (rdram == nullptr)
-        throw std::invalid_argument("PS2 generated ABI: null RDRAM pointer");
-
-    if (rdram_address::classifyRegion(address) != rdram_address::RegionKind::Scratchpad)
-    {
-        writeRdram<UInt>(rdram, address, value);
-        return;
+    if(rdram==nullptr)throw std::invalid_argument("PS2 generated ABI: null RDRAM pointer");
+    const auto region=rdram_address::classifyRegion(address);
+    if(region==rdram_address::RegionKind::EeIo){
+        if constexpr(sizeof(UInt)==sizeof(std::uint32_t)){
+            if(runtime==nullptr)throw std::invalid_argument("PS2 generated ABI: EE I/O write requires a runtime");
+            const auto physical=(address>=0x80000000u&&address<0xC0000000u)?(address&0x1FFFFFFFu):address;
+            const std::span<std::uint8_t> memory(rdram,kGuestRdramSize);
+            const auto result=runtime->writeEeIo32(memory,physical,static_cast<std::uint32_t>(value));
+            using ps2::xbox360::dmac::WriteStatus;
+            switch(result.status){
+            case WriteStatus::Stored:
+            case WriteStatus::TransferCompleted:
+            case WriteStatus::DmaDisabled:return;
+            case WriteStatus::UnsupportedMode:throw std::runtime_error("PS2 generated ABI: SPR DMA mode is unsupported");
+            case WriteStatus::InvalidMemory:throw std::out_of_range("PS2 generated ABI: SPR DMA memory range is invalid");
+            case WriteStatus::UnsupportedRegister:throw std::out_of_range("PS2 generated ABI: unsupported EE I/O register write");
+            }
+        }else throw std::out_of_range("PS2 generated ABI: only aligned 32-bit EE I/O writes are supported");
     }
-
-    if (runtime == nullptr)
-        throw std::invalid_argument("PS2 generated ABI: scratchpad access requires an EE runtime");
-
-    const auto offset = static_cast<std::size_t>(
-        rdram_address::scratchpadOffset(address));
-    if (!guest_memory::writeLittleEndianBounded(runtime->eeScratchpad(), offset, value))
+    if(region!=rdram_address::RegionKind::Scratchpad){writeRdram<UInt>(rdram,address,value);return;}
+    if(runtime==nullptr)throw std::invalid_argument("PS2 generated ABI: scratchpad access requires an EE runtime");
+    const auto offset=static_cast<std::size_t>(rdram_address::scratchpadOffset(address));
+    if(!guest_memory::writeLittleEndianBounded(runtime->eeScratchpad(),offset,value))
         throw std::out_of_range("PS2 generated ABI: scratchpad write crosses its 16 KiB boundary");
 }
 } // namespace ps2::xbox360::generated_abi

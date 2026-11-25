@@ -21,6 +21,7 @@
 #include "ps2_pad_xbox360.h"
 #include "ps2_ee_test_program.h"
 #include "ps2_simd_scalar.h"
+#include "ps2_spr_dma.h"
 #include "runtime/ps2_pad.h"
 
 #if defined(MKSM_HAS_GENERATED_RECOMP_PROBE)
@@ -122,6 +123,43 @@ bool checkDeterministicEeTrace()
                    static_cast<unsigned>(trace.pc),
                    static_cast<unsigned>(trace.retiredInstructions));
     return true;
+}
+
+bool checkScratchpadDma()
+{
+    using namespace ps2::xbox360::dmac;
+    std::array<uint8_t,32> ram{};
+    std::array<uint8_t,kScratchpadSize> scratch{};
+    ControllerState controller{};
+    constexpr uint32_t start=0x3FF0u;
+    for(uint32_t i=0;i<32u;++i)scratch[(start+i)&0x3FFFu]=static_cast<uint8_t>(0x20u+i);
+    const std::span<uint8_t> ramView(ram),scratchView(scratch);
+    const auto write=[&](uint32_t a,uint32_t v){return writeRegister(controller,ramView,scratchView,a,v);};
+    const auto read=[&](uint32_t a,uint32_t &v){return readRegister(controller,a,v);};
+    bool ok=write(kControllerControl,0x21u).status==WriteStatus::Stored&&
+        write(kScratchpadToRdramChannel+0x10u,0u).status==WriteStatus::Stored&&
+        write(kScratchpadToRdramChannel+0x20u,2u).status==WriteStatus::Stored&&
+        write(kScratchpadToRdramChannel+0x80u,start).status==WriteStatus::Stored;
+    const auto fromSpr=write(kScratchpadToRdramChannel,kStart);
+    ok=ok&&fromSpr.status==WriteStatus::TransferCompleted&&fromSpr.bytesTransferred==32u;
+    for(uint32_t i=0;i<32u;++i)ok=ok&&ram[i]==static_cast<uint8_t>(0x20u+i);
+    uint32_t madr=0u,qwc=1u,sadr=1u,chcr=1u,stadr=0u,dstat=0u;
+    ok=ok&&read(kScratchpadToRdramChannel+0x10u,madr)&&madr==32u&&
+        read(kScratchpadToRdramChannel+0x20u,qwc)&&qwc==0u&&
+        read(kScratchpadToRdramChannel+0x80u,sadr)&&sadr==0x10u&&
+        read(kScratchpadToRdramChannel,chcr)&&chcr==0u&&
+        read(kStallAddress,stadr)&&stadr==32u&&
+        read(kControllerStatus,dstat)&&(dstat&(1u<<8u))!=0u;
+    for(uint32_t i=0;i<32u;++i)ram[i]=static_cast<uint8_t>(0xA0u+i);
+    ok=ok&&write(kRdramToScratchpadChannel+0x10u,0u).status==WriteStatus::Stored&&
+        write(kRdramToScratchpadChannel+0x20u,2u).status==WriteStatus::Stored&&
+        write(kRdramToScratchpadChannel+0x80u,start).status==WriteStatus::Stored;
+    const auto toSpr=write(kRdramToScratchpadChannel,kStart);
+    ok=ok&&toSpr.status==WriteStatus::TransferCompleted;
+    for(uint32_t i=0;i<32u;++i)ok=ok&&scratch[(start+i)&0x3FFFu]==static_cast<uint8_t>(0xA0u+i);
+    ok=ok&&read(kControllerStatus,dstat)&&(dstat&(1u<<9u))!=0u;
+    xsdk_log_write("MKSM_SPR_DMA_TRACE failures=%08X bytes=%u causes=%u",ok?0u:1u,32u,static_cast<unsigned>(dstat&0x300u));
+    return ok;
 }
 
 bool checkCpp20Runtime()
@@ -265,6 +303,11 @@ int main()
     {
         xsdk_log_write("MKSM smoke: scalar PS2 packed-vector check failed");
         return 4;
+    }
+    if (!checkScratchpadDma())
+    {
+        xsdk_log_write("MKSM smoke: scratchpad DMA checks failed");
+        return 7;
     }
 
 #if defined(MKSM_HAS_GENERATED_RECOMP_PROBE)

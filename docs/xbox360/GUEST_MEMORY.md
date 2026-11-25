@@ -56,7 +56,9 @@ MKSM_RECOMP_MEMORY_TRACE failures=00000000 ... spw=A1B2C3D4 spb=5A sph=BEEF spd=
 
 The XEX workflow compiles the exact same generated functions and calls the probe during smoke-title startup. This is still host execution evidence plus a PowerPC build: the current XEX must be launched on an RGH/JTAG console to verify the scratchpad trace on physical Xenon hardware.
 
-This is CPU load/store support only. Scratchpad DMA paths, cache behavior, arbitration, timing and interaction with the DMAC are not implemented. The desktop `PS2Memory` subsystem and full Xenon runtime are not yet unified behind this shim.
+The generated ABI now routes aligned 32-bit accesses in the EE I/O window through a per-runtime register bank for the two normal-mode SPR DMA channels. Channel `0x1000D000` copies scratchpad to RDRAM; channel `0x1000D400` copies RDRAM to scratchpad. The implementation follows the desktop `PS2Memory` path and its `spr_dma_regression` cases for QWC sizing, 16 KiB SADR wrap, MADR alignment/bit-31 masking, completion bits and stall-control D_STADR updates. It rejects chain/interleave/MFIFO mode and invalid memory ranges without reporting completion. Host tests cover three MADR aliases, both directions, QWC cases and D_STAT W1C/mask behavior; the smoke XEX also runs a 32-byte wraparound probe at startup.
+
+This remains a synchronous normal-mode model, not cycle-accurate DMA timing or channel arbitration. Other DMAC channels, chain/MFIFO/interleave modes, cache behavior and device-specific MMIO are still unimplemented. The desktop `PS2Memory` subsystem and full Xenon runtime are not yet unified behind this shim.
 
 ## PS2Recomp-generated execution probe
 
@@ -70,8 +72,8 @@ This is **not** the full PS2 memory subsystem. The generated-code shim currently
 
 It does not yet implement:
 - General TLB / COP0 translation or all possible virtual aliases.
-- Scratchpad DMA or integration with the EE DMAC.
-- VU memories, GS VRAM, IOP RAM or memory-mapped I/O handlers.
+- Non-SPR DMA channels, chain/interleave/MFIFO modes, cycle timing and arbitration.
+- VU memories, GS VRAM, IOP RAM or device MMIO handlers beyond the two normal SPR channels.
 - 128-bit LQ/SQ and vector memory lane representation.
 - DMA, cache behavior, atomics or concurrent guest-memory access.
 - A full integration with the desktop `PS2Memory` class or a complete Xenon `PS2Runtime`.
