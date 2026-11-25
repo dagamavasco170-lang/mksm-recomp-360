@@ -55,6 +55,8 @@ int main()
                 static_cast<unsigned>(result.mmi.pmthlLo[1]),
                 static_cast<unsigned>(result.mmi.pmthlLo[2]),
                 static_cast<unsigned>(result.mmi.pmthlLo[3]));
+    std::printf("MKSM_RECOMP_LQ_SQ_TRACE failures=%08X\\n",
+                static_cast<unsigned>(result.lqSqFailures));
     std::printf("MKSM_RECOMP_SPR_DMA_TRACE failures=%08X "
                 "from=%08X/%08X/%08X/%08X stadr=%08X dstat=%08X "
                 "ram=%08X to=%08X/%08X/%08X/%08X spr=%08X/%08X\\n",
