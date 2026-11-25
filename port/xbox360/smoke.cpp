@@ -320,27 +320,46 @@ bool checkIomanBridge()
         iopRam[16u + i] = static_cast<std::uint8_t>(probePath[i]);
 
     using ps2::xbox360::iop::IomanCommand;
-    const auto fd = ioman.dispatch(IomanCommand::Open, 16u, 0u, 0u, iopRam);
+    // PS2SDK FIO_O_RDONLY is 0x0001; zero is not a valid read-only mode.
+    const auto fd = ioman.dispatch(IomanCommand::Open, 16u, 0x0001u, 0u, iopRam);
     if (fd < 0)
     {
         xsdk_log_write("MKSM_IOMAN_BRIDGE status=asset-open-failed error=%d", fd);
         return false;
     }
 
-    const auto bytes = ioman.dispatch(IomanCommand::Read,
-                                      static_cast<std::uint32_t>(fd),
-                                      64u, 16u, iopRam);
+    const auto firstRead = ioman.dispatch(IomanCommand::Read,
+                                          static_cast<std::uint32_t>(fd),
+                                          64u, 16u, iopRam);
+    std::array<std::uint8_t, 16> firstBytes{};
+    std::copy_n(iopRam.begin() + 64, firstBytes.size(), firstBytes.begin());
+
+    const auto seekResult = ioman.dispatch(IomanCommand::Lseek,
+                                           static_cast<std::uint32_t>(fd),
+                                           0u,
+                                           static_cast<std::uint32_t>(
+                                               ps2::xbox360::iop::SeekWhence::Set),
+                                           iopRam);
+    const auto secondRead = seekResult == 0
+        ? ioman.dispatch(IomanCommand::Read,
+                         static_cast<std::uint32_t>(fd), 80u, 16u, iopRam)
+        : -1;
+    std::array<std::uint8_t, 16> secondBytes{};
+    std::copy_n(iopRam.begin() + 80, secondBytes.size(), secondBytes.begin());
+
     const auto closeResult = ioman.dispatch(IomanCommand::Close,
                                              static_cast<std::uint32_t>(fd),
                                              0u, 0u, iopRam);
-    if (bytes < 0 || closeResult != 0)
+    if (firstRead < 0 || seekResult != 0 || secondRead != firstRead ||
+        firstBytes != secondBytes || closeResult != 0)
     {
-        xsdk_log_write("MKSM_IOMAN_BRIDGE status=read-failed bytes=%d close=%d",
-                       bytes, closeResult);
+        xsdk_log_write("MKSM_IOMAN_BRIDGE status=failed read1=%d seek=%d read2=%d close=%d",
+                       firstRead, seekResult, secondRead, closeResult);
         return false;
     }
 
-    xsdk_log_write("MKSM_IOMAN_BRIDGE status=pass file=GAMEDATA.WAD bytes=%d", bytes);
+    xsdk_log_write("MKSM_IOMAN_BRIDGE status=pass file=GAMEDATA.WAD read=%d seek=0 reread=%d",
+                   firstRead, secondRead);
     return true;
 }
 
