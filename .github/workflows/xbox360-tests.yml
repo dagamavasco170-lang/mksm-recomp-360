@@ -65,6 +65,7 @@ jobs:
           compile_run ps2_ee_special_executor_test -Iport/xbox360 port/xbox360/tests/ps2_ee_special_executor_test.cpp
           compile_run ps2_ee_special_coverage_test -Iport/xbox360 port/xbox360/tests/ps2_ee_special_coverage_test.cpp
           compile_run ps2_ee_mult_test -Iport/xbox360 port/xbox360/tests/ps2_ee_mult_test.cpp
+          compile_run ps2_ee_div_test -Iport/xbox360 port/xbox360/tests/ps2_ee_div_test.cpp
           compile_run ps2_ee_load_store_executor_test -Iport/xbox360 port/xbox360/tests/ps2_ee_load_store_executor_test.cpp
           compile_run ps2_ee_branch_delay_test -Iport/xbox360 port/xbox360/tests/ps2_ee_branch_delay_test.cpp
           compile_run ps2_ee_dispatcher_test -Iport/xbox360 port/xbox360/tests/ps2_ee_dispatcher_test.cpp
