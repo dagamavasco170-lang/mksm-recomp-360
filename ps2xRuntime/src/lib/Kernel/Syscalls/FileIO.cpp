@@ -50,6 +50,8 @@ namespace ps2_syscalls
 
         if (read && write)
         {
+            if (append)
+                return "a+b";
             if (create && truncate)
                 return "w+b";
             if (create)
