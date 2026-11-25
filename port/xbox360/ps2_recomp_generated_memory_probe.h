@@ -32,6 +32,7 @@ struct Ps2GeneratedMemoryProbeResult
     std::uint32_t scratchpadAliasWord{};
     std::uint32_t scratchpadAliasByte{};
     std::uint32_t scratchpadIsolationWord{};
+    std::uint32_t lqSqFailures{};
     std::uint32_t sprDmaMadrFrom{}, sprDmaQwcFrom{}, sprDmaSadrFrom{}, sprDmaChcrFrom{};
     std::uint32_t sprDmaStadr{}, sprDmaDstat{}, sprDmaRdramWord{};
     std::uint32_t sprDmaMadrTo{}, sprDmaQwcTo{}, sprDmaSadrTo{}, sprDmaChcrTo{};
@@ -171,6 +172,47 @@ struct Ps2GeneratedMemoryProbeResult
         scratchpad[19] != 0xDEu || rdram[0x10u] != 0u ||
         rdram[0x11u] != 0u || rdram[0x12u] != 0u || rdram[0x13u] != 0u)
         result.failures |= 1u << 20u;
+
+    // Execute PS2Recomp-generated LQ/SQ instructions over both RDRAM
+    // aliases and the per-runtime scratchpad. The synthetic guest program uses
+    // an intentionally unaligned base, plus SQ/LQ through the zero register.
+    constexpr std::uint64_t kQuadLow = 0x0706050403020100ull;
+    constexpr std::uint64_t kQuadHigh = 0x0F0E0D0C0B0A0908ull;
+    auto runLqSqProbe = [&](std::uint32_t baseAddress, bool useScratchpad) {
+        R5900Context quadContext{};
+        SET_GPR_U32(&quadContext, 31u, kReturnPc);
+        SET_GPR_U32(&quadContext, 1u, baseAddress);
+        quadContext.r[2].low64 = kQuadLow;
+        quadContext.r[2].high64 = kQuadHigh;
+        mksm_ee_lq_sq_probe(rdram.data(), &quadContext, runtime);
+
+        bool ok = quadContext.pc == kReturnPc && !quadContext.in_delay_slot &&
+                  GPR_U32(&quadContext, 0u) == 0u &&
+                  quadContext.r[3].low64 == kQuadLow &&
+                  quadContext.r[3].high64 == kQuadHigh;
+        constexpr std::uint32_t kAlignedOffset = 0x50u;
+        if (useScratchpad) {
+            const auto bytes = runtime->eeScratchpad();
+            for (std::uint32_t i = 0; i < 16u; ++i) {
+                const auto expected = static_cast<std::uint8_t>(i);
+                ok = ok && bytes[kAlignedOffset + i] == expected;
+                ok = ok && bytes[kAlignedOffset + 16u + i] == 0u;
+            }
+        } else {
+            for (std::uint32_t i = 0; i < 16u; ++i) {
+                const auto expected = static_cast<std::uint8_t>(i);
+                ok = ok && rdram[0x1050u + i] == expected;
+                ok = ok && rdram[0x1060u + i] == 0u;
+            }
+        }
+        return ok;
+    };
+    const bool lqSqRdramOk = runLqSqProbe(0x2000105Bu, false);
+    const bool lqSqScratchpadOk = runLqSqProbe(0x7000005Bu, true);
+    result.lqSqFailures = (lqSqRdramOk ? 0u : 1u) |
+                          (lqSqScratchpadOk ? 0u : 2u);
+    if (result.lqSqFailures != 0u)
+        result.failures |= 1u << 22u;
 
     // Real translated SW/LW instructions drive both normal SPR DMA
     // directions through the per-runtime EE MMIO bank.
