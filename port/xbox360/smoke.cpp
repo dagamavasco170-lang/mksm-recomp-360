@@ -165,6 +165,102 @@ bool checkEeLqSq()
     return ok;
 }
 
+bool checkEeUnalignedMerge()
+{
+    using namespace ps2::xbox360::ee;
+    std::array<uint8_t, 256> ram{};
+    CpuState cpu{};
+    ps2::xbox360::simd::Vector128 base{}, initial{}, source{};
+    ps2::xbox360::simd::writeLane<uint32_t>(base, 0u, 0x40u);
+    ps2::xbox360::simd::writeLane<uint32_t>(initial, 0u, 0xAABBCCDDu);
+    ps2::xbox360::simd::writeLane<uint32_t>(initial, 1u, 0x55667788u);
+    ps2::xbox360::simd::writeLane<uint32_t>(initial, 2u, 0x10203040u);
+    ps2::xbox360::simd::writeLane<uint32_t>(initial, 3u, 0x50607080u);
+    ps2::xbox360::simd::writeLane<uint32_t>(source, 0u, 0xAABBCCDDu);
+    cpu.writeGpr(1u, base);
+    cpu.writeGpr(2u, source);
+
+    const auto encode = [](uint8_t opcode, uint8_t rt, uint16_t immediate) {
+        return (static_cast<uint32_t>(opcode) << 26u) |
+               (1u << 21u) |
+               (static_cast<uint32_t>(rt) << 16u) |
+               immediate;
+    };
+    const auto executeAtOffset = [&](uint8_t opcode, uint8_t rt, uint16_t offset) {
+        ps2::xbox360::guest_memory::writeLittleEndian(
+            std::span<uint8_t>(ram), 0u, encode(opcode, rt, offset));
+        cpu.pc = 0u;
+        return step(cpu, ram);
+    };
+
+    constexpr std::array<uint32_t, 4> expectedLwl{
+        0x11BBCCDDu, 0x2211CCDDu, 0x332211DDu, 0xF2332211u};
+    constexpr std::array<uint32_t, 4> expectedLwr{
+        0xF2332211u, 0xAAF23322u, 0xAABBF233u, 0xAABBCCF2u};
+    constexpr std::array<uint32_t, 4> expectedSwl{
+        0x443322AAu, 0x4433AABBu, 0x44AABBCCu, 0xAABBCCDDu};
+    constexpr std::array<uint32_t, 4> expectedSwr{
+        0xAABBCCDDu, 0xBBCCDD11u, 0xCCDD2211u, 0xDD332211u};
+
+    uint32_t failures = 0u;
+    ps2::xbox360::guest_memory::writeLittleEndian(
+        std::span<uint8_t>(ram), 0x40u, 0xF2332211u);
+    for (uint16_t offset = 0u; offset < 4u; ++offset)
+    {
+        cpu.writeGpr(5u, initial);
+        const auto lwl = executeAtOffset(0x22u, 5u, offset);
+        const uint32_t expectedLwlUpper =
+            offset == 3u ? 0xFFFFFFFFu : 0u;
+        if (lwl.status != StepStatus::Executed ||
+            ps2::xbox360::simd::readLane<uint32_t>(cpu.readGpr(5u), 0u) != expectedLwl[offset] ||
+            ps2::xbox360::simd::readLane<uint32_t>(cpu.readGpr(5u), 1u) != expectedLwlUpper ||
+            ps2::xbox360::simd::readLane<uint32_t>(cpu.readGpr(5u), 2u) != 0x10203040u ||
+            ps2::xbox360::simd::readLane<uint32_t>(cpu.readGpr(5u), 3u) != 0x50607080u)
+            failures |= 1u << offset;
+
+        cpu.writeGpr(5u, initial);
+        const auto lwr = executeAtOffset(0x26u, 5u, offset);
+        const uint32_t expectedLwrUpper =
+            offset == 0u ? 0xFFFFFFFFu : 0x55667788u;
+        if (lwr.status != StepStatus::Executed ||
+            ps2::xbox360::simd::readLane<uint32_t>(cpu.readGpr(5u), 0u) != expectedLwr[offset] ||
+            ps2::xbox360::simd::readLane<uint32_t>(cpu.readGpr(5u), 1u) != expectedLwrUpper ||
+            ps2::xbox360::simd::readLane<uint32_t>(cpu.readGpr(5u), 2u) != 0x10203040u ||
+            ps2::xbox360::simd::readLane<uint32_t>(cpu.readGpr(5u), 3u) != 0x50607080u)
+            failures |= 1u << (4u + offset);
+    }
+
+    for (uint16_t offset = 0u; offset < 4u; ++offset)
+    {
+        uint32_t stored{};
+        ps2::xbox360::guest_memory::writeLittleEndian(
+            std::span<uint8_t>(ram), 0x40u, 0x44332211u);
+        const auto swl = executeAtOffset(0x2Au, 2u, offset);
+        ps2::xbox360::guest_memory::readLittleEndian(
+            std::span<const uint8_t>(ram), 0x40u, stored);
+        if (swl.status != StepStatus::Executed || stored != expectedSwl[offset])
+            failures |= 1u << (8u + offset);
+
+        ps2::xbox360::guest_memory::writeLittleEndian(
+            std::span<uint8_t>(ram), 0x40u, 0x44332211u);
+        const auto swr = executeAtOffset(0x2Eu, 2u, offset);
+        ps2::xbox360::guest_memory::readLittleEndian(
+            std::span<const uint8_t>(ram), 0x40u, stored);
+        if (swr.status != StepStatus::Executed || stored != expectedSwr[offset])
+            failures |= 1u << (12u + offset);
+    }
+
+    // A merge load to GPR 0 still performs the read but discards the result.
+    const auto lwlZero = executeAtOffset(0x22u, 0u, 0u);
+    if (lwlZero.status != StepStatus::Executed ||
+        cpu.readGpr(0u).bytes != ps2::xbox360::simd::Vector128{}.bytes)
+        failures |= 1u << 16u;
+
+    xsdk_log_write("MKSM_EE_UNALIGNED_MERGE_TRACE failures=%08X offsets=4",
+                   static_cast<unsigned>(failures));
+    return failures == 0u;
+}
+
 bool checkScratchpadDma()
 {
     using namespace ps2::xbox360::dmac;
@@ -358,6 +454,11 @@ int main()
     {
         xsdk_log_write("MKSM smoke: EE LQ/SQ dispatcher check failed");
         return 8;
+    }
+    if (!checkEeUnalignedMerge())
+    {
+        xsdk_log_write("MKSM smoke: EE unaligned merge check failed");
+        return 9;
     }
     if (!checkScratchpadDma())
     {
