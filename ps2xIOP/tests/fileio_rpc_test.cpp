@@ -226,6 +226,23 @@ int main()
     assert(host.readGuest(0x2100u, tail.data(), tail.size()));
     assert((tail == std::array<char, 4>{'L', 'I', 'N', '!'}));
 
-    FioCloseRequest_PLACEHOLDER
+    const int32_t closeFd = fd;
+    assert(host.writeGuest(0x1600u, &closeFd, sizeof(closeFd)));
+    request.function = kClose;
+    request.send = {0x1600u, sizeof(closeFd)};
+    request.receive = {0x1700u, sizeof(int32_t)};
+    response = service->handleRpc(request);
+    assert(response.handled);
+    assert(readResult(host, 0x1700u) == 0);
+    assert(host.opened.empty());
+    assert(host.closedCount == 1u);
+
+    request.function = kWrite;
+    request.send = {0x1600u, sizeof(closeFd)};
+    request.receive = {0x1700u, sizeof(int32_t)};
+    response = service->handleRpc(request);
+    assert(response.handled);
+    assert(readResult(host, 0x1700u) == -13);
+
     return 0;
 }
