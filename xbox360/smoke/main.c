@@ -29,7 +29,7 @@ static void check(const char *name, bool passed)
     failed_checks += !passed;
 }
 
-static uint32_t frame_pixel(uint32_t address, uint32_t width, uint32_t y)
+static uint32_t frame_pixel(uint32_t address, uint32_t width, uint32_t height, uint32_t y)
 {
     XsdkTexture frame;
     if (width > MAX_WIDTH ||
@@ -42,7 +42,7 @@ static uint32_t frame_pixel(uint32_t address, uint32_t width, uint32_t y)
     return __builtin_bswap32(row[width / 2]);
 }
 
-static bool check_first_frame(uint32_t address, uint32_t width)
+static bool check_first_frame(uint32_t address, uint32_t width, uint32_t height)
 {
     NTSTATUS status = xsdk_gpu_wait(xsdk_gpu_fence(), FENCE_TIMEOUT_MS);
     if (!NT_SUCCESS(status))
