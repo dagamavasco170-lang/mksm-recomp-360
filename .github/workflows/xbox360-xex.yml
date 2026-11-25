@@ -127,7 +127,6 @@ jobs:
 
           [Logging]
           flush_log = true
-          log_file = "xenia-ci.log"
           log_level = 3
           log_to_debugprint = true
           '@ | Set-Content -Path (Join-Path $xeniaDir 'xenia-canary.config.toml') -Encoding utf8
@@ -143,20 +142,28 @@ jobs:
           $exe = $env:XENIA_EXE
           if (-not $exe -or -not (Test-Path $exe)) { throw 'Xenia executable path missing.' }
           $xeniaDir = Split-Path $exe
-          $xeniaLog = Join-Path $xeniaDir 'xenia-ci.log'
+          $xeniaLog = Join-Path $xeniaDir 'xenia.log'
+          $stdoutPath = Join-Path $logRoot 'stdout.txt'
           $proc = $null
+          $stoppedByCi = $false
           $failure = $null
           $passed = $false
           try {
             "Launching Xenia Canary with headless diagnostics XEX: $xex" | Tee-Object (Join-Path $logRoot 'summary.txt')
-            $proc = Start-Process -FilePath $exe -ArgumentList @($xex) -WorkingDirectory $xeniaDir -PassThru -RedirectStandardOutput (Join-Path $logRoot 'stdout.txt') -RedirectStandardError (Join-Path $logRoot 'stderr.txt')
+            # Xenia documents --log_file=stdout; put flags before the XEX path so
+            # both emulator and guest DbgPrint lines are visible to the CI poller.
+            $proc = Start-Process -FilePath $exe -ArgumentList @('--gpu=null', '--log_file=stdout', '--log_level=3', $xex) -WorkingDirectory $xeniaDir -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError (Join-Path $logRoot 'stderr.txt')
             $deadline = [DateTime]::UtcNow.AddSeconds(90)
             $content = ''
             while ([DateTime]::UtcNow -lt $deadline) {
-              if (Test-Path $xeniaLog) {
-                $content = Get-Content $xeniaLog -Raw -ErrorAction SilentlyContinue
-                if ($content -match 'MKSM_XENIA_SMOKE_PASS') { $passed = $true; break }
+              $content = ''
+              foreach ($source in @($stdoutPath, $xeniaLog)) {
+                if (Test-Path $source) {
+                  $part = Get-Content $source -Raw -ErrorAction SilentlyContinue
+                  if ($part) { $content += $part + [Environment]::NewLine }
+                }
               }
+              if ($content -match 'MKSM_XENIA_SMOKE_PASS') { $passed = $true; break }
               $proc.Refresh()
               if ($proc.HasExited) {
                 $failure = "Xenia exited before the guest PASS marker (exit code $($proc.ExitCode))."
@@ -193,12 +200,17 @@ jobs:
           } finally {
             if ($proc) {
               $proc.Refresh()
-              if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+              if (-not $proc.HasExited) {
+                $stoppedByCi = $true
+                Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+              }
               $proc.Refresh()
               "XENIA_PROCESS_EXITED=$($proc.HasExited)" | Add-Content (Join-Path $logRoot 'summary.txt')
+              "XENIA_STOPPED_BY_CI=$stoppedByCi" | Add-Content (Join-Path $logRoot 'summary.txt')
               if ($proc.HasExited) { "XENIA_PROCESS_EXIT_CODE=$($proc.ExitCode)" | Add-Content (Join-Path $logRoot 'summary.txt') }
             }
-            if (Test-Path $xeniaLog) { Copy-Item $xeniaLog (Join-Path $logRoot 'xenia-ci.log') -Force }
+            if ($failure) { "XENIA_FAILURE=$failure" | Add-Content (Join-Path $logRoot 'summary.txt') }
+            if (Test-Path $xeniaLog) { Copy-Item $xeniaLog (Join-Path $logRoot 'xenia.log') -Force }
             Get-ChildItem $xeniaDir -Recurse -File -Filter '*.log' -ErrorAction SilentlyContinue |
               ForEach-Object { if ($_.FullName -ne $xeniaLog) { Copy-Item $_.FullName $logRoot -Force -ErrorAction SilentlyContinue } }
             Get-ChildItem smoke -Recurse -File -Filter '*.log' -ErrorAction SilentlyContinue |
