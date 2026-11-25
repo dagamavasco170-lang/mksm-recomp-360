@@ -356,16 +356,25 @@ bool checkIomanBridge()
     const auto closeResult = ioman.dispatch(IomanCommand::Close,
                                              static_cast<std::uint32_t>(fd),
                                              0u, 0u, iopRam);
-    if (firstRead < 0 || seekResult != 0 || secondRead != firstRead ||
-        firstBytes != secondBytes || closeResult != 0)
+    const auto openFilesAfterClose = ioman.openFileCount();
+    if (firstRead != static_cast<int>(firstBytes.size()) ||
+        seekResult != 0 || secondRead != firstRead ||
+        firstBytes != secondBytes || closeResult != 0 ||
+        openFilesAfterClose != 0u)
     {
-        xsdk_log_write("MKSM_IOMAN_BRIDGE status=failed read1=%d seek=%d read2=%d close=%d",
-                       firstRead, seekResult, secondRead, closeResult);
+        xsdk_log_write("MKSM_IOMAN_BRIDGE status=failed read1=%d seek=%d read2=%d close=%d open_files=%u",
+                       firstRead, seekResult, secondRead, closeResult,
+                       static_cast<unsigned>(openFilesAfterClose));
         return false;
     }
 
-    xsdk_log_write("MKSM_IOMAN_BRIDGE status=pass file=GAMEDATA.WAD read=%d seek=0 reread=%d",
-                   firstRead, secondRead);
+    xsdk_log_write("MKSM_IOMAN_BRIDGE status=pass file=GAMEDATA.WAD bytes=%d reread=%d header=%02X%02X%02X%02X open_files=%u",
+                   firstRead, secondRead,
+                   static_cast<unsigned>(firstBytes[0]),
+                   static_cast<unsigned>(firstBytes[1]),
+                   static_cast<unsigned>(firstBytes[2]),
+                   static_cast<unsigned>(firstBytes[3]),
+                   static_cast<unsigned>(openFilesAfterClose));
     return true;
 }
 
