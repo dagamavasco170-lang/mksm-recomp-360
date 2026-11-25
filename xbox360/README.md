@@ -50,3 +50,16 @@ mksm-xbox360-smoke: PASS
 ```
 
 The exact frame count varies. The XEX has not yet been built or tested on hardware by this project. This target is not wired into the project's default CMake build and does not prove that the PS2 runtime is Xenon-compatible.
+
+## PS2 guest-memory endian smoke (host-portability check)
+
+A second isolated test validates explicit little-endian helpers for PS2 guest memory. It is separate from the XEX/GPU smoke and does not require xsdk:
+
+```sh
+cmake -S xbox360/core-smoke -B build/guest-endian
+cmake --build build/guest-endian
+ctest --test-dir build/guest-endian --output-on-failure
+```
+
+
+See [core-smoke README](core-smoke/README.md) and [endian audit](../docs/XBOX360_ENDIAN_AUDIT.md). The helper test was compiled and run with a local host C++ compiler; it is not yet integrated into PS2Memory or cross-compiled for Xenon.
