@@ -7,7 +7,7 @@
 
 namespace ps2::xbox360::ee
 {
-enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
+enum class ExecuteStatus : std::uint8_t { Executed, Unsupported, Overflow, Syscall, Breakpoint };
 
 // Conservative SPECIAL execution slice. Control flow, memory, and trapping arithmetic
 // remain outside this executor until their EE semantics and delay-slot/exception behavior
@@ -220,6 +220,24 @@ enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
         writesRd = false;
         break;
     }
+    case SpecialOperation::Add:
+    case SpecialOperation::Sub:
+    {
+        const std::int64_t lhs = simd::detail::asSigned(simd::readLane<std::uint32_t>(rs, 0));
+        const std::int64_t rhs = simd::detail::asSigned(simd::readLane<std::uint32_t>(rt, 0));
+        const std::int64_t wide = d.special == SpecialOperation::Add ? lhs + rhs : lhs - rhs;
+        if (wide > INT32_MAX || wide < INT32_MIN)
+            return ExecuteStatus::Overflow;
+        const auto word = static_cast<std::uint32_t>(wide);
+        const auto extended = static_cast<std::uint64_t>(
+            static_cast<std::int64_t>(simd::detail::asSigned(word)));
+        result = state.gpr[d.rd];
+        for (std::size_t byte = 0; byte < 8u; ++byte)
+            result.bytes[byte] = static_cast<std::uint8_t>(extended >> (byte * 8u));
+        break;
+    }
+    case SpecialOperation::Syscall: return ExecuteStatus::Syscall;
+    case SpecialOperation::Break: return ExecuteStatus::Breakpoint;
     case SpecialOperation::Addu:
         simd::writeLane<std::uint32_t>(result, 0,
             simd::readLane<std::uint32_t>(rs, 0) + simd::readLane<std::uint32_t>(rt, 0));
