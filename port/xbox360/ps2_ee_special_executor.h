@@ -40,23 +40,36 @@ enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
     case SpecialOperation::Dsll32:
     case SpecialOperation::Dsrl32:
     case SpecialOperation::Dsra32:
+    case SpecialOperation::Dsllv:
+    case SpecialOperation::Dsrlv:
+    case SpecialOperation::Dsrav:
     {
         std::uint64_t value = 0;
         for (std::size_t byte = 0; byte < 8u; ++byte)
             value |= static_cast<std::uint64_t>(rt.bytes[byte]) << (byte * 8u);
+        const bool variable = d.special == SpecialOperation::Dsllv ||
+                              d.special == SpecialOperation::Dsrlv ||
+                              d.special == SpecialOperation::Dsrav;
         const bool shift32 = d.special == SpecialOperation::Dsll32 ||
                              d.special == SpecialOperation::Dsrl32 ||
                              d.special == SpecialOperation::Dsra32;
-        const unsigned shift = static_cast<unsigned>(d.sa) + (shift32 ? 32u : 0u);
+        const unsigned shift = variable
+            ? static_cast<unsigned>(rs.bytes[0] & 0x3Fu)
+            : static_cast<unsigned>(d.sa) + (shift32 ? 32u : 0u);
+        const bool left = d.special == SpecialOperation::Dsll ||
+                          d.special == SpecialOperation::Dsll32 ||
+                          d.special == SpecialOperation::Dsllv;
+        const bool arithmetic = d.special == SpecialOperation::Dsra ||
+                                d.special == SpecialOperation::Dsra32 ||
+                                d.special == SpecialOperation::Dsrav;
         std::uint64_t shifted = value;
-        if (d.special == SpecialOperation::Dsll || d.special == SpecialOperation::Dsll32)
+        if (left)
             shifted = value << shift;
-        else if (d.special == SpecialOperation::Dsrl || d.special == SpecialOperation::Dsrl32)
-            shifted = value >> shift;
-        else if (shift != 0u)
+        else
         {
             shifted = value >> shift;
-            if ((value & (std::uint64_t{1} << 63u)) != 0u)
+            if (arithmetic && shift != 0u &&
+                (value & (std::uint64_t{1} << 63u)) != 0u)
                 shifted |= (~std::uint64_t{0}) << (64u - shift);
         }
         result = state.gpr[d.rd];
