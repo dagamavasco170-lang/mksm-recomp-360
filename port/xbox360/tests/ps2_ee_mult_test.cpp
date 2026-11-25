@@ -14,14 +14,23 @@ static constexpr std::uint32_t encode(std::uint8_t rs, std::uint8_t rt,
            (static_cast<std::uint32_t>(rd) << 11) | funct;
 }
 
+static void writeSignExtendedWord(Vector128& value, std::uint32_t word)
+{
+    const std::uint64_t extended =
+        static_cast<std::uint64_t>(static_cast<std::int64_t>(
+            static_cast<std::int32_t>(word)));
+    for (std::size_t byte = 0; byte < 8; ++byte)
+        value.bytes[byte] = static_cast<std::uint8_t>(extended >> (byte * 8u));
+}
+
 static void runCase(std::uint8_t funct, std::uint32_t lhs, std::uint32_t rhs,
                     std::uint64_t expectedLo, std::uint64_t expectedHi)
 {
     CpuState state{};
     state.pc = 0x2000;
     state.retiredInstructions = 4;
-    simd::writeLane<std::uint32_t>(state.gpr[1], 0, lhs);
-    simd::writeLane<std::uint32_t>(state.gpr[2], 0, rhs);
+    writeSignExtendedWord(state.gpr[1], lhs);
+    writeSignExtendedWord(state.gpr[2], rhs);
     for (std::size_t i = 0; i < 8; ++i)
         state.gpr[3].bytes[i] = 0x5A;
     for (std::size_t i = 8; i < 16; ++i)
