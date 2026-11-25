@@ -160,10 +160,18 @@ private:
             }
             return true;
         };
-        if (startsWithAsciiInsensitive(normalized, "cdrom0:") ||
-            startsWithAsciiInsensitive(normalized, "cdrom1:"))
+        const bool hasDiscDevice =
+            startsWithAsciiInsensitive(normalized, "cdrom0:") ||
+            startsWithAsciiInsensitive(normalized, "cdrom1:");
+        if (hasDiscDevice)
         {
             normalized.erase(0u, 7u);
+        }
+        else if (!normalized.empty() && normalized.front() == '/')
+        {
+            // A leading slash without a PS2 optical-disc device is an
+            // absolute host path and must never be rebased under the disc.
+            return false;
         }
 
         const std::size_t version = normalized.find_last_of(';');
@@ -182,8 +190,11 @@ private:
                 normalized.erase(version);
         }
 
-        while (!normalized.empty() && normalized.front() == '/')
-            normalized.erase(normalized.begin());
+        if (hasDiscDevice)
+        {
+            while (!normalized.empty() && normalized.front() == '/')
+                normalized.erase(normalized.begin());
+        }
         if (normalized.empty())
             return false;
         if (normalized.find(':') != std::string::npos)
