@@ -19,8 +19,8 @@ The SPECIAL function-code audit enumerates all 64 function codes against an expl
 
 ## Multiply/divide semantics research
 
-- MULT/MULTU are word operations with a 64-bit product split into LO/HI words. Operand restrictions and result sign-extension are EE-specific; confirm with authoritative EE references before implementation.
-- DIV/DIVU produce quotient in LO and remainder in HI. Zero-divisor and signed-overflow edge cases require EE-specific verification before implementation; avoid guessing.
+- MULT/MULTU and DIV/DIVU have focused functional implementations and host tests. The scalar executor accepts sign-extended 32-bit GPR operands and preserves the upper 64-bit MMI portions of HI/LO.
+- DIV/DIVU place quotient in LO and remainder in HI. A zero divisor is rejected as Unsupported without mutating state because the result is architecturally undefined. Signed INT32_MIN / -1 is handled explicitly to avoid C++ signed-overflow undefined behavior; hardware latency and interlocks are not modeled.
 - Hardware multiply/divide latency and HI/LO interlocks are not modeled by this instruction-at-a-time executor. Functional tests are not cycle-accurate.
 
 ## Known gaps and risks
