@@ -23,6 +23,7 @@
 #include "ps2_ee_test_program.h"
 #include "ps2_simd_scalar.h"
 #include "ps2_spr_dma.h"
+#include "ps2_iop_ioman.h"
 #include "runtime/ps2_pad.h"
 
 #if defined(MKSM_HAS_GENERATED_RECOMP_PROBE)
@@ -303,6 +304,46 @@ bool checkScratchpadDma()
     return ok;
 }
 
+bool checkIomanBridge()
+{
+    const char *discRoot = std::getenv("MKSM_DISC_ROOT");
+    if (!discRoot || !*discRoot)
+    {
+        xsdk_log_write("MKSM_IOMAN_BRIDGE status=not-configured hint=MKSM_DISC_ROOT");
+        return true;
+    }
+
+    ps2::xbox360::iop::IomanDispatcher ioman(std::filesystem::path(discRoot));
+    std::array<std::uint8_t, 128> iopRam{};
+    constexpr char probePath[] = "GAMEDATA.WAD";
+    for (size_t i = 0; i < sizeof(probePath); ++i)
+        iopRam[16u + i] = static_cast<std::uint8_t>(probePath[i]);
+
+    using ps2::xbox360::iop::IomanCommand;
+    const auto fd = ioman.dispatch(IomanCommand::Open, 16u, 0u, 0u, iopRam);
+    if (fd < 0)
+    {
+        xsdk_log_write("MKSM_IOMAN_BRIDGE status=asset-open-failed error=%d", fd);
+        return false;
+    }
+
+    const auto bytes = ioman.dispatch(IomanCommand::Read,
+                                      static_cast<std::uint32_t>(fd),
+                                      64u, 16u, iopRam);
+    const auto closeResult = ioman.dispatch(IomanCommand::Close,
+                                             static_cast<std::uint32_t>(fd),
+                                             0u, 0u, iopRam);
+    if (bytes < 0 || closeResult != 0)
+    {
+        xsdk_log_write("MKSM_IOMAN_BRIDGE status=read-failed bytes=%d close=%d",
+                       bytes, closeResult);
+        return false;
+    }
+
+    xsdk_log_write("MKSM_IOMAN_BRIDGE status=pass file=GAMEDATA.WAD bytes=%d", bytes);
+    return true;
+}
+
 bool checkCpp20Runtime()
 {
     std::vector<uint32_t> values{3u, 1u, 2u};
@@ -431,6 +472,12 @@ int main()
 #endif
     xsdk_log_write("MKSM Xbox 360 smoke: starting");
     xsdk_log_write("MKSM smoke: target ABI verified (32-bit big-endian PowerPC)");
+
+    if (!checkIomanBridge())
+    {
+        xsdk_log_write("MKSM smoke: ioman retail file bridge check failed");
+        return 10;
+    }
 
     if (!checkCpp20Runtime())
     {
