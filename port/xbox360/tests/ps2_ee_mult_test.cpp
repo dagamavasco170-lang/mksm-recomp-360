@@ -14,7 +14,7 @@ static constexpr std::uint32_t encode(std::uint8_t rs, std::uint8_t rt,
            (static_cast<std::uint32_t>(rd) << 11) | funct;
 }
 
-static void writeSignExtendedWord(Vector128& value, std::uint32_t word)
+static void writeSignExtendedWord(simd::Vector128& value, std::uint32_t word)
 {
     const std::uint64_t extended =
         static_cast<std::uint64_t>(static_cast<std::int64_t>(
