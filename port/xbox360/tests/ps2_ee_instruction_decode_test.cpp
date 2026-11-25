@@ -40,6 +40,21 @@ int main()
            qs.rs == 5u && qs.rt == 6u && qs.immediate == 0x0010u);
 
 
+    constexpr std::uint32_t lwl = (0x22u << 26u) | (1u << 21u) | (7u << 16u) | 3u;
+    constexpr std::uint32_t lwr = (0x26u << 26u) | (2u << 21u) | (8u << 16u) | 1u;
+    constexpr std::uint32_t swl = (0x2Au << 26u) | (3u << 21u) | (9u << 16u) | 2u;
+    constexpr std::uint32_t swr = (0x2Eu << 26u) | (4u << 21u) | (10u << 16u) | 0u;
+    for (const auto word : {lwl, lwr, swl, swr})
+        assert(decodeInstruction(word).kind == InstructionKind::LoadStore);
+    assert(decodeInstruction(lwl).opcode == 0x22u &&
+           decodeInstruction(lwl).rs == 1u && decodeInstruction(lwl).rt == 7u);
+    assert(decodeInstruction(lwr).opcode == 0x26u &&
+           decodeInstruction(lwr).rs == 2u && decodeInstruction(lwr).rt == 8u);
+    assert(decodeInstruction(swl).opcode == 0x2Au &&
+           decodeInstruction(swl).rs == 3u && decodeInstruction(swl).rt == 9u);
+    assert(decodeInstruction(swr).opcode == 0x2Eu &&
+           decodeInstruction(swr).rs == 4u && decodeInstruction(swr).rt == 10u);
+
     // Decode selected SPECIAL functions and MMI subfamily tags.
     const auto addiu = decodeInstruction((0u << 26) | (3u << 21) | (4u << 16) | 0x21u);
     assert(addiu.kind == InstructionKind::Special && addiu.special == SpecialOperation::Addu);
