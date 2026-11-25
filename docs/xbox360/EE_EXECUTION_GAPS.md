@@ -5,7 +5,7 @@ This inventory reflects the Xbox bootstrap dispatcher/executors at the time of i
 ## Implemented, focused-test coverage
 
 - Immediate operations: ADDIU, SLTI, SLTIU, ANDI, ORI, XORI, LUI.
-- SPECIAL slice: logical operations, MOVZ/MOVN, basic 32-bit shifts, ADDU/SUBU, SLT/SLTU, scalar MFHI/MFLO/MTHI/MTLO transfers, MULT/MULTU and DIV/DIVU.
+- SPECIAL slice: logical operations, MOVZ/MOVN, basic 32-bit shifts and DSLL/DSRL/DSRA plus 32-shift variants, ADDU/SUBU, SLT/SLTU, scalar MFHI/MFLO/MTHI/MTLO transfers, MULT/MULTU and DIV/DIVU.
 - Scalar HI/LO transfers copy only the low 64 bits and preserve upper 64-bit MMI state; distinct from full 128-bit MMI PMFHI/PMFLO/PMTHI/PMTLO helpers.
 - Control flow: J/JAL, JR/JALR, BEQ/BNE/BLEZ/BGTZ and selected REGIMM branches with delay-slot handling; branch-in-delay control flow is deliberately rejected.
 - Load/store slice: LB/LBU/LH/LHU/LW/LWU, SB/SH/SW, LWL/LWR/SWL/SWR, LQ/SQ byte transfer, plus focused generated-ABI RDRAM and scratchpad scalar probes.
@@ -13,7 +13,7 @@ This inventory reflects the Xbox bootstrap dispatcher/executors at the time of i
 
 ## Decoder/executor audit (next test gate)
 
-A source audit confirms SPECIAL encodings for trapping ADD/SUB, SYSCALL, BREAK, SYNC, and DSLL/DSRL/DSRA are recognized by the decoder but not implemented by the current SPECIAL executor. MULT/MULTU and DIV/DIVU have focused implementations and tests. Existing focused tests cover selected implemented instructions and verify Unsupported is atomic for ADD and non-SPECIAL inputs. Coverage is not yet exhaustive across all SPECIAL function encodings or parameter combinations.
+A source audit confirms SPECIAL encodings for trapping ADD/SUB, SYSCALL, BREAK, and SYNC are recognized by the decoder but not implemented by the current SPECIAL executor. DSLL/DSRL/DSRA and DSLL32/DSRL32/DSRA32 now execute the low 64-bit scalar value while preserving the upper 64 bits of the destination register. MULT/MULTU and DIV/DIVU have focused implementations and tests. Existing focused tests cover selected implemented instructions and verify Unsupported is atomic for ADD and non-SPECIAL inputs. The 64-function SPECIAL audit uses an explicit implementation allowlist and checks retirement/PC behavior and selected destination/HI/LO atomicity; parameter and operand-boundary coverage remains focused rather than exhaustive.
 
 The next test addition should enumerate the 64 SPECIAL function codes (with valid operand fields), compare decoded operations against an explicit implemented-operation allowlist, and assert executor behavior: implemented entries retire exactly once and advance PC; gaps return Unsupported with PC, retirement count, and destination/HI/LO state unchanged. Keep malformed/reserved encodings separate from recognized-but-unimplemented instructions.
 
@@ -36,10 +36,9 @@ The next test addition should enumerate the 64 SPECIAL function codes (with vali
 1. Add exhaustive SPECIAL decoder/executor contract tests as described above.
 2. Implement MULT/MULTU only after operand restrictions and scalar HI/LO layout are proven; add signed/unsigned, negative, boundary, and preservation tests.
 3. Implement DIV/DIVU with verified EE signedness and zero/overflow behavior.
-4. Implement 64-bit shifts with upper/lower-half and shift-boundary tests.
-5. Add trapping ADD/SUB and overflow tests before enabling them in game code.
-6. Implement a defined minimal COP0 model and tests; do not fake success for unknown privileged operations.
-7. Prioritize using generated retail-game function traces rather than synthetic instruction counts.
+4. Add trapping ADD/SUB and overflow tests before enabling them in game code.
+5. Implement a defined minimal COP0 model and tests; do not fake success for unknown privileged operations.
+6. Prioritize using generated retail-game function traces rather than synthetic instruction counts.
 
 ## Evidence boundary
 
