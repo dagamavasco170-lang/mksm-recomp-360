@@ -81,6 +81,42 @@ enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
             static_cast<std::uint32_t>(static_cast<std::int32_t>(value >> shift)));
         break;
     }
+    case SpecialOperation::Mult:
+    case SpecialOperation::Multu:
+    {
+        const std::uint32_t lhsBits = simd::readLane<std::uint32_t>(rs, 0);
+        const std::uint32_t rhsBits = simd::readLane<std::uint32_t>(rt, 0);
+        std::uint64_t product = 0;
+        if (d.special == SpecialOperation::Mult)
+        {
+            const std::int64_t lhs = simd::detail::asSigned(lhsBits);
+            const std::int64_t rhs = simd::detail::asSigned(rhsBits);
+            product = static_cast<std::uint64_t>(lhs * rhs);
+        }
+        else
+        {
+            product = static_cast<std::uint64_t>(lhsBits) * rhsBits;
+        }
+
+        const auto signExtendedWord = [](std::uint32_t word) constexpr {
+            const std::int32_t signedWord = simd::detail::asSigned(word);
+            return static_cast<std::uint64_t>(static_cast<std::int64_t>(signedWord));
+        };
+        const std::uint32_t lowWord = static_cast<std::uint32_t>(product);
+        const std::uint32_t highWord = static_cast<std::uint32_t>(product >> 32u);
+        const std::uint64_t loValue = signExtendedWord(lowWord);
+        const std::uint64_t hiValue = signExtendedWord(highWord);
+
+        for (std::size_t byte = 0; byte < 8u; ++byte)
+        {
+            state.hilo.lo.bytes[byte] = static_cast<std::uint8_t>(loValue >> (byte * 8u));
+            state.hilo.hi.bytes[byte] = static_cast<std::uint8_t>(hiValue >> (byte * 8u));
+        }
+        result = state.gpr[d.rd];
+        for (std::size_t byte = 0; byte < 8u; ++byte)
+            result.bytes[byte] = state.hilo.lo.bytes[byte];
+        break;
+    }
     case SpecialOperation::Addu:
         simd::writeLane<std::uint32_t>(result, 0,
             simd::readLane<std::uint32_t>(rs, 0) + simd::readLane<std::uint32_t>(rt, 0));
