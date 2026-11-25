@@ -202,9 +202,44 @@ namespace ps2recomp
         case OPCODE_SW:
             return genWrite(32, fmt::format("ADD32(GPR_U32(ctx, {}), {})", inst.rs, inst.simmediate), fmt::format("GPR_U32(ctx, {})", inst.rt)) + ";";
         case OPCODE_LQ:
-            return fmt::format("SET_GPR_VEC(ctx, {}, {});", inst.rt, genRead(128, fmt::format("ADD32(GPR_U32(ctx, {}), {})", inst.rs, inst.simmediate)));
+        {
+            const std::string address =
+                fmt::format("ADD32(GPR_U32(ctx, {}), {})", inst.rs, inst.simmediate);
+            const std::string alignedAddress =
+                fmt::format("({} & ~0x0Fu)", address);
+            MemoryAccessHint alignedHint = effectiveMemoryHint;
+            if (alignedHint.hasAddress)
+                alignedHint.address &= ~0x0Fu;
+            const std::string desktopRead =
+                translateMemoryRead(inst, alignedHint, 128, alignedAddress);
+            return fmt::format(
+                "#if defined(PS2X_GENERATED_RUNTIME_ABI)\n"
+                "Ps2GeneratedLq(rdram, runtime, ctx, {}, {});\n"
+                "#else\n"
+                "SET_GPR_VEC(ctx, {}, {});\n"
+                "#endif",
+                inst.rt, alignedAddress, inst.rt, desktopRead);
+        }
         case OPCODE_SQ:
-            return genWrite(128, fmt::format("ADD32(GPR_U32(ctx, {}), {})", inst.rs, inst.simmediate), fmt::format("GPR_VEC(ctx, {})", inst.rt)) + ";";
+        {
+            const std::string address =
+                fmt::format("ADD32(GPR_U32(ctx, {}), {})", inst.rs, inst.simmediate);
+            const std::string alignedAddress =
+                fmt::format("({} & ~0x0Fu)", address);
+            MemoryAccessHint alignedHint = effectiveMemoryHint;
+            if (alignedHint.hasAddress)
+                alignedHint.address &= ~0x0Fu;
+            const std::string desktopWrite = translateMemoryWrite(
+                inst, alignedHint, 128, alignedAddress,
+                fmt::format("GPR_VEC(ctx, {})", inst.rt));
+            return fmt::format(
+                "#if defined(PS2X_GENERATED_RUNTIME_ABI)\n"
+                "Ps2GeneratedSq(rdram, runtime, ctx, {}, {});\n"
+                "#else\n"
+                "{};\n"
+                "#endif",
+                inst.rt, alignedAddress, desktopWrite);
+        }
         case OPCODE_LD:
             return fmt::format("SET_GPR_U64(ctx, {}, {});", inst.rt, genRead(64, fmt::format("ADD32(GPR_U32(ctx, {}), {})", inst.rs, inst.simmediate)));
         case OPCODE_SD:
