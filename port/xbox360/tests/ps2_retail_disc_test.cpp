@@ -37,6 +37,8 @@ int main()
     std::uint64_t size{};
     assert(disc.fileSize("GAMEDATA.WAD", size) == FileStatus::Ok && size == 8u);
     assert(disc.exists("IOP/SIO2MAN.IRX"));
+    assert(disc.exists("iop/sio2man.irx"));
+    assert(disc.exists("cdrom0:\\iop\\sio2man.irx;1"));
     assert(disc.exists("IOP\\SIO2MAN.IRX"));
     assert(disc.exists("cdrom0:/IOP/SIO2MAN.IRX;1"));
     assert(disc.exists("CDROM0:\\\\IOP\\\\SIO2MAN.IRX;1"));
