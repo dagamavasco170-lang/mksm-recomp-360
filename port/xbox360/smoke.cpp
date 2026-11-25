@@ -306,10 +306,16 @@ bool checkScratchpadDma()
 
 bool checkIomanBridge()
 {
-    const char *discRoot = std::getenv("MKSM_DISC_ROOT");
+#if defined(MKSM_DISC_ROOT_CONFIGURED)
+    const char *discRoot = MKSM_DISC_ROOT_CONFIGURED;
+#else
+    const char *discRoot = nullptr;
+#endif
+    if (!discRoot || !*discRoot)
+        discRoot = std::getenv("MKSM_DISC_ROOT");
     if (!discRoot || !*discRoot)
     {
-        xsdk_log_write("MKSM_IOMAN_BRIDGE status=not-configured hint=MKSM_DISC_ROOT");
+        xsdk_log_write("MKSM_IOMAN_BRIDGE status=not-configured hint=cmake-MKSM_DISC_ROOT");
         return true;
     }
 
