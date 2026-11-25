@@ -18,6 +18,7 @@
 #include "xsdk/splash.h"
 
 #include "ps2_guest_memory.h"
+#include "ps2_ee_dispatcher.h"
 #include "ps2_pad_xbox360.h"
 #include "ps2_ee_test_program.h"
 #include "ps2_simd_scalar.h"
@@ -125,6 +126,43 @@ bool checkDeterministicEeTrace()
                    static_cast<unsigned>(trace.pc),
                    static_cast<unsigned>(trace.retiredInstructions));
     return true;
+}
+
+bool checkEeLqSq()
+{
+    using namespace ps2::xbox360::ee;
+    std::array<uint8_t, 256> ram{};
+    CpuState cpu{};
+
+    simd::Vector128 base{}, source{};
+    simd::writeLane<uint32_t>(base, 0u, 0x5Bu); // deliberately unaligned
+    for (size_t i = 0; i < source.bytes.size(); ++i)
+        source.bytes[i] = static_cast<uint8_t>(0xD0u + i);
+    cpu.writeGpr(1u, base);
+    cpu.writeGpr(2u, source);
+
+    const auto encode = [](uint8_t opcode, uint8_t rs, uint8_t rt) {
+        return (static_cast<uint32_t>(opcode) << 26u) |
+               (static_cast<uint32_t>(rs) << 21u) |
+               (static_cast<uint32_t>(rt) << 16u);
+    };
+    bool ok = guest_memory::writeLittleEndian(std::span<uint8_t>(ram), 0u,
+                                               encode(0x1Fu, 1u, 2u)) && // SQ
+              guest_memory::writeLittleEndian(std::span<uint8_t>(ram), 4u,
+                                               encode(0x1Eu, 1u, 3u));   // LQ
+    const auto stored = step(cpu, ram);
+    ok = ok && stored.status == StepStatus::Executed;
+    for (size_t i = 0; i < source.bytes.size(); ++i)
+        ok = ok && ram[0x50u + i] == source.bytes[i];
+
+    const auto loaded = step(cpu, ram);
+    ok = ok && loaded.status == StepStatus::Executed &&
+         cpu.readGpr(3u).bytes == source.bytes &&
+         cpu.pc == 8u && cpu.retiredInstructions == 2u;
+    xsdk_log_write("MKSM_EE_LQ_SQ_TRACE failures=%08X pc=%08X retired=%u addr=%08X bytes=%u",
+                   ok ? 0u : 1u, static_cast<unsigned>(cpu.pc),
+                   static_cast<unsigned>(cpu.retiredInstructions), 0x50u, 16u);
+    return ok;
 }
 
 bool checkScratchpadDma()
@@ -316,6 +354,11 @@ int main()
         xsdk_log_write("MKSM smoke: scalar PS2 packed-vector check failed");
         return 4;
     }
+    if (!checkEeLqSq())
+    {
+        xsdk_log_write("MKSM smoke: EE LQ/SQ dispatcher check failed");
+        return 8;
+    }
     if (!checkScratchpadDma())
     {
         xsdk_log_write("MKSM smoke: scratchpad DMA checks failed");
@@ -335,7 +378,7 @@ int main()
     xsdk_log_write("MKSM smoke: scalar PS2 packed-vector checks passed");
 #if defined(MKSM_XENIA_HEADLESS_SMOKE)
     xsdk_log_write("MKSM_XENIA_GRAPHICS_SKIPPED reason=xenia-has-no-display-controller");
-    xsdk_log_write("MKSM_XENIA_SMOKE_PASS checks=cpp20,guest-memory,ee,mmi,spr-dma,generated-recomp");
+    xsdk_log_write("MKSM_XENIA_SMOKE_PASS checks=cpp20,guest-memory,ee,ee-lq-sq,mmi,spr-dma,generated-recomp");
     return 0;
 #else
     return runTitle();
