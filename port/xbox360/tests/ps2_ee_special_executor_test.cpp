@@ -196,6 +196,29 @@ int main()
     assert(readLow64(state.gpr[20]) == 0xFFFFFFFF80000000ull);
     for (std::size_t byte = 8; byte < 16; ++byte) assert(state.gpr[20].bytes[byte] == 0xDD);
 
+    // Variable 64-bit shifts use GPR[rs] bits 5..0 and preserve destination upper64.
+    writeLow64(state.gpr[2], 0x8000000000000001ull);
+    writeLow64(state.gpr[1], 1ull);
+    auto dsllvDecoded = decodeInstruction(encodeSpecial(1, 2, 21, 0, 0x14));
+    assert(executeSpecial(state, dsllvDecoded) == ExecuteStatus::Executed);
+    assert(readLow64(state.gpr[21]) == 2ull);
+    auto dsrlvDecoded = decodeInstruction(encodeSpecial(1, 2, 21, 0, 0x16));
+    assert(executeSpecial(state, dsrlvDecoded) == ExecuteStatus::Executed);
+    assert(readLow64(state.gpr[21]) == 0x4000000000000000ull);
+    auto dsravDecoded = decodeInstruction(encodeSpecial(1, 2, 21, 0, 0x17));
+    assert(executeSpecial(state, dsravDecoded) == ExecuteStatus::Executed);
+    assert(readLow64(state.gpr[21]) == 0xC000000000000000ull);
+    for (std::size_t byte = 8; byte < 16; ++byte) assert(state.gpr[21].bytes[byte] == 0u);
+
+    // Boundary shift count 63 is masked from the low six bits.
+    writeLow64(state.gpr[1], 0xFFFFFFFFFFFFFFBFu);
+    assert(executeSpecial(state, dsllvDecoded) == ExecuteStatus::Executed);
+    assert(readLow64(state.gpr[21]) == 0x8000000000000000ull);
+    assert(executeSpecial(state, dsrlvDecoded) == ExecuteStatus::Executed);
+    assert(readLow64(state.gpr[21]) == 1ull);
+    assert(executeSpecial(state, dsravDecoded) == ExecuteStatus::Executed);
+    assert(readLow64(state.gpr[21]) == 0xFFFFFFFFFFFFFFFFull);
+
     auto unsupported = decodeInstruction(encodeSpecial(1, 2, 7, 0, 0x20)); // ADD (trapping, intentionally unsupported)
     const auto pcBefore = state.pc;
     const auto retiredBefore = state.retiredInstructions;
