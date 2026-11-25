@@ -89,7 +89,7 @@ int main()
     SET_GPR_U32(quadCtx, 1, 0x2000105Bu);
     SET_GPR_VEC(quadCtx, 2, _mm_set_epi64x(
         static_cast<long long>(quadHigh), static_cast<long long>(quadLow)));
-    mksm_ee_lq_sq_probe(rdram.data(), quadCtx, nullptr);
+    mksm_ee_lq_sq_probe_0x100400(rdram.data(), quadCtx, nullptr);
     bool quadFailures = quadContext.pc != returnPc || quadContext.in_delay_slot;
     quadFailures = quadFailures ||
         static_cast<std::uint64_t>(PS2_EXTRACT_EPI64_0(quadContext.r[3])) != quadLow ||
