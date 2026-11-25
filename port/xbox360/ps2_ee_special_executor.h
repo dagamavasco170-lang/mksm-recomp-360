@@ -38,17 +38,23 @@ enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
         else result = rs;
         break;
     case SpecialOperation::Mfhi:
-        result = state.hilo.hi;
+        result = state.gpr[d.rd];
+        for (std::size_t byte = 0; byte < 8; ++byte)
+            result.bytes[byte] = state.hilo.hi.bytes[byte];
         break;
     case SpecialOperation::Mflo:
-        result = state.hilo.lo;
+        result = state.gpr[d.rd];
+        for (std::size_t byte = 0; byte < 8; ++byte)
+            result.bytes[byte] = state.hilo.lo.bytes[byte];
         break;
     case SpecialOperation::Mthi:
-        state.pmthi(d.rs);
+        for (std::size_t byte = 0; byte < 8; ++byte)
+            state.hilo.hi.bytes[byte] = rs.bytes[byte];
         writesRd = false;
         break;
     case SpecialOperation::Mtlo:
-        state.pmtlo(d.rs);
+        for (std::size_t byte = 0; byte < 8; ++byte)
+            state.hilo.lo.bytes[byte] = rs.bytes[byte];
         writesRd = false;
         break;
     case SpecialOperation::Sll:
