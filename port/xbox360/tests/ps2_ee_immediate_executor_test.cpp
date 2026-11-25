@@ -6,7 +6,6 @@
 #include <span>
 
 using namespace ps2::xbox360::ee;
-
 int main()
 {
     std::array<std::uint8_t, 256> ram{};
@@ -45,10 +44,10 @@ int main()
     for (std::size_t i=0;i<compareCode.size();++i)
         assert(ps2::xbox360::guest_memory::writeLittleEndian(
             mem,cpu.pc+static_cast<std::uint32_t>(i*4),compareCode[i]));
-    for (auto word:compareCode)
+    for (std::size_t i=0;i<compareCode.size();++i)
         assert(step(cpu,mem).status==StepStatus::Executed);
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(4),0)==0u);
-    assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(5),0)==1u);
+    assert(ps2::xbox::simd::readLane<std::uint32_t>(cpu.readGpr(5),0)==1u);
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(6),0)==0u);
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(7),0)==1u);
     assert(ps2::xbox360::simd::readLane<std::uint32_t>(cpu.readGpr(8),0)==0u);
