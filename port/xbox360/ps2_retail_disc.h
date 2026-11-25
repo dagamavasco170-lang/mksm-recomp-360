@@ -259,6 +259,28 @@ private:
         }
 
         result = current.lexically_normal();
+
+        // Lexical traversal checks above are insufficient when an extracted
+        // disc contains symlinks. Resolve the root and target before allowing
+        // the host filesystem operation, and require the target to remain
+        // inside the extraction root (component-wise, not string-prefix).
+        std::error_code canonicalError;
+        const auto canonicalRoot = std::filesystem::weakly_canonical(root_, canonicalError);
+        if (canonicalError)
+            return false;
+        const auto canonicalTarget = std::filesystem::weakly_canonical(result, canonicalError);
+        if (canonicalError)
+            return false;
+
+        auto rootPart = canonicalRoot.begin();
+        auto targetPart = canonicalTarget.begin();
+        for (; rootPart != canonicalRoot.end(); ++rootPart, ++targetPart)
+        {
+            if (targetPart == canonicalTarget.end() || *rootPart != *targetPart)
+                return false;
+        }
+
+        result = canonicalTarget;
         return true;
     }
 
