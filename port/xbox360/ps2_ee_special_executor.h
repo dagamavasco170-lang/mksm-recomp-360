@@ -112,8 +112,11 @@ enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
             state.hilo.lo.bytes[byte] = static_cast<std::uint8_t>(loValue >> (byte * 8u));
             state.hilo.hi.bytes[byte] = static_cast<std::uint8_t>(hiValue >> (byte * 8u));
         }
-        // MULT/MULTU write HI/LO only; the encoded rd field is reserved.
-        writesRd = false;
+        // R5900 MULT/MULTU also expose the low product word through rd.
+        // Only GPR[rd] bits 63..0 are written; its upper 64 bits are preserved.
+        result = state.gpr[d.rd];
+        for (std::size_t byte = 0; byte < 8u; ++byte)
+            result.bytes[byte] = static_cast<std::uint8_t>(loValue >> (byte * 8u));
         break;
     }
     case SpecialOperation::Addu:
