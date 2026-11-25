@@ -205,6 +205,7 @@ jobs:
                 'MKSM_EE_TRACE signature=4F63CD2AAFC519CE failures=00000000',
                 'MKSM_EE_LQ_SQ_TRACE failures=00000000',
                 'MKSM_RECOMP_XENON_TRACE failures=00000000',
+                'MKSM_RECOMP_LQ_SQ_TRACE failures=00000000',
                 'MKSM_SPR_DMA_TRACE failures=00000000',
                 'MKSM_SPR_DMA_GENERATED_TRACE failures=00000000',
                 'MKSM_XENIA_GRAPHICS_SKIPPED',
