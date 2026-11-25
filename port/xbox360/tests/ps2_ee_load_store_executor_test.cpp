@@ -60,6 +60,95 @@ int main()
     assert(executeLoadStore(cpu, ins(0x30, 1, 6, 0), ram) == LoadStoreStatus::Unsupported);
     assert(cpu.pc == oldPc && cpu.retiredInstructions == oldRetired);
 
+    // R5900 LWL/LWR merge selected bytes from an unaligned effective
+    // address with the containing aligned word. LWL always sign-extends the
+    // merged low word; LWR only does so for offset zero.
+    std::array<std::uint8_t, 256> mergeRam{};
+    CpuState mergeCpu{};
+    simd::Vector128 mergeBase{}, mergeInitial{};
+    simd::writeLane<std::uint32_t>(mergeBase, 0u, 0x40u);
+    simd::writeLane<std::uint32_t>(mergeInitial, 0u, 0xAABBCCDDu);
+    simd::writeLane<std::uint32_t>(mergeInitial, 1u, 0x55667788u);
+    simd::writeLane<std::uint32_t>(mergeInitial, 2u, 0x10203040u);
+    simd::writeLane<std::uint32_t>(mergeInitial, 3u, 0x50607080u);
+    mergeCpu.writeGpr(1u, mergeBase);
+    assert(guest_memory::writeLittleEndian(std::span<std::uint8_t>(mergeRam), 0x40u, 0xF2332211u));
+
+    constexpr std::array<std::uint32_t, 4> expectedLwl{
+        0xF2BBCCDDu, 0x33F2CCDDu, 0x2233F2DDu, 0xF2332211u};
+    constexpr std::array<std::uint32_t, 4> expectedLwr{
+        0xF2332211u, 0xAAF23322u, 0xAABBF233u, 0xAABBCCF2u};
+    for (std::uint16_t offset = 0u; offset < 4u; ++offset)
+    {
+        mergeCpu.writeGpr(5u, mergeInitial);
+        assert(executeLoadStore(mergeCpu, ins(0x22u, 1u, 5u, offset), mergeRam) ==
+               LoadStoreStatus::Executed); // LWL
+        assert(simd::readLane<std::uint32_t>(mergeCpu.readGpr(5u), 0u) ==
+               expectedLwl[offset]);
+        assert(simd::readLane<std::uint32_t>(mergeCpu.readGpr(5u), 1u) ==
+               0xFFFFFFFFu);
+        assert(simd::readLane<std::uint32_t>(mergeCpu.readGpr(5u), 2u) ==
+               0x10203040u);
+        assert(simd::readLane<std::uint32_t>(mergeCpu.readGpr(5u), 3u) ==
+               0x50607080u);
+
+        mergeCpu.writeGpr(5u, mergeInitial);
+        assert(executeLoadStore(mergeCpu, ins(0x26u, 1u, 5u, offset), mergeRam) ==
+               LoadStoreStatus::Executed); // LWR
+        assert(simd::readLane<std::uint32_t>(mergeCpu.readGpr(5u), 0u) ==
+               expectedLwr[offset]);
+        assert(simd::readLane<std::uint32_t>(mergeCpu.readGpr(5u), 1u) ==
+               (offset == 0u ? 0xFFFFFFFFu : 0x55667788u));
+        assert(simd::readLane<std::uint32_t>(mergeCpu.readGpr(5u), 2u) ==
+               0x10203040u);
+        assert(simd::readLane<std::uint32_t>(mergeCpu.readGpr(5u), 3u) ==
+               0x50607080u);
+    }
+
+    // SWL/SWR update only the addressed byte lanes of the containing word.
+    constexpr std::array<std::uint32_t, 4> expectedSwl{
+        0x443322AAu, 0x4433AABBu, 0x44AABBCCu, 0xAABBCCDDu};
+    constexpr std::array<std::uint32_t, 4> expectedSwr{
+        0xAABBCCDDu, 0xBBCCDD11u, 0xCCDD2211u, 0xDD332211u};
+    simd::Vector128 mergeSource{};
+    simd::writeLane<std::uint32_t>(mergeSource, 0u, 0xAABBCCDDu);
+    mergeCpu.writeGpr(2u, mergeSource);
+    for (std::uint16_t offset = 0u; offset < 4u; ++offset)
+    {
+        assert(guest_memory::writeLittleEndian(std::span<std::uint8_t>(mergeRam), 0x40u, 0x44332211u));
+        assert(executeLoadStore(mergeCpu, ins(0x2Au, 1u, 2u, offset), mergeRam) ==
+               LoadStoreStatus::Executed); // SWL
+        std::uint32_t stored{};
+        assert(guest_memory::readLittleEndian(std::span<const std::uint8_t>(mergeRam), 0x40u, stored));
+        assert(stored == expectedSwl[offset]);
+
+        assert(guest_memory::writeLittleEndian(std::span<std::uint8_t>(mergeRam), 0x40u, 0x44332211u));
+        assert(executeLoadStore(mergeCpu, ins(0x2Eu, 1u, 2u, offset), mergeRam) ==
+               LoadStoreStatus::Executed); // SWR
+        assert(guest_memory::readLittleEndian(std::span<const std::uint8_t>(mergeRam), 0x40u, stored));
+        assert(stored == expectedSwr[offset]);
+    }
+
+    // The zero register still participates in the memory access, but loads
+    // discard their result and stores merge zero bits into the selected lanes.
+    assert(guest_memory::writeLittleEndian(std::span<std::uint8_t>(mergeRam), 0x40u, 0x44332211u));
+    assert(executeLoadStore(mergeCpu, ins(0x22u, 1u, 0u, 0u), mergeRam) ==
+           LoadStoreStatus::Executed);
+    assert(mergeCpu.readGpr(0u).bytes == simd::Vector128{}.bytes);
+    assert(executeLoadStore(mergeCpu, ins(0x2Au, 1u, 0u, 0u), mergeRam) ==
+           LoadStoreStatus::Executed);
+    std::uint32_t zeroStoreWord{};
+    assert(guest_memory::readLittleEndian(std::span<const std::uint8_t>(mergeRam), 0x40u, zeroStoreWord));
+    assert(zeroStoreWord == 0x44332200u);
+
+    // Invalid backing memory must fail without retiring a merge instruction.
+    const auto mergePcBeforeInvalid = mergeCpu.pc;
+    const auto mergeRetiredBeforeInvalid = mergeCpu.retiredInstructions;
+    assert(executeLoadStore(mergeCpu, ins(0x26u, 1u, 5u, 0u), invalidRam) ==
+           LoadStoreStatus::InvalidMemory);
+    assert(mergeCpu.pc == mergePcBeforeInvalid &&
+           mergeCpu.retiredInstructions == mergeRetiredBeforeInvalid);
+
     // LQ/SQ transfer the complete 128-bit GPR and silently align the address
     // down to a 16-byte boundary (unlike scalar LH/LW/SH/SW).
     simd::Vector128 quadSource{};
