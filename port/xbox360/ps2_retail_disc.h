@@ -45,8 +45,15 @@ public:
             return FileStatus::InvalidPath;
 
         std::error_code error;
-        if (!std::filesystem::is_regular_file(path, error))
-            return error ? FileStatus::IoError : FileStatus::NotFound;
+        const auto entryStatus = std::filesystem::status(path, error);
+        if (error == std::errc::no_such_file_or_directory ||
+            error == std::errc::not_a_directory ||
+            entryStatus.type() == std::filesystem::file_type::not_found)
+            return FileStatus::NotFound;
+        if (error)
+            return FileStatus::IoError;
+        if (!std::filesystem::is_regular_file(entryStatus))
+            return FileStatus::NotFound;
 
         const auto value = std::filesystem::file_size(path, error);
         if (error)
