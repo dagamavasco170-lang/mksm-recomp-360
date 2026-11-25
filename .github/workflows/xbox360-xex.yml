@@ -1,6 +1,13 @@
 name: Xbox 360 smoke XEX build
 
 on:
+  push:
+    branches: [xbox360/bootstrap]
+    paths:
+      - "port/xbox360/**"
+      - "ps2xRecomp/**"
+      - "ps2xRuntime/include/**"
+      - ".github/workflows/xbox360-xex.yml"
   pull_request:
     branches: [main, xbox360/bootstrap]
     paths:
