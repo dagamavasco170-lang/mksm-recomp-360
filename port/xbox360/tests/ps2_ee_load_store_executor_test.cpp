@@ -142,9 +142,10 @@ int main()
     assert(zeroStoreWord == 0x44332200u);
 
     // Invalid backing memory must fail without retiring a merge instruction.
+    std::array<std::uint8_t, 255> invalidMergeRam{};
     const auto mergePcBeforeInvalid = mergeCpu.pc;
     const auto mergeRetiredBeforeInvalid = mergeCpu.retiredInstructions;
-    assert(executeLoadStore(mergeCpu, ins(0x26u, 1u, 5u, 0u), invalidRam) ==
+    assert(executeLoadStore(mergeCpu, ins(0x26u, 1u, 5u, 0u), invalidMergeRam) ==
            LoadStoreStatus::InvalidMemory);
     assert(mergeCpu.pc == mergePcBeforeInvalid &&
            mergeCpu.retiredInstructions == mergeRetiredBeforeInvalid);
