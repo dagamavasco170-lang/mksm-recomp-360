@@ -20,6 +20,7 @@ constexpr std::uint32_t kScratchpadProbeStart = kGuestStart + 0x100u;
 constexpr std::uint32_t kMmiProbeStart = kGuestStart + 0x200u;
 constexpr std::uint32_t kSprDmaProbeStart = kGuestStart + 0x300u;
 constexpr std::uint32_t kLqSqProbeStart = kGuestStart + 0x400u;
+constexpr std::uint32_t kUnalignedMergeProbeStart = kGuestStart + 0x500u;
 
 constexpr std::array<std::uint32_t, 23> makeProbeWords()
 {
@@ -109,6 +110,31 @@ constexpr std::array<std::uint32_t, 6> makeLqSqProbeWords()
     };
 }
 
+constexpr std::array<std::uint32_t, 18> makeUnalignedMergeProbeWords()
+{
+    using namespace ps2::xbox360::ee::test_program::detail;
+    return {
+        iType(0x22u, 4u, 20u, 0u),  // LWL r20,0(r4), offset 0
+        iType(0x22u, 5u, 21u, 0u),  // LWL r21,0(r5), offset 1
+        iType(0x22u, 6u, 22u, 0u),  // LWL r22,0(r6), offset 2
+        iType(0x22u, 7u, 23u, 0u),  // LWL r23,0(r7), offset 3
+        iType(0x26u, 8u, 24u, 0u),  // LWR r24,0(r8), offset 0
+        iType(0x26u, 9u, 25u, 0u),  // LWR r25,0(r9), offset 1
+        iType(0x26u, 10u, 26u, 0u), // LWR r26,0(r10), offset 2
+        iType(0x26u, 11u, 27u, 0u), // LWR r27,0(r11), offset 3
+        iType(0x2Au, 12u, 2u, 0u),  // SWL r2,0(r12), offset 0
+        iType(0x2Au, 13u, 2u, 0u),  // SWL r2,0(r13), offset 1
+        iType(0x2Au, 14u, 2u, 0u),  // SWL r2,0(r14), offset 2
+        iType(0x2Au, 15u, 2u, 0u),  // SWL r2,0(r15), offset 3
+        iType(0x2Eu, 16u, 2u, 0u),  // SWR r2,0(r16), offset 0
+        iType(0x2Eu, 17u, 2u, 0u),  // SWR r2,0(r17), offset 1
+        iType(0x2Eu, 18u, 2u, 0u),  // SWR r2,0(r18), offset 2
+        iType(0x2Eu, 19u, 2u, 0u),  // SWR r2,0(r19), offset 3
+        rType(31u, 0u, 0u, 0x08u),  // JR r31
+        0u                           // delay slot: NOP
+    };
+}
+
 constexpr std::array<std::uint32_t, 57> makeSprDmaProbeWords()
 {
     using namespace ps2::xbox360::ee::test_program::detail;
@@ -160,6 +186,7 @@ bool writeFixtureElf(const std::filesystem::path &path)
     constexpr auto mmiWords = makeMmiProbeWords();
     constexpr auto sprDmaWords = makeSprDmaProbeWords();
     constexpr auto lqSqWords = makeLqSqProbeWords();
+    constexpr auto unalignedMergeWords = makeUnalignedMergeProbeWords();
     constexpr std::size_t kScratchpadOffset =
         static_cast<std::size_t>(kScratchpadProbeStart - kGuestStart);
     constexpr std::size_t kMmiOffset =
@@ -168,8 +195,10 @@ bool writeFixtureElf(const std::filesystem::path &path)
         static_cast<std::size_t>(kSprDmaProbeStart - kGuestStart);
     constexpr std::size_t kLqSqOffset =
         static_cast<std::size_t>(kLqSqProbeStart - kGuestStart);
+    constexpr std::size_t kUnalignedMergeOffset =
+        static_cast<std::size_t>(kUnalignedMergeProbeStart - kGuestStart);
     std::vector<char> textBytes(
-        kLqSqOffset + lqSqWords.size() * sizeof(std::uint32_t), 0);
+        kUnalignedMergeOffset + unalignedMergeWords.size() * sizeof(std::uint32_t), 0);
 
     const auto writeWords = [&](const auto &program, std::size_t offset)
     {
@@ -187,6 +216,7 @@ bool writeFixtureElf(const std::filesystem::path &path)
     writeWords(mmiWords, kMmiOffset);
     writeWords(sprDmaWords, kSprDmaOffset);
     writeWords(lqSqWords, kLqSqOffset);
+    writeWords(unalignedMergeWords, kUnalignedMergeOffset);
 
     ELFIO::section *text = writer.sections.add(".text");
     text->set_type(ELFIO::SHT_PROGBITS);
@@ -228,6 +258,11 @@ bool writeFixtureElf(const std::filesystem::path &path)
     symbols.add_symbol(strings, "mksm_ee_lq_sq_probe", kLqSqProbeStart,
                        static_cast<ELFIO::Elf_Word>(
                            lqSqWords.size() * sizeof(std::uint32_t)),
+                       ELFIO::STB_GLOBAL, ELFIO::STT_FUNC, 0u, text->get_index());
+    symbols.add_symbol(strings, "mksm_ee_unaligned_merge_probe",
+                       kUnalignedMergeProbeStart,
+                       static_cast<ELFIO::Elf_Word>(
+                           unalignedMergeWords.size() * sizeof(std::uint32_t)),
                        ELFIO::STB_GLOBAL, ELFIO::STT_FUNC, 0u, text->get_index());
 
     ELFIO::segment *segment = writer.segments.add();
