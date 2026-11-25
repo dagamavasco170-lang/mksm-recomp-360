@@ -304,6 +304,127 @@ inline void writeGuestMemory(std::uint8_t *rdram,
 }
 } // namespace ps2::xbox360::generated_abi
 
+// The generated Xbox ABI keeps each 128-bit GPR as two numeric little-endian
+// 64-bit halves. These helpers bridge PS2Recomp's LQ/SQ instructions directly
+// to that representation without requiring a host SIMD lane type on Xenon.
+namespace
+{
+[[nodiscard]] inline ps2::xbox360::guest_memory::Raw128
+Ps2GeneratedReadQuadword(std::uint8_t *rdram, PS2Runtime *runtime,
+                         std::uint32_t address)
+{
+    using namespace ps2::xbox360;
+    if (rdram == nullptr)
+        throw std::invalid_argument("PS2 generated ABI: null RDRAM pointer");
+
+    const std::uint32_t alignedAddress = address & ~0x0Fu;
+    guest_memory::Raw128 bytes{};
+    const auto region = rdram_address::classifyRegion(alignedAddress);
+    if (region == rdram_address::RegionKind::Rdram)
+    {
+        const auto offset = generated_abi::resolveRdramOffset(alignedAddress);
+        const std::span<const std::uint8_t> memory(
+            rdram, generated_abi::kGuestRdramSize);
+        if (!guest_memory::readRaw128(memory, offset, bytes))
+            throw std::runtime_error("PS2 generated ABI: 128-bit RDRAM read failed");
+        return bytes;
+    }
+
+    if (region == rdram_address::RegionKind::Scratchpad)
+    {
+        if (runtime == nullptr)
+            throw std::invalid_argument("PS2 generated ABI: LQ scratchpad read requires an EE runtime");
+        const auto scratchpad = runtime->eeScratchpad();
+        const auto offset = static_cast<std::size_t>(
+            rdram_address::scratchpadOffset(alignedAddress));
+        if (offset > scratchpad.size() || bytes.size() > scratchpad.size() - offset)
+            throw std::out_of_range("PS2 generated ABI: LQ crosses the scratchpad boundary");
+        for (std::size_t i = 0; i < bytes.size(); ++i)
+            bytes[i] = scratchpad[offset + i];
+        return bytes;
+    }
+
+    throw std::out_of_range("PS2 generated ABI: LQ target region is unsupported");
+}
+
+inline void Ps2GeneratedWriteQuadword(
+    std::uint8_t *rdram, PS2Runtime *runtime, std::uint32_t address,
+    const ps2::xbox360::guest_memory::Raw128 &bytes)
+{
+    using namespace ps2::xbox360;
+    if (rdram == nullptr)
+        throw std::invalid_argument("PS2 generated ABI: null RDRAM pointer");
+
+    const std::uint32_t alignedAddress = address & ~0x0Fu;
+    const auto region = rdram_address::classifyRegion(alignedAddress);
+    if (region == rdram_address::RegionKind::Rdram)
+    {
+        const auto offset = generated_abi::resolveRdramOffset(alignedAddress);
+        const std::span<std::uint8_t> memory(
+            rdram, generated_abi::kGuestRdramSize);
+        if (!guest_memory::writeRaw128(memory, offset, bytes))
+            throw std::runtime_error("PS2 generated ABI: 128-bit RDRAM write failed");
+        return;
+    }
+
+    if (region == rdram_address::RegionKind::Scratchpad)
+    {
+        if (runtime == nullptr)
+            throw std::invalid_argument("PS2 generated ABI: SQ scratchpad write requires an EE runtime");
+        const auto scratchpad = runtime->eeScratchpad();
+        const auto offset = static_cast<std::size_t>(
+            rdram_address::scratchpadOffset(alignedAddress));
+        if (offset > scratchpad.size() || bytes.size() > scratchpad.size() - offset)
+            throw std::out_of_range("PS2 generated ABI: SQ crosses the scratchpad boundary");
+        for (std::size_t i = 0; i < bytes.size(); ++i)
+            scratchpad[offset + i] = bytes[i];
+        return;
+    }
+
+    throw std::out_of_range("PS2 generated ABI: SQ target region is unsupported");
+}
+} // namespace
+
+inline void Ps2GeneratedLq(std::uint8_t *rdram, PS2Runtime *runtime,
+                           R5900Context *ctx, std::uint32_t rt,
+                           std::uint32_t address)
+{
+    if (ctx == nullptr || rt >= ctx->r.size())
+        throw std::invalid_argument("PS2 generated ABI: invalid LQ context/register");
+    const auto bytes = Ps2GeneratedReadQuadword(rdram, runtime, address);
+    if (rt == 0u)
+        return; // The memory access still takes place for LQ r0.
+
+    const std::span<const std::uint8_t> memory(bytes.data(), bytes.size());
+    std::uint64_t low{}, high{};
+    if (!ps2::xbox360::guest_memory::readLittleEndian(memory, 0u, low) ||
+        !ps2::xbox360::guest_memory::readLittleEndian(memory, 8u, high))
+        throw std::runtime_error("PS2 generated ABI: LQ byte decode failed");
+    ctx->r[rt].low64 = low;
+    ctx->r[rt].high64 = high;
+}
+
+inline void Ps2GeneratedSq(std::uint8_t *rdram, PS2Runtime *runtime,
+                           R5900Context *ctx, std::uint32_t rt,
+                           std::uint32_t address)
+{
+    if (ctx == nullptr || rt >= ctx->r.size())
+        throw std::invalid_argument("PS2 generated ABI: invalid SQ context/register");
+
+    ps2::xbox360::guest_memory::Raw128 bytes{};
+    std::uint64_t low{}, high{};
+    if (rt != 0u)
+    {
+        low = ctx->r[rt].low64;
+        high = ctx->r[rt].high64;
+    }
+    const std::span<std::uint8_t> memory(bytes.data(), bytes.size());
+    if (!ps2::xbox360::guest_memory::writeLittleEndian(memory, 0u, low) ||
+        !ps2::xbox360::guest_memory::writeLittleEndian(memory, 8u, high))
+        throw std::runtime_error("PS2 generated ABI: SQ byte encode failed");
+    Ps2GeneratedWriteQuadword(rdram, runtime, address, bytes);
+}
+
 inline std::uint32_t PS2Runtime::Load32(std::uint8_t *rdram,
                                         R5900Context *ctx,
                                         std::uint32_t address)
