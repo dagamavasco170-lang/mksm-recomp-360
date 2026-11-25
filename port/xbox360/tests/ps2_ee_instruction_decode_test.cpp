@@ -1,5 +1,6 @@
 #include "ps2_ee_instruction_decode.h"
 
+#include <array>
 #include <cassert>
 #include <cstdint>
 
@@ -44,7 +45,7 @@ int main()
     constexpr std::uint32_t lwr = (0x26u << 26u) | (2u << 21u) | (8u << 16u) | 1u;
     constexpr std::uint32_t swl = (0x2Au << 26u) | (3u << 21u) | (9u << 16u) | 2u;
     constexpr std::uint32_t swr = (0x2Eu << 26u) | (4u << 21u) | (10u << 16u) | 0u;
-    for (const auto word : {lwl, lwr, swl, swr})
+    for (const auto word : std::array<std::uint32_t, 4>{lwl, lwr, swl, swr})
         assert(decodeInstruction(word).kind == InstructionKind::LoadStore);
     assert(decodeInstruction(lwl).opcode == 0x22u &&
            decodeInstruction(lwl).rs == 1u && decodeInstruction(lwl).rt == 7u);
