@@ -102,12 +102,16 @@ namespace ps2recomp
         void writeCombinedOutputPreamble(std::ostream &output)
         {
             output << "#include <stdexcept>\n";
-            output << "#include \"ps2_recompiled_functions.h\"\n\n";
+            output << "#if defined(PS2X_GENERATED_RUNTIME_ABI)\n";
+            output << "#include \"ps2_generated_runtime_abi.h\"\n";
+            output << "#else\n";
+            output << "#include \"ps2_recompiled_functions.h\"\n";
             output << "#include \"ps2_runtime_macros.h\"\n";
             output << "#include \"ps2_runtime.h\"\n";
             output << "#include \"ps2_recompiled_stubs.h\"\n";
             output << "#include \"ps2_syscalls.h\"\n";
             output << "#include \"ps2_stubs.h\"\n";
+            output << "#endif\n";
             output << "#ifdef _DEBUG\n";
             output << "#include \"ps2_log.h\"\n";
             output << "#endif\n";

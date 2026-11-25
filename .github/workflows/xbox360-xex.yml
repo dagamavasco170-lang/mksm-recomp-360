@@ -1,0 +1,269 @@
+name: Xbox 360 smoke XEX build
+
+on:
+  push:
+    branches: [xbox360/bootstrap]
+    paths:
+      - "port/xbox360/**"
+      - "ps2xRecomp/**"
+      - "ps2xRuntime/include/**"
+      - ".github/workflows/xbox360-xex.yml"
+  pull_request:
+    branches: [main, xbox360/bootstrap]
+    paths:
+      - "port/xbox360/**"
+      - "ps2xRecomp/**"
+      - "ps2xRuntime/include/**"
+      - ".github/workflows/xbox360-xex.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: xbox360-xex-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-smoke-xex:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      XSDK_COMMIT: 9e6de98f6b5d737bce0fecd2864edae94bdd2637
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache xSDK source and toolchain
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/xsdk
+            ~/xsdk-gcc
+          key: xsdk-ubuntu24-${{ env.XSDK_COMMIT }}
+      - name: Install build prerequisites (cache miss)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential bison flex texinfo libgmp-dev libmpfr-dev libmpc-dev curl xz-utils patch python3 cmake ninja-build git
+      - name: Clone pinned xSDK (cache miss)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/xenosworks/xsdk.git "$HOME/xsdk"
+          git -C "$HOME/xsdk" checkout "$XSDK_COMMIT"
+      - name: Build toolchain (cache miss)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cd "$HOME/xsdk"
+          PREFIX="$HOME/xsdk-gcc" WORK="$HOME/xsdk-gcc-work" JOBS="$(nproc)" bash tools/toolchain/build.sh
+      - name: Build xSDK host tools/runtime
+        run: cd "$HOME/xsdk" && make -j"$(nproc)"
+      - name: Configure host PS2Recomp code-generation fixture
+        run: |
+          cmake -S . -B build/xbox360-codegen -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPS2X_BUILD_RUNTIME=OFF \
+            -DPS2X_BUILD_ANALYZER=OFF \
+            -DPS2X_BUILD_TEST=OFF \
+            -DPS2X_BUILD_STUDIO=OFF \
+            -DPS2X_BUILD_XBOX360_CODEGEN_PROBE=ON
+      - name: Generate and execute desktop reference function
+        run: cmake --build build/xbox360-codegen --target mksm_xbox360_codegen_probe mksm_xbox360_codegen_memory_probe --parallel 2
+      - name: Execute generated EE function with Xenon memory ABI on host
+        run: build/xbox360-codegen/ps2xRecomp/mksm_xbox360_codegen_memory_probe
+      - name: Configure smoke target
+        run: |
+          cmake -S port/xbox360 -B build/xbox360 -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$HOME/xsdk/cmake/xsdk.cmake" \
+            -DXSDK_TOOLCHAIN="$HOME/xsdk-gcc" -DCMAKE_BUILD_TYPE=Release \
+            -DMKSM_XBOX360_GENERATED_DIR="$GITHUB_WORKSPACE/build/xbox360-codegen/xbox360-codegen-probe/generated"
+      - name: Build XEX
+        run: cmake --build build/xbox360 --parallel
+      - name: Upload smoke XEX
+        uses: actions/upload-artifact@v4
+        with:
+          name: mksm-xbox360-smoke-xex
+          path: build/xbox360/mksm_xbox360_smoke.xex
+          if-no-files-found: error
+          retention-days: 7
+      - name: Configure Xenia headless diagnostics target
+        run: |
+          cmake -S port/xbox360 -B build/xbox360-xenia -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$HOME/xsdk/cmake/xsdk.cmake" \
+            -DXSDK_TOOLCHAIN="$HOME/xsdk-gcc" -DCMAKE_BUILD_TYPE=Release \
+            -DMKSM_XBOX360_GENERATED_DIR="$GITHUB_WORKSPACE/build/xbox360-codegen/xbox360-codegen-probe/generated" \
+            -DMKSM_XENIA_HEADLESS_SMOKE=ON
+      - name: Build Xenia headless diagnostics XEX
+        run: cmake --build build/xbox360-xenia --parallel
+      - name: Upload Xenia headless diagnostics XEX
+        uses: actions/upload-artifact@v4
+        with:
+          name: mksm-xbox360-xenia-smoke-xex
+          path: build/xbox360-xenia/mksm_xbox360_smoke.xex
+          if-no-files-found: error
+          retention-days: 7
+  xenia-emulator-smoke:
+    needs: build-smoke-xex
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - name: Download Xenia headless diagnostics XEX
+        uses: actions/download-artifact@v4
+        with:
+          name: mksm-xbox360-xenia-smoke-xex
+          path: smoke
+      - name: Download latest Xenia Canary (Windows)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = 'https://github.com/xenia-canary/xenia-canary/releases/latest/download/xenia_canary_windows.7z'
+          Invoke-WebRequest -Uri $url -OutFile xenia.7z
+          $sevenZip = (Get-Command 7z.exe -ErrorAction SilentlyContinue).Source
+          if (-not $sevenZip) { $sevenZip = 'C:\Program Files\7-Zip\7z.exe' }
+          if (-not (Test-Path $sevenZip)) { throw '7-Zip was not found on the runner.' }
+          & $sevenZip x xenia.7z '-oxenia' -y | Out-Host
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to extract Xenia Canary.' }
+          $exe = Get-ChildItem xenia -Recurse -Filter xenia_canary.exe | Select-Object -First 1
+          if (-not $exe) { throw 'xenia_canary.exe not found in downloaded archive.' }
+          "XENIA_EXE=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          $xeniaDir = Split-Path $exe.FullName
+          # Canary reads this exact filename. The previous workflow wrote a misspelled config filename.
+          New-Item -ItemType File -Force -Path (Join-Path $xeniaDir 'portable.txt') | Out-Null
+          # Xenia Canary shows a blocking first-run disclaimer on Windows.
+          # Pre-acknowledge it in this ephemeral CI user's registry so the
+          # non-interactive runner can initialize the emulator normally.
+          $flagsPath = 'HKCU:\Software\Xenia'
+          New-Item -Path $flagsPath -Force | Out-Null
+          New-ItemProperty -LiteralPath $flagsPath -Name 'XEFLAGS' -PropertyType QWord -Value ([long]1) -Force | Out-Null
+          "XENIA_XEFLAGS=$((Get-ItemProperty -LiteralPath $flagsPath).XEFLAGS)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          @'
+          [General]
+          discord = false
+
+          [APU]
+          apu = "nop"
+
+          [GPU]
+          gpu = "null"
+
+          [HID]
+          hid = "nop"
+
+          [Logging]
+          flush_log = true
+          log_level = 3
+          log_to_debugprint = true
+          '@ | Set-Content -Path (Join-Path $xeniaDir 'xenia-canary.config.toml') -Encoding utf8
+          Get-Content (Join-Path $xeniaDir 'xenia-canary.config.toml')
+      - name: Run XEX and require guest diagnostic pass markers
+        id: emulator
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $logRoot = Join-Path $PWD 'emulator-logs'
+          New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
+          $xex = (Resolve-Path 'smoke/mksm_xbox360_smoke.xex').Path
+          # xSDK sends the title log to Xenia's cache folder; dbgprint.txt routes
+          # the same lines through the guest DbgPrint path into xenia.log.
+          New-Item -ItemType File -Force -Path (Join-Path (Split-Path $xex) 'dbgprint.txt') | Out-Null
+          $exe = $env:XENIA_EXE
+          if (-not $exe -or -not (Test-Path $exe)) { throw 'Xenia executable path missing.' }
+          $xeniaDir = Split-Path $exe
+          $xeniaLog = Join-Path $xeniaDir 'xenia.log'
+          $stdoutPath = Join-Path $logRoot 'stdout.txt'
+          $proc = $null
+          $stoppedByCi = $false
+          $failure = $null
+          $passed = $false
+          try {
+            "Launching Xenia Canary with headless diagnostics XEX: $xex" | Tee-Object (Join-Path $logRoot 'summary.txt')
+            # Xenia expects the XEX path before launch flags; stdout captures
+            # emulator and guest DbgPrint lines for the CI poller.
+            $argumentLine = '"{0}" --log_file=stdout --log_level=3' -f $xex
+            $proc = Start-Process -FilePath $exe -ArgumentList $argumentLine -WorkingDirectory $xeniaDir -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError (Join-Path $logRoot 'stderr.txt')
+            $processInfo = Get-CimInstance Win32_Process -Filter "ProcessId=$($proc.Id)" -ErrorAction SilentlyContinue
+            if ($processInfo) { "XENIA_COMMANDLINE=$($processInfo.CommandLine)" | Add-Content (Join-Path $logRoot 'summary.txt') }
+            $deadline = [DateTime]::UtcNow.AddSeconds(90)
+            $content = ''
+            while ([DateTime]::UtcNow -lt $deadline) {
+              $content = ''
+              $sources = @($stdoutPath, $xeniaLog)
+              $titleLogs = @(Get-ChildItem $xeniaDir -Recurse -File -Filter 'mksm_xbox360_smoke.log' -ErrorAction SilentlyContinue)
+              foreach ($titleLog in $titleLogs) { $sources += $titleLog.FullName }
+              foreach ($source in ($sources | Select-Object -Unique)) {
+                if (Test-Path $source) {
+                  $part = Get-Content $source -Raw -ErrorAction SilentlyContinue
+                  if ($part) { $content += $part + [Environment]::NewLine }
+                }
+              }
+              if ($content -match 'MKSM_XENIA_SMOKE_PASS') { $passed = $true; break }
+              $proc.Refresh()
+              if ($proc.HasExited) {
+                $failure = "Xenia exited before the guest PASS marker (exit code $($proc.ExitCode))."
+                break
+              }
+              Start-Sleep -Seconds 2
+            }
+            if (-not $passed -and -not $failure) {
+              $failure = 'Timed out after 90 seconds without MKSM_XENIA_SMOKE_PASS.'
+            }
+            if ($passed) {
+              $required = @(
+                'MKSM_XEX_ENTRY mode=xenia-headless',
+                'MKSM_EE_TRACE signature=4F63CD2AAFC519CE failures=00000000',
+                'MKSM_EE_LQ_SQ_TRACE failures=00000000',
+                'MKSM_EE_UNALIGNED_MERGE_TRACE failures=00000000',
+                'MKSM_RECOMP_XENON_TRACE failures=00000000',
+                'MKSM_RECOMP_LQ_SQ_TRACE failures=00000000',
+                'MKSM_RECOMP_UNALIGNED_MERGE_TRACE failures=00000000',
+                'MKSM_SPR_DMA_TRACE failures=00000000',
+                'MKSM_SPR_DMA_GENERATED_TRACE failures=00000000',
+                'MKSM_XENIA_GRAPHICS_SKIPPED',
+                'MKSM_XENIA_SMOKE_PASS'
+              )
+              foreach ($pattern in $required) {
+                if ($content -notmatch $pattern) {
+                  $failure = "Guest PASS marker found, but required trace was missing: $pattern"
+                  $passed = $false
+                  break
+                }
+              }
+            }
+            if ($passed) {
+              'XENIA_RESULT=PASS; guest main reached the end of the headless diagnostics path.' | Add-Content (Join-Path $logRoot 'summary.txt')
+            }
+          } catch {
+            $failure = $_.Exception.Message
+          } finally {
+            if ($proc) {
+              $proc.Refresh()
+              if (-not $proc.HasExited) {
+                $stoppedByCi = $true
+                Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+              }
+              $proc.Refresh()
+              "XENIA_PROCESS_EXITED=$($proc.HasExited)" | Add-Content (Join-Path $logRoot 'summary.txt')
+              "XENIA_STOPPED_BY_CI=$stoppedByCi" | Add-Content (Join-Path $logRoot 'summary.txt')
+              if ($proc.HasExited) { "XENIA_PROCESS_EXIT_CODE=$($proc.ExitCode)" | Add-Content (Join-Path $logRoot 'summary.txt') }
+            }
+            if ($failure) { "XENIA_FAILURE=$failure" | Add-Content (Join-Path $logRoot 'summary.txt') }
+            if (Test-Path $xeniaLog) { Copy-Item $xeniaLog (Join-Path $logRoot 'xenia.log') -Force }
+            $titleLogs = @(Get-ChildItem $xeniaDir -Recurse -File -Filter 'mksm_xbox360_smoke.log' -ErrorAction SilentlyContinue)
+            "XENIA_TITLE_LOG_COUNT=$($titleLogs.Count)" | Add-Content (Join-Path $logRoot 'summary.txt')
+            foreach ($titleLog in $titleLogs) { Copy-Item $titleLog.FullName $logRoot -Force }
+            Get-ChildItem $xeniaDir -Recurse -File -Filter '*.log' -ErrorAction SilentlyContinue |
+              ForEach-Object { if ($_.FullName -ne $xeniaLog) { Copy-Item $_.FullName $logRoot -Force -ErrorAction SilentlyContinue } }
+            Get-ChildItem smoke -Recurse -File -Filter '*.log' -ErrorAction SilentlyContinue |
+              ForEach-Object { Copy-Item $_.FullName $logRoot -Force -ErrorAction SilentlyContinue }
+            if (Test-Path (Join-Path $logRoot 'summary.txt')) {
+              Get-ChildItem $logRoot -Force | Format-Table Name,Length | Out-String | Add-Content (Join-Path $logRoot 'summary.txt')
+            }
+          }
+          if ($failure) { throw $failure }
+      - name: Upload Xenia logs (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xenia-emulator-smoke-logs
+          path: emulator-logs
+          if-no-files-found: warn
+          retention-days: 7
