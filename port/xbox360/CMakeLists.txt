@@ -10,6 +10,9 @@ endif()
 option(MKSM_XENIA_HEADLESS_SMOKE
     "Build a finite diagnostics-only XEX for Xenia CI (no Xenos presentation)" OFF)
 
+set(MKSM_DISC_ROOT "" CACHE STRING
+    "Optional extracted retail disc root compiled into the smoke XEX (e.g. H:/MKSM)")
+
 add_executable(mksm_xbox360_smoke
     smoke.cpp
     ps2_pad_xbox360.cpp
@@ -57,6 +60,10 @@ if(MKSM_XENIA_HEADLESS_SMOKE)
 endif()
 
 target_compile_features(mksm_xbox360_smoke PRIVATE cxx_std_20)
+if(MKSM_DISC_ROOT)
+    target_compile_definitions(mksm_xbox360_smoke PRIVATE
+        MKSM_DISC_ROOT_CONFIGURED="${MKSM_DISC_ROOT}")
+endif()
 target_compile_options(mksm_xbox360_smoke PRIVATE -Wall -Wextra -Werror)
 
 xsdk_add_xex(mksm_xbox360_smoke
