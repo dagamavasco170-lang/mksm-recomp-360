@@ -62,7 +62,7 @@ endif()
 target_compile_features(mksm_xbox360_smoke PRIVATE cxx_std_20)
 if(MKSM_DISC_ROOT)
     target_compile_definitions(mksm_xbox360_smoke PRIVATE
-        MKSM_DISC_ROOT_CONFIGURED="${MKSM_DISC_ROOT}")
+        MKSM_DISC_ROOT_CONFIGURED=\\\"${MKSM_DISC_ROOT}\\\")
 endif()
 target_compile_options(mksm_xbox360_smoke PRIVATE -Wall -Wextra -Werror)
 
