@@ -46,3 +46,13 @@ void PS2Runtime::Store64(std::uint8_t *, R5900Context *, std::uint32_t, std::uin
 {
     throw std::logic_error("codegen fixture unexpectedly used PS2Runtime::Store64");
 }
+
+__m128i PS2Runtime::Load128(std::uint8_t *, R5900Context *, std::uint32_t)
+{
+    throw std::logic_error("codegen fixture unexpectedly used PS2Runtime::Load128");
+}
+
+void PS2Runtime::Store128(std::uint8_t *, R5900Context *, std::uint32_t, __m128i)
+{
+    throw std::logic_error("codegen fixture unexpectedly used PS2Runtime::Store128");
+}
