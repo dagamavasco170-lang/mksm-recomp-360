@@ -207,6 +207,7 @@ jobs:
                 'MKSM_EE_UNALIGNED_MERGE_TRACE failures=00000000',
                 'MKSM_RECOMP_XENON_TRACE failures=00000000',
                 'MKSM_RECOMP_LQ_SQ_TRACE failures=00000000',
+                'MKSM_RECOMP_UNALIGNED_MERGE_TRACE failures=00000000',
                 'MKSM_SPR_DMA_TRACE failures=00000000',
                 'MKSM_SPR_DMA_GENERATED_TRACE failures=00000000',
                 'MKSM_XENIA_GRAPHICS_SKIPPED',
