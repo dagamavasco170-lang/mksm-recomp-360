@@ -23,7 +23,7 @@ enum class SpecialOperation : std::uint8_t
 {
     Unknown, Sll, Srl, Sra, Sllv, Srlv, Srav, Jr, Jalr, Movz, Movn,
     Syscall, Break, Sync, Mfhi, Mthi, Mflo, Mtlo, Mult, Multu, Div, Divu,
-    Add, Addu, Sub, Subu, And, Or, Xor, Nor, Slt, Sltu, Dsll, Dsrl, Dsra, Dsll32, Dsrl32, Dsra32
+    Add, Addu, Sub, Subu, And, Or, Xor, Nor, Slt, Sltu, Dsll, Dsrl, Dsra, Dsll32, Dsrl32, Dsra32, Dsllv, Dsrlv, Dsrav
 };
 enum class MmiSubfamily : std::uint8_t { Unknown, Mmi, Mmi0, Mmi2, Mmi1, Mmi3 };
 
@@ -83,6 +83,9 @@ struct DecodedInstruction
         case 0x11: d.special = SpecialOperation::Mthi; break;
         case 0x12: d.special = SpecialOperation::Mflo; break;
         case 0x13: d.special = SpecialOperation::Mtlo; break;
+        case 0x14: d.special = SpecialOperation::Dsllv; break;
+        case 0x16: d.special = SpecialOperation::Dsrlv; break;
+        case 0x17: d.special = SpecialOperation::Dsrav; break;
         case 0x18: d.special = SpecialOperation::Mult; break;
         case 0x19: d.special = SpecialOperation::Multu; break;
         case 0x1A: d.special = SpecialOperation::Div; break;
