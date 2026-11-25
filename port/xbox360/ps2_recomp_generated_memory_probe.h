@@ -184,7 +184,7 @@ struct Ps2GeneratedMemoryProbeResult
         SET_GPR_U32(&quadContext, 1u, baseAddress);
         quadContext.r[2].low64 = kQuadLow;
         quadContext.r[2].high64 = kQuadHigh;
-        mksm_ee_lq_sq_probe(rdram.data(), &quadContext, runtime);
+        mksm_ee_lq_sq_probe_0x100400(rdram.data(), &quadContext, runtime);
 
         bool ok = quadContext.pc == kReturnPc && !quadContext.in_delay_slot &&
                   GPR_U32(&quadContext, 0u) == 0u &&
