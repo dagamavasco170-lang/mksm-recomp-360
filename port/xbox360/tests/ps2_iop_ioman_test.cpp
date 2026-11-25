@@ -58,13 +58,13 @@ int main()
                           0u, 0u, ram) == -EBADF);
 
     // Exhaust the descriptor table and verify deterministic EMFILE behavior.
-    std::array<std::int32_t, RetailFileIo::MaxOpenFiles> descriptors{};
+    std::array<std::int32_t, ps2::xbox360::iop::RetailFileIo::MaxOpenFiles> descriptors{};
     for (auto &descriptor : descriptors)
     {
         descriptor = ioman.dispatch(IomanCommand::Open, 8u, 1u, 0u, ram);
-        assert(descriptor >= RetailFileIo::FirstDescriptor);
+        assert(descriptor >= ps2::xbox360::iop::RetailFileIo::FirstDescriptor);
     }
-    assert(ioman.openFileCount() == RetailFileIo::MaxOpenFiles);
+    assert(ioman.openFileCount() == ps2::xbox360::iop::RetailFileIo::MaxOpenFiles);
     assert(ioman.dispatch(IomanCommand::Open, 8u, 1u, 0u, ram) == -EMFILE);
     for (const auto descriptor : descriptors)
         assert(ioman.dispatch(IomanCommand::Close, static_cast<std::uint32_t>(descriptor),
