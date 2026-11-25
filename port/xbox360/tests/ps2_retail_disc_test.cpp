@@ -38,6 +38,9 @@ int main()
     assert(disc.fileSize("GAMEDATA.WAD", size) == FileStatus::Ok && size == 8u);
     assert(disc.exists("IOP/SIO2MAN.IRX"));
     assert(disc.exists("IOP\\SIO2MAN.IRX"));
+    assert(disc.exists("cdrom0:/IOP/SIO2MAN.IRX;1"));
+    assert(disc.exists("CDROM0:\\\\IOP\\\\SIO2MAN.IRX;1"));
+    assert(disc.exists("cdrom1:IOP/SIO2MAN.IRX"));
 
     std::array<std::uint8_t, 4> slice{};
     assert(disc.read("GAMEDATA.WAD", 2u, slice) == FileStatus::Ok);
