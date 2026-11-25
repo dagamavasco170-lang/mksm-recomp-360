@@ -16,6 +16,8 @@ copy should be byte-swapped. Byte buffers must remain byte-exact.
 - [x] Focused host compiler check for scalar 16/32/64-bit read/write passed.
 - [ ] Run full existing PS2 memory/runtime test suite after integration.
 - [ ] Audit direct native guest-memory reads (instruction fetch, ELF parsing, DMA tags, GIF/VIF packets, packed structures and floating-point bit patterns).
+- [ ] Audit 128-bit guest-memory operations: `read128`/`write128` still use x86 SSE intrinsics (`_mm_loadu_si128`, `_mm_storeu_si128`, `_mm_extract_epi64`). A Xenon port must replace or abstract these while preserving PS2 vector byte/lane semantics; do not assume a raw PPC vector load is equivalent.
+- [ ] Audit vector representation across CPU/VU code before selecting a Xenon SIMD abstraction. A scalar byte-copy fallback is a useful correctness baseline, but only after tests define lane ordering and behavior.
 - [ ] Xenon cross-build and hardware validation on RGH/JTAG.
 
 The change preserves the scalar values and byte layout on little-endian hosts while
