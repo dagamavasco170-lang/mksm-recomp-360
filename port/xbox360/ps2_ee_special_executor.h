@@ -37,6 +37,20 @@ enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
         if (simd::readLane<std::uint32_t>(rt, 0) == 0u) writesRd = false;
         else result = rs;
         break;
+    case SpecialOperation::Mfhi:
+        result = state.hilo.hi;
+        break;
+    case SpecialOperation::Mflo:
+        result = state.hilo.lo;
+        break;
+    case SpecialOperation::Mthi:
+        state.pmthi(d.rs);
+        writesRd = false;
+        break;
+    case SpecialOperation::Mtlo:
+        state.pmtlo(d.rs);
+        writesRd = false;
+        break;
     case SpecialOperation::Sll:
         simd::writeLane<std::uint32_t>(result, 0, simd::readLane<std::uint32_t>(rt, 0) << d.sa);
         break;
