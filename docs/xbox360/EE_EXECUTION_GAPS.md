@@ -5,7 +5,7 @@ This inventory reflects the Xbox bootstrap dispatcher/executors at the time of i
 ## Implemented, focused-test coverage
 
 - Immediate operations: ADDIU, SLTI, SLTIU, ANDI, ORI, XORI, LUI.
-- SPECIAL slice: logical operations, MOVZ/MOVN, basic 32-bit shifts, ADDU/SUBU, SLT/SLTU, and scalar MFHI/MFLO/MTHI/MTLO transfers.
+- SPECIAL slice: logical operations, MOVZ/MOVN, basic 32-bit shifts, ADDU/SUBU, SLT/SLTU, scalar MFHI/MFLO/MTHI/MTLO transfers, MULT/MULTU and DIV/DIVU.
 - Scalar HI/LO transfers copy only the low 64 bits and preserve upper 64-bit MMI state; distinct from full 128-bit MMI PMFHI/PMFLO/PMTHI/PMTLO helpers.
 - Control flow: J/JAL, JR/JALR, BEQ/BNE/BLEZ/BGTZ and selected REGIMM branches with delay-slot handling; branch-in-delay control flow is deliberately rejected.
 - Load/store slice: LB/LBU/LH/LHU/LW/LWU, SB/SH/SW, LWL/LWR/SWL/SWR, LQ/SQ byte transfer, plus focused generated-ABI RDRAM and scratchpad scalar probes.
@@ -13,7 +13,7 @@ This inventory reflects the Xbox bootstrap dispatcher/executors at the time of i
 
 ## Decoder/executor audit (next test gate)
 
-A source audit confirms SPECIAL encodings for MULT, MULTU, DIV, DIVU, trapping ADD/SUB, SYSCALL, BREAK, SYNC, and DSLL/DSRL/DSRA are recognized by the decoder, while the current SPECIAL executor does not implement them and returns Unsupported. Existing focused tests cover selected implemented instructions and verify Unsupported is atomic for ADD and non-SPECIAL inputs. Coverage is not yet exhaustive across all SPECIAL function encodings or parameter combinations.
+A source audit confirms SPECIAL encodings for trapping ADD/SUB, SYSCALL, BREAK, SYNC, and DSLL/DSRL/DSRA are recognized by the decoder but not implemented by the current SPECIAL executor. MULT/MULTU and DIV/DIVU have focused implementations and tests. Existing focused tests cover selected implemented instructions and verify Unsupported is atomic for ADD and non-SPECIAL inputs. Coverage is not yet exhaustive across all SPECIAL function encodings or parameter combinations.
 
 The next test addition should enumerate the 64 SPECIAL function codes (with valid operand fields), compare decoded operations against an explicit implemented-operation allowlist, and assert executor behavior: implemented entries retire exactly once and advance PC; gaps return Unsupported with PC, retirement count, and destination/HI/LO state unchanged. Keep malformed/reserved encodings separate from recognized-but-unimplemented instructions.
 
@@ -26,7 +26,7 @@ The next test addition should enumerate the 64 SPECIAL function codes (with vali
 ## Known gaps and risks
 
 - COP0/COP1/COP2 are decoded into categories but not dispatched by the execution step. COP0 exception/status behavior and COP2/VU transfers may be critical.
-- SPECIAL gaps include trapping ADD/SUB, MULT/MULTU/DIV/DIVU, SYSCALL/BREAK/SYNC, and 64-bit shifts.
+- SPECIAL gaps include trapping ADD/SUB, SYSCALL/BREAK/SYNC, and 64-bit shifts.
 - Generated runtime ABI shim is partial: no complete R5900Context, MMIO, scheduling, IOP, VU/GS, DMAC scratchpad, full MMI, or exception/syscall implementation.
 - LQ/SQ in focused dispatcher path move raw 128-bit bytes. The separate generated-code ABI probe does not establish full LQ/SQ coverage for all emitted code paths.
 - Delay-slot, exception, interrupt, and privileged-state semantics remain incomplete. Unsupported instructions must fail visibly, not act as no-ops.
