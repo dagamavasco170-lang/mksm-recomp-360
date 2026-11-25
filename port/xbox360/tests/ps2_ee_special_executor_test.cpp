@@ -152,7 +152,11 @@ int main()
     const auto divZeroHi = state.hilo.hi;
     assert(executeSpecial(state, divuDecoded) == ExecuteStatus::Unsupported);
     assert(state.pc == divZeroPc && state.retiredInstructions == divZeroRetired);
-    for (std::size_t byte = 0; byte < 16; ++byte)\n    {\n        assert(state.hilo.lo.bytes[byte] == divZeroLo.bytes[byte]);\n        assert(state.hilo.hi.bytes[byte] == divZeroHi.bytes[byte]);\n    }
+    for (std::size_t byte = 0; byte < 16; ++byte)
+    {
+        assert(state.hilo.lo.bytes[byte] == divZeroLo.bytes[byte]);
+        assert(state.hilo.hi.bytes[byte] == divZeroHi.bytes[byte]);
+    }
 
     // R5900 64-bit shifts operate on GPR low64 and preserve its upper 64 bits.
     writeLow64(state.gpr[2], 0x8000000000000001ull);
