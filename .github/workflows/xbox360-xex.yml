@@ -139,6 +139,9 @@ jobs:
           $logRoot = Join-Path $PWD 'emulator-logs'
           New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
           $xex = (Resolve-Path 'smoke/mksm_xbox360_smoke.xex').Path
+          # xSDK sends the title log to Xenia's cache folder; dbgprint.txt routes
+          # the same lines through the guest DbgPrint path into xenia.log.
+          New-Item -ItemType File -Force -Path (Join-Path (Split-Path $xex) 'dbgprint.txt') | Out-Null
           $exe = $env:XENIA_EXE
           if (-not $exe -or -not (Test-Path $exe)) { throw 'Xenia executable path missing.' }
           $xeniaDir = Split-Path $exe
@@ -152,12 +155,18 @@ jobs:
             "Launching Xenia Canary with headless diagnostics XEX: $xex" | Tee-Object (Join-Path $logRoot 'summary.txt')
             # Xenia documents --log_file=stdout; put flags before the XEX path so
             # both emulator and guest DbgPrint lines are visible to the CI poller.
-            $proc = Start-Process -FilePath $exe -ArgumentList @($xex, '--log_file=stdout', '--log_level=3') -WorkingDirectory $xeniaDir -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError (Join-Path $logRoot 'stderr.txt')
+            $argumentLine = '"{0}" --log_file=stdout --log_level=3' -f $xex
+            $proc = Start-Process -FilePath $exe -ArgumentList $argumentLine -WorkingDirectory $xeniaDir -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError (Join-Path $logRoot 'stderr.txt')
+            $processInfo = Get-CimInstance Win32_Process -Filter "ProcessId=$($proc.Id)" -ErrorAction SilentlyContinue
+            if ($processInfo) { "XENIA_COMMANDLINE=$($processInfo.CommandLine)" | Add-Content (Join-Path $logRoot 'summary.txt') }
             $deadline = [DateTime]::UtcNow.AddSeconds(90)
             $content = ''
             while ([DateTime]::UtcNow -lt $deadline) {
               $content = ''
-              foreach ($source in @($stdoutPath, $xeniaLog)) {
+              $sources = @($stdoutPath, $xeniaLog)
+              $titleLogs = @(Get-ChildItem $xeniaDir -Recurse -File -Filter 'mksm_xbox360_smoke.log' -ErrorAction SilentlyContinue)
+              foreach ($titleLog in $titleLogs) { $sources += $titleLog.FullName }
+              foreach ($source in ($sources | Select-Object -Unique)) {
                 if (Test-Path $source) {
                   $part = Get-Content $source -Raw -ErrorAction SilentlyContinue
                   if ($part) { $content += $part + [Environment]::NewLine }
@@ -211,6 +220,9 @@ jobs:
             }
             if ($failure) { "XENIA_FAILURE=$failure" | Add-Content (Join-Path $logRoot 'summary.txt') }
             if (Test-Path $xeniaLog) { Copy-Item $xeniaLog (Join-Path $logRoot 'xenia.log') -Force }
+            $titleLogs = @(Get-ChildItem $xeniaDir -Recurse -File -Filter 'mksm_xbox360_smoke.log' -ErrorAction SilentlyContinue)
+            "XENIA_TITLE_LOG_COUNT=$($titleLogs.Count)" | Add-Content (Join-Path $logRoot 'summary.txt')
+            foreach ($titleLog in $titleLogs) { Copy-Item $titleLog.FullName $logRoot -Force }
             Get-ChildItem $xeniaDir -Recurse -File -Filter '*.log' -ErrorAction SilentlyContinue |
               ForEach-Object { if ($_.FullName -ne $xeniaLog) { Copy-Item $_.FullName $logRoot -Force -ErrorAction SilentlyContinue } }
             Get-ChildItem smoke -Recurse -File -Filter '*.log' -ErrorAction SilentlyContinue |
