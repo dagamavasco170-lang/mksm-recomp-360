@@ -135,9 +135,58 @@ private:
         {
             if (character == '\\')
                 character = '/';
-            if (character == ':')
-                return false;
         }
+
+        // PS2 file APIs commonly pass paths such as
+        // "cdrom0:\\IOP\\MODULE.IRX;1". Strip only the optical-disc
+        // device prefix; never accept arbitrary host drive/device paths.
+        const auto startsWithAsciiInsensitive = [](std::string_view value,
+                                                   std::string_view prefix)
+        {
+            if (value.size() < prefix.size())
+                return false;
+            for (std::size_t i = 0; i < prefix.size(); ++i)
+            {
+                const auto lower = [](unsigned char c)
+                {
+                    return c >= 'A' && c <= 'Z'
+                               ? static_cast<unsigned char>(c - 'A' + 'a')
+                               : c;
+                };
+                if (lower(static_cast<unsigned char>(value[i])) !=
+                    lower(static_cast<unsigned char>(prefix[i])))
+                    return false;
+            }
+            return true;
+        };
+        if (startsWithAsciiInsensitive(normalized, "cdrom0:") ||
+            startsWithAsciiInsensitive(normalized, "cdrom1:"))
+        {
+            normalized.erase(0u, 7u);
+        }
+
+        const std::size_t version = normalized.find_last_of(';');
+        if (version != std::string::npos && version + 1u < normalized.size())
+        {
+            bool numericVersion = true;
+            for (std::size_t i = version + 1u; i < normalized.size(); ++i)
+            {
+                if (normalized[i] < '0' || normalized[i] > '9')
+                {
+                    numericVersion = false;
+                    break;
+                }
+            }
+            if (numericVersion)
+                normalized.erase(version);
+        }
+
+        while (!normalized.empty() && normalized.front() == '/')
+            normalized.erase(normalized.begin());
+        if (normalized.empty())
+            return false;
+        if (normalized.find(':') != std::string::npos)
+            return false;
 
         const std::filesystem::path relative(normalized);
         if (relative.is_absolute() || relative.has_root_name() ||
