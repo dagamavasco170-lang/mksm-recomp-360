@@ -6,6 +6,20 @@
 using namespace ps2::xbox360::ee;
 namespace simd = ps2::xbox360::simd;
 
+static void writeLow64(simd::Vector128 &value, std::uint64_t bits)
+{
+    for (std::size_t i = 0; i < 8; ++i)
+        value.bytes[i] = static_cast<std::uint8_t>(bits >> (i * 8u));
+}
+
+static std::uint64_t readLow64(const simd::Vector128 &value)
+{
+    std::uint64_t bits = 0;
+    for (std::size_t i = 0; i < 8; ++i)
+        bits |= static_cast<std::uint64_t>(value.bytes[i]) << (i * 8u);
+    return bits;
+}
+
 static std::uint32_t encodeSpecial(std::uint8_t rs, std::uint8_t rt, std::uint8_t rd,
                                   std::uint8_t sa, std::uint8_t funct)
 {
@@ -115,30 +129,30 @@ int main()
         assert(state.gpr[19].bytes[byte] == 0xBB);
 
     // EE DIV: signed quotient truncates toward zero; remainder follows dividend.
-    simd::writeLane<std::uint64_t>(state.gpr[1], 0, 0xFFFFFFFFFFFFFFF9ull); // -7
-    simd::writeLane<std::uint64_t>(state.gpr[2], 0, 3ull);
+    writeLow64(state.gpr[1], 0xFFFFFFFFFFFFFFF9ull); // -7
+    writeLow64(state.gpr[2], 3ull);
     auto divDecoded = decodeInstruction(encodeSpecial(1, 2, 0, 0, 0x1A));
     assert(executeSpecial(state, divDecoded) == ExecuteStatus::Executed);
-    assert(simd::readLane<std::uint64_t>(state.hilo.lo, 0) == 0xFFFFFFFFFFFFFFFEull);
-    assert(simd::readLane<std::uint64_t>(state.hilo.hi, 0) == 0xFFFFFFFFFFFFFFFFull);
+    assert(readLow64(state.hilo.lo) == 0xFFFFFFFFFFFFFFFEull);
+    assert(readLow64(state.hilo.hi) == 0xFFFFFFFFFFFFFFFFull);
 
     // EE DIVU uses unsigned 32-bit operands but sign-extends the 32-bit results.
-    simd::writeLane<std::uint64_t>(state.gpr[1], 0, 0xFFFFFFFFFFFFFFFFull);
-    simd::writeLane<std::uint64_t>(state.gpr[2], 0, 2ull);
+    writeLow64(state.gpr[1], 0xFFFFFFFFFFFFFFFFull);
+    writeLow64(state.gpr[2], 2ull);
     auto divuDecoded = decodeInstruction(encodeSpecial(1, 2, 0, 0, 0x1B));
     assert(executeSpecial(state, divuDecoded) == ExecuteStatus::Executed);
     assert(simd::readLane<std::uint64_t>(state.hilo.lo, 0) == 0x000000007FFFFFFFull);
     assert(simd::readLane<std::uint64_t>(state.hilo.hi, 0) == 1ull);
 
     // A zero divisor is architecturally undefined: reject atomically.
-    simd::writeLane<std::uint64_t>(state.gpr[2], 0, 0ull);
+    writeLow64(state.gpr[2], 0ull);
     const auto divZeroPc = state.pc;
     const auto divZeroRetired = state.retiredInstructions;
     const auto divZeroLo = state.hilo.lo;
     const auto divZeroHi = state.hilo.hi;
     assert(executeSpecial(state, divuDecoded) == ExecuteStatus::Unsupported);
     assert(state.pc == divZeroPc && state.retiredInstructions == divZeroRetired);
-    assert(state.hilo.lo == divZeroLo && state.hilo.hi == divZeroHi);
+    for (std::size_t byte = 0; byte < 16; ++byte)\n    {\n        assert(state.hilo.lo.bytes[byte] == divZeroLo.bytes[byte]);\n        assert(state.hilo.hi.bytes[byte] == divZeroHi.bytes[byte]);\n    }
 
     auto unsupported = decodeInstruction(encodeSpecial(1, 2, 7, 0, 0x20)); // ADD (trapping, intentionally unsupported)
     const auto pcBefore = state.pc;
