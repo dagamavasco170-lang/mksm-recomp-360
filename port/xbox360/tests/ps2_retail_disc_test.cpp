@@ -62,7 +62,7 @@ int main()
     assert(disc.fileSize("", size) == FileStatus::InvalidPath);
 
     // A symlink inside the extraction tree must not allow host-path escape.
-    const outside = root.parent_path() / "mksm-xbox360-retail-disc-outside";
+    const auto outside = root.parent_path() / "mksm-xbox360-retail-disc-outside";
     std::filesystem::remove_all(outside, error);
     std::filesystem::create_directories(outside);
     {
