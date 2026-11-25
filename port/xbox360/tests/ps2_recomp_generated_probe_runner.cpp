@@ -103,6 +103,79 @@ int main()
     if (quadFailures)
         failures |= 1u << 8u;
 
+    // Execute the generated LWL/LWR/SWL/SWR guest function on the desktop
+    // reference runtime for all four effective-address byte offsets.
+    constexpr std::uint32_t mergeReturnPc = 0xCAFE5678u;
+    constexpr std::array<std::uint32_t, 4> expectedLwl{
+        0x11BBCCDDu, 0x2211CCDDu, 0x332211DDu, 0xF2332211u};
+    constexpr std::array<std::uint32_t, 4> expectedLwr{
+        0xF2332211u, 0xAAF23322u, 0xAABBF233u, 0xAABBCCF2u};
+    constexpr std::array<std::uint32_t, 4> expectedSwl{
+        0x443322AAu, 0x4433AABBu, 0x44AABBCCu, 0xAABBCCDDu};
+    constexpr std::array<std::uint32_t, 4> expectedSwr{
+        0xAABBCCDDu, 0xBBCCDD11u, 0xCCDD2211u, 0xDD332211u};
+    const auto seedMergeRdram = [&]() {
+        rdram[0x1080u] = 0x11u; rdram[0x1081u] = 0x22u;
+        rdram[0x1082u] = 0x33u; rdram[0x1083u] = 0xF2u;
+        for (std::uint32_t i = 0; i < 4u; ++i) {
+            const std::uint32_t swl = 0x10A0u + i * 4u;
+            const std::uint32_t swr = 0x10C0u + i * 4u;
+            for (std::uint32_t b = 0; b < 4u; ++b) {
+                rdram[swl + b] = (0x44332211u >> (b * 8u)) & 0xFFu;
+                rdram[swr + b] = (0x44332211u >> (b * 8u)) & 0xFFu;
+            }
+        }
+    };
+    seedMergeRdram();
+    R5900Context mergeContext{};
+    R5900Context *mergeCtx = &mergeContext;
+    SET_GPR_U32(mergeCtx, 31, mergeReturnPc);
+    SET_GPR_U32(mergeCtx, 2, 0xAABBCCDDu);
+    for (std::uint32_t i = 0; i < 4u; ++i) {
+        SET_GPR_U32(mergeCtx, 4u + i, 0x20001080u + i);
+        SET_GPR_U32(mergeCtx, 8u + i, 0x20001080u + i);
+        SET_GPR_U32(mergeCtx, 12u + i, 0x200010A0u + i * 4u + i);
+        SET_GPR_U32(mergeCtx, 16u + i, 0x200010C0u + i * 4u + i);
+        SET_GPR_VEC(mergeCtx, 20u + i, _mm_set_epi64x(
+            static_cast<long long>(0x5060708010203040ull),
+            static_cast<long long>(0x55667788AABBCCDDull)));
+        SET_GPR_VEC(mergeCtx, 24u + i, _mm_set_epi64x(
+            static_cast<long long>(0x5060708010203040ull),
+            static_cast<long long>(0x55667788AABBCCDDull)));
+    }
+    mksm_ee_unaligned_merge_probe_0x100500(rdram.data(), mergeCtx, nullptr);
+
+    bool mergeFailed = mergeContext.pc != mergeReturnPc ||
+                       mergeContext.in_delay_slot;
+    for (std::uint32_t i = 0; i < 4u; ++i) {
+        const std::uint64_t lwlLow = GPR_U64(mergeCtx, 20u + i);
+        const std::uint64_t lwrLow = GPR_U64(mergeCtx, 24u + i);
+        const std::uint32_t expectedLwlUpper =
+            i == 3u ? 0xFFFFFFFFu : 0u;
+        const std::uint32_t expectedLwrUpper =
+            i == 0u ? 0xFFFFFFFFu : 0x55667788u;
+        mergeFailed = mergeFailed ||
+            static_cast<std::uint32_t>(lwlLow) != expectedLwl[i] ||
+            static_cast<std::uint32_t>(lwlLow >> 32u) != expectedLwlUpper ||
+            static_cast<std::uint32_t>(lwrLow) != expectedLwr[i] ||
+            static_cast<std::uint32_t>(lwrLow >> 32u) != expectedLwrUpper ||
+            static_cast<std::uint64_t>(PS2_EXTRACT_EPI64_1(mergeContext.r[20u + i])) !=
+                0x5060708010203040ull ||
+            static_cast<std::uint64_t>(PS2_EXTRACT_EPI64_1(mergeContext.r[24u + i])) !=
+                0x5060708010203040ull;
+        std::uint32_t swlWord{}, swrWord{};
+        for (std::uint32_t b = 0; b < 4u; ++b) {
+            swlWord |= static_cast<std::uint32_t>(rdram[0x10A0u + i * 4u + b]) << (b * 8u);
+            swrWord |= static_cast<std::uint32_t>(rdram[0x10C0u + i * 4u + b]) << (b * 8u);
+        }
+        mergeFailed = mergeFailed || swlWord != expectedSwl[i] ||
+                      swrWord != expectedSwr[i];
+    }
+    std::printf("MKSM_RECOMP_UNALIGNED_MERGE_TRACE failures=%08X\\n",
+                static_cast<unsigned>(mergeFailed ? 1u : 0u));
+    if (mergeFailed)
+        failures |= 1u << 9u;
+
     const auto mmi = runGeneratedMmiProbe(rdram.data());
     std::printf("MKSM_RECOMP_MMI_TRACE failures=%08X pc=%08X "
                 "pmfhl=%08X/%08X/%08X/%08X "
