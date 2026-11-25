@@ -62,6 +62,19 @@ Audit source and CMake dependency edges. Classify each as portable, replaceable,
 | Memory | host allocations and PS2 guest-memory model | audit alignment, address-width, endian assumptions, allocator limits |
 | Debug UI | ImGui/rlImGui | disabled initially; lightweight diagnostics only |
 
+## Gate 2.1 — Concrete portability findings
+
+The first source inspection confirms that the runtime cannot be brought over by toggling a platform flag:
+
+- `ps2xRuntime/include/ps2_runtime.h` is a large shared umbrella header that directly includes EE memory, GS frontend, VU1, audio, pad, IOP types, and x86 SIMD headers (`immintrin.h` / `smmintrin.h`, or the existing SSE2NEON shim). The Xenon PowerPC toolchain does not provide the same x86 intrinsic ABI; this is an early compile blocker and should be isolated before compiling the runtime.
+- `ps2xRuntime/include/ps2_host_backend.h` directly includes Raylib. Desktop presentation/input/audio are therefore host dependencies, not an Xbox-ready abstraction.
+- Runtime CMake currently fetches Raylib, and on desktop also builds the ImGui/rlImGui debug UI. These dependencies must be excluded from the Xenon target, not merely linked differently.
+- `ps2xRuntime/src/main.cpp` contains desktop/Android startup, filesystem/argv discovery, logging, and exception termination setup. Xenon needs a dedicated entry point and explicit game/config paths.
+- The game-specific generated/runtime folder is separate (`games/mk-shaolin-monks/runtime`), which is useful for building a target-specific launcher without disturbing the PC executable.
+
+This is a source-level audit only; it does not establish that these dependencies compile or run on Xenon.
+
+
 ## Gate 3 — Architecture and endian audit
 
 Xenon is PowerPC and big-endian; the current PC build is typically little-endian. Audit before attempting a full game:
