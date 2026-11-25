@@ -1,6 +1,5 @@
 #include "ps2_ee_special_executor.h"
 
-#include <array>
 #include <cassert>
 #include <cstdint>
 
@@ -15,6 +14,7 @@ static constexpr std::uint32_t encode(std::uint8_t rs, std::uint8_t rt,
            (static_cast<std::uint32_t>(rd) << 11) |
            (static_cast<std::uint32_t>(sa) << 6) | funct;
 }
+
 
 static constexpr bool expectedImplemented(std::uint8_t f)
 {
@@ -37,7 +37,6 @@ int main()
         CpuState state{};
         state.pc = 0x1000;
         state.retiredInstructions = 7;
-        // Distinct source/destination values and non-zero HI/LO state.
         state.gpr[1].bytes[0] = 0x13;
         state.gpr[2].bytes[0] = 0x57;
         state.gpr[3].bytes[0] = 0xA9;
