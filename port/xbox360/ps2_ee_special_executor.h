@@ -9,9 +9,9 @@ namespace ps2::xbox360::ee
 {
 enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
 
-// First conservative SPECIAL execution slice. It intentionally excludes control flow,
-// memory, trapping arithmetic, and 64-bit operations until their EE semantics and
-// delay-slot behavior are modeled explicitly.
+// Conservative SPECIAL execution slice. Control flow, memory, and trapping arithmetic
+// remain outside this executor until their EE semantics and delay-slot/exception behavior
+// are modeled explicitly.
 [[nodiscard]] constexpr ExecuteStatus executeSpecial(CpuState &state,
                                                      const DecodedInstruction &d) noexcept
 {
