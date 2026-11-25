@@ -1,19 +1,26 @@
-# Xbox 360 (Xenon/NXDK) Port Plan
+# Xbox 360 (Xenon) Port Plan
 
-This is an engineering plan for a native Xbox 360 target. It is not a claim that the project already builds for Xenon. The current recompiler/runtime is an experimental PS2 MIPS-to-C++ host build; the Xbox 360 target must be introduced incrementally with evidence at each gate.
+This is an engineering plan for a native Xbox 360 RGH target. It is not a claim that the project already builds for Xenon. The current recompiler/runtime is an experimental PS2 MIPS-to-C++ host build; the Xbox 360 target must be introduced incrementally with evidence at each gate.
 
 ## Strategy
 
 Do not fork or replace the recompiler. Add a platform target and a thin Xenon host backend, then compile a minimal test before attempting the full game.
 
-Use the existing host build as the reference implementation. Keep PC, Android, and Vita paths working; isolate Xbox 360-specific code behind compile-time target definitions and backend interfaces.
+Use the existing host build as the reference implementation. Keep PC, Android, and Vita paths working; isolate Xbox 360-specific code behind target definitions and backend interfaces.
+
+## Toolchain decision (corrected)
+
+- **Primary investigation target: xsdk** — https://github.com/xenosworks/xsdk. This is a clean-room SDK for Xbox 360 retail-kernel titles, producing XEX files for RGH/JTAG and includes C++ runtime facilities, controller, filesystem, audio, logging, and Xenos GPU work. Its toolchain and maturity still must be validated against our needs.
+- **Do not use NXDK for this port.** NXDK is for the original Xbox, not Xbox 360; its XBE target is wrong for Xenon.
+- **OXDK is an alternative research reference** — https://github.com/Horrible-Dev/OXDK. Its Xbox 360 path can build XEX2 but depends on a supplied Microsoft XDK, and its documented C++ limitations include no exceptions and limited thread support. This makes it a less suitable default for our clean-room RGH project.
+- Keep SDK integration out of the root build until a standalone sample has been built and run successfully.
 
 ## Target assumptions and constraints
 
-- Hardware: Xbox 360 Xenon PowerPC, big-endian, 32-bit target address space, RGH homebrew execution.
-- Toolchain/runtime: NXDK and its supported compiler/linker/runtime; confirm the exact current NXDK build and supported C++/stdlib features before selecting dependencies.
+- Hardware: Xbox 360 Xenon PowerPC, big-endian, 32-bit address space, RGH homebrew execution.
+- The compiler/ABI, exception support, thread support, libc++/libc, filesystem, and linker behavior must be proven with small probes before using them in the runtime.
 - Output: first a minimal XEX that boots, writes a log, and displays a diagnostic screen; then the runtime smoke target; only later game boot.
-- The 360 GPU is Xenos. Existing desktop Raylib backend and FFmpeg desktop packages are not assumed to work on NXDK.
+- The 360 GPU is Xenos. Existing desktop Raylib backend and FFmpeg desktop packages are not assumed to work on the target.
 
 ## Gate 0 — Reproducible baseline
 
@@ -24,34 +31,34 @@ Before port work, record:
 
 No retail files, generated game code, assets, or dumps should be uploaded to CI.
 
-## Gate 1 — NXDK hello-XEX (separate target)
+## Gate 1 — xsdk hello-XEX (separate target)
 
-Create a separate xbox360/ target/toolchain path. Do not change the default desktop/Vita/Android build.
+Create an isolated xbox360/ build path based on an xsdk sample/template. Do not change the default desktop/Vita/Android build.
 
 Acceptance:
-- NXDK environment/toolchain detected with a clear failure message when absent;
+- toolchain/setup detected with clear failure messages when absent;
 - builds a minimal XEX;
-- boots on RGH hardware or a documented compatible emulator;
-- writes a serial/debug log and displays a stable diagnostic screen;
-- input can be read from a controller;
-- exits/reboots cleanly or has a documented reset behavior.
+- boots on RGH hardware (Xenia is a smoke-test aid, not final proof);
+- writes a debug/network log and displays a stable diagnostic screen;
+- controller input can be read;
+- reset/exit behavior is documented.
 
-This proves the toolchain, packaging, launch, video, input, and basic runtime are usable independently of the PS2 runtime.
+This proves the toolchain, XEX packaging, boot, display, input, and basic runtime are usable independently of the PS2 runtime.
 
 ## Gate 2 — Runtime dependency audit and portability boundary
 
-Audit source and CMake dependency edges. Classify each as portable, replaceable, or unsupported for NXDK.
+Audit source and CMake dependency edges. Classify each as portable, replaceable, or unsupported for Xenon.
 
 | Area | Current host implementation | Xenon approach / decision |
 |---|---|---|
-| Boot/path selection | filesystem and argv path discovery | fixed/configurable game path; audit filesystem support |
-| Logging | stdout/stderr and host logging | serial/debug output first; file logging if supported |
-| Threading | C++/host threads and scheduler | NXDK-supported threads; single-threaded fallback initially |
+| Boot/path selection | filesystem and argv path discovery | fixed/configurable game path; audit SDK filesystem |
+| Logging | stdout/stderr and host logging | xsdk logging/debug output first; file logging if supported |
+| Threading | C++/host threads and scheduler | verify xsdk thread API and C++ support; single-thread fallback initially |
 | Graphics | Raylib + desktop APIs | minimal Xenos backend; do not bring desktop dependencies blindly |
 | Audio | host audio backend + optional FFmpeg | defer; stub audio while proving CPU/runtime |
 | MPEG movies | FFmpeg desktop libraries | initially skip/stub movies with traceable diagnostics |
-| Controllers | host/gamepad mapping | NXDK controller input to existing PS2 pad abstraction |
-| Storage | host filesystem | NXDK filesystem APIs with explicit path translation |
+| Controllers | host/gamepad mapping | xsdk controller input to existing PS2 pad abstraction |
+| Storage | host filesystem | xsdk filesystem APIs with explicit path translation |
 | Memory | host allocations and PS2 guest-memory model | audit alignment, address-width, endian assumptions, allocator limits |
 | Debug UI | ImGui/rlImGui | disabled initially; lightweight diagnostics only |
 
@@ -111,11 +118,11 @@ Only claim success when each item has evidence:
 
 ## First implementation task
 
-Start with an NXDK/XEX skeleton and a small CMake/toolchain or NXDK make-based build isolated under xbox360/. Then add a diagnostic test executable that does not include generated game code. The first pull request should only prove boot/log/video/controller and avoid touching the current runtime.
+Start from the xsdk sample/template and establish a standalone XEX skeleton under xbox360/. Then add a diagnostic test executable that does not include generated game code. The first change should only prove boot/log/video/controller and avoid touching the current runtime.
 
 ## Risks and stop/go criteria
 
-- NXDK standard library or compiler incompatibilities may require isolating or replacing host services.
+- C++ library/compiler incompatibilities may require isolating or replacing host services.
 - Xenon performance and memory bandwidth make desktop assumptions (thread count, texture cache, FFmpeg, debug UI) unacceptable.
 - Big-endian execution is a correctness risk for generated code and guest-memory helpers.
 - Existing GS/VIF/VU work is valuable, but the current host graphics backend is not a drop-in Xbox 360 GPU backend.
@@ -123,4 +130,4 @@ Start with an NXDK/XEX skeleton and a small CMake/toolchain or NXDK make-based b
 
 ## Fork/reference research
 
-OpenShao forks are references for game-level recompilation changes, SDK/build hygiene, and networking. None of the inspected fork deltas establishes a ready-made Xbox 360/Xenon target. Do not copy PC renderer or x64-only assumptions into NXDK.
+OpenShao forks are references for game-level recompilation changes, SDK/build hygiene, and networking. None of the inspected fork deltas establishes a ready-made Xbox 360/Xenon target. Do not copy PC renderer or x64-only assumptions into xsdk.
