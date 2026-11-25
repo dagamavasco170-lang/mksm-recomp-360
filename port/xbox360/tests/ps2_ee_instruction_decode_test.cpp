@@ -30,6 +30,14 @@ int main()
     constexpr std::uint32_t load = 0x8C220004u; // lw rt=2, base=1, offset=4
     const auto l = decodeInstruction(load);
     assert(l.kind == InstructionKind::LoadStore && l.rs == 1 && l.rt == 2 && l.immediate == 4);
+    constexpr std::uint32_t lq = (0x1Eu << 26u) | (3u << 21u) | (4u << 16u) | 0xFFF0u;
+    constexpr std::uint32_t sq = (0x1Fu << 26u) | (5u << 21u) | (6u << 16u) | 0x0010u;
+    const auto ql = decodeInstruction(lq);
+    const auto qs = decodeInstruction(sq);
+    assert(ql.kind == InstructionKind::LoadStore && ql.opcode == 0x1Eu &&
+           ql.rs == 3u && ql.rt == 4u && ql.immediate == 0xFFF0u);
+    assert(qs.kind == InstructionKind::LoadStore && qs.opcode == 0x1Fu &&
+           qs.rs == 5u && qs.rt == 6u && qs.immediate == 0x0010u);
 
 
     // Decode selected SPECIAL functions and MMI subfamily tags.
