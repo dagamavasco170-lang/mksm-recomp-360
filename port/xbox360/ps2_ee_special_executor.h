@@ -24,7 +24,9 @@ enum class ExecuteStatus : std::uint8_t { Executed, Unsupported };
     bool writesRd = true;
     const auto isWordValue = [](const simd::Vector128 &value) constexpr {
         const std::uint32_t low = simd::readLane<std::uint32_t>(value, 0);
-        const std::uint64_t low64 = simd::readLane<std::uint64_t>(value, 0);
+        std::uint64_t low64 = 0;
+        for (std::size_t byte = 0; byte < 8u; ++byte)
+            low64 |= static_cast<std::uint64_t>(value.bytes[byte]) << (byte * 8u);
         const std::uint64_t expected =
             static_cast<std::uint64_t>(static_cast<std::int64_t>(simd::detail::asSigned(low)));
         return low64 == expected;
