@@ -61,6 +61,19 @@ int main()
            FileStatus::InvalidPath);
     assert(disc.fileSize("", size) == FileStatus::InvalidPath);
 
+    // A symlink inside the extraction tree must not allow host-path escape.
+    const outside = root.parent_path() / "mksm-xbox360-retail-disc-outside";
+    std::filesystem::remove_all(outside, error);
+    std::filesystem::create_directories(outside);
+    {
+        std::ofstream secret(outside / "SECRET.BIN", std::ios::binary);
+        secret << "secret";
+    }
+    std::filesystem::create_directory_symlink(outside, root / "LINK", error);
+    if (!error)
+        assert(disc.fileSize("LINK/SECRET.BIN", size) == FileStatus::InvalidPath);
+    std::filesystem::remove_all(outside, error);
+
     std::filesystem::remove_all(root, error);
     return 0;
 }
