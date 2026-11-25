@@ -57,6 +57,8 @@ bool checkGeneratedRecompProbe()
                    static_cast<unsigned>(result.mmi.pmthlLo[1]),
                    static_cast<unsigned>(result.mmi.pmthlLo[2]),
                    static_cast<unsigned>(result.mmi.pmthlLo[3]));
+    xsdk_log_write("MKSM_RECOMP_LQ_SQ_TRACE failures=%08X",
+                   static_cast<unsigned>(result.lqSqFailures));
     xsdk_log_write("MKSM_SPR_DMA_GENERATED_TRACE failures=%08X "
                    "from=%08X/%08X/%08X/%08X stadr=%08X dstat=%08X "
                    "ram=%08X to=%08X/%08X/%08X/%08X spr=%08X/%08X",
