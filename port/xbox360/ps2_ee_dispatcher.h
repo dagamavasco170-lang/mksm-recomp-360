@@ -4,6 +4,7 @@
 #include "ps2_ee_load_store_executor.h"
 #include "ps2_ee_mmi_executor.h"
 #include "ps2_ee_special_executor.h"
+#include "ps2_ee_cop0_executor.h"
 #include "ps2_guest_memory.h"
 #include <bit>
 #include <cstdint>
@@ -94,6 +95,10 @@ struct StepResult { StepStatus status{StepStatus::Unsupported}; std::uint32_t in
         case ExecuteStatus::Breakpoint: state.raiseException(9u, wasDelaySlot); return {StepStatus::Exception, word, d};
         case ExecuteStatus::Unsupported: status = StepStatus::Unsupported; break;
         }
+    }
+    else if (d.kind == InstructionKind::Cop0)
+    {
+        status = executeCop0(state, d) == Cop0Status::Executed ? StepStatus::Executed : StepStatus::Unsupported;
     }
     else if (d.opcode == 0x09u || d.opcode == 0x0Au || d.opcode == 0x0Bu ||
              d.opcode == 0x0Cu || d.opcode == 0x0Du || d.opcode == 0x0Eu || d.opcode == 0x0Fu)
