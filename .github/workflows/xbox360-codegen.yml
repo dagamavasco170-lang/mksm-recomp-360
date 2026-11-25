@@ -2,7 +2,7 @@ name: Xbox 360 PS2Recomp code-generation probe
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, xbox360/bootstrap]
     paths:
       - "port/xbox360/**"
       - "ps2xRecomp/**"
