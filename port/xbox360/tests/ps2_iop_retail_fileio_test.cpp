@@ -53,7 +53,8 @@ int main()
 
     assert(io.sceOpen("missing.bin") == -ENOENT);
     assert(io.sceOpen("../outside.bin") == -EINVAL);
-    assert(io.sceOpen("IOP/MODULE.IRX", 1) == -EACCES);
+    assert(io.sceOpen("IOP/MODULE.IRX", 0) == -EACCES);
+    assert(io.sceOpen("IOP/MODULE.IRX", 2) == -EACCES);
 
     io.reset();
     fs::remove_all(root);
