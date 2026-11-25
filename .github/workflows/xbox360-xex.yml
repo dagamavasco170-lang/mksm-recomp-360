@@ -78,3 +78,58 @@ jobs:
           path: build/xbox360/mksm_xbox360_smoke.xex
           if-no-files-found: error
           retention-days: 7
+  xenia-emulator-smoke:
+    needs: build-smoke-xex
+    runs-on: windows-2022
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - name: Download smoke XEX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mksm-xbox360-smoke-xex
+          path: smoke
+      - name: Download latest Xenia Canary (Windows)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = 'https://github.com/xenia-canary/xenia-canary/releases/latest/download/xenia_canary_windows.7z'
+          Invoke-WebRequest -Uri $url -OutFile xenia.7z
+          $sevenZip = (Get-Command 7z.exe -ErrorAction SilentlyContinue).Source
+          if (-not $sevenZip) { $sevenZip = 'C:\Program Files\7-Zip\7z.exe' }
+          if (-not (Test-Path $sevenZip)) { throw '7-Zip was not found on the runner.' }
+          & $sevenZip x xenia.7z '-oxenia' -y | Out-Host
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to extract Xenia Canary.' }
+          $exe = Get-ChildItem xenia -Recurse -Filter xenia_canary.exe | Select-Object -First 1
+          if (-not $exe) { throw 'xenia_canary.exe not found in downloaded archive.' }
+          "XENIA_EXE=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Attempt to boot diagnostic XEX in Xenia (non-blocking experiment)
+        id: emulator
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          New-Item -ItemType Directory -Force -Path emulator-logs | Out-Null
+          $xex = (Resolve-Path 'smoke/mksm_xbox360_smoke.xex').Path
+          $exe = $env:XENIA_EXE
+          if (-not $exe -or -not (Test-Path $exe)) { throw 'Xenia executable path missing.' }
+          'Attempting Xenia Canary launch on GitHub Windows runner; this runner may lack GPU support.' | Tee-Object emulator-logs/summary.txt
+          $proc = Start-Process -FilePath $exe -ArgumentList @('--target', $xex) -WorkingDirectory (Split-Path $exe) -PassThru -RedirectStandardOutput (Join-Path $PWD 'emulator-logs/stdout.txt') -RedirectStandardError (Join-Path $PWD 'emulator-logs/stderr.txt')
+          try {
+            Wait-Process -Id $proc.Id -Timeout 45 -ErrorAction Stop
+            $proc.Refresh()
+            'Process exited before timeout. ExitCode=' + $proc.ExitCode | Add-Content emulator-logs/summary.txt
+          } catch {
+            'Timeout after 45s or process wait failure: ' + $_.Exception.Message | Add-Content emulator-logs/summary.txt
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          }
+          Get-ChildItem (Split-Path $exe) -Recurse -File -Filter '*.log' | ForEach-Object { Copy-Item $_.FullName emulator-logs -Force -ErrorAction SilentlyContinue }
+          Get-ChildItem emulator-logs -Force | Format-Table Name,Length | Out-String | Add-Content emulator-logs/summary.txt
+      - name: Upload Xenia logs (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xenia-emulator-smoke-logs
+          path: emulator-logs
+          if-no-files-found: warn
+          retention-days: 7
