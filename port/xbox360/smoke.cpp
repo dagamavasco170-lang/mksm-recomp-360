@@ -187,8 +187,10 @@ bool checkEeUnalignedMerge()
                immediate;
     };
     const auto executeAtOffset = [&](uint8_t opcode, uint8_t rt, uint16_t offset) {
-        ps2::xbox360::guest_memory::writeLittleEndian(
+        const bool codeWriteOk = ps2::xbox360::guest_memory::writeLittleEndian(
             std::span<uint8_t>(ram), 0u, encode(opcode, rt, offset));
+        if (!codeWriteOk)
+            return StepResult{StepStatus::InvalidMemory, 0u, {}};
         cpu.pc = 0u;
         return step(cpu, ram);
     };
@@ -203,8 +205,9 @@ bool checkEeUnalignedMerge()
         0xAABBCCDDu, 0xBBCCDD11u, 0xCCDD2211u, 0xDD332211u};
 
     uint32_t failures = 0u;
-    ps2::xbox360::guest_memory::writeLittleEndian(
-        std::span<uint8_t>(ram), 0x40u, 0xF2332211u);
+    if (!ps2::xbox360::guest_memory::writeLittleEndian(
+            std::span<uint8_t>(ram), 0x40u, 0xF2332211u))
+        failures |= 1u << 20u;
     for (uint16_t offset = 0u; offset < 4u; ++offset)
     {
         cpu.writeGpr(5u, initial);
@@ -233,20 +236,22 @@ bool checkEeUnalignedMerge()
     for (uint16_t offset = 0u; offset < 4u; ++offset)
     {
         uint32_t stored{};
-        ps2::xbox360::guest_memory::writeLittleEndian(
+        const bool swlInitOk = ps2::xbox360::guest_memory::writeLittleEndian(
             std::span<uint8_t>(ram), 0x40u, 0x44332211u);
         const auto swl = executeAtOffset(0x2Au, 2u, offset);
-        ps2::xbox360::guest_memory::readLittleEndian(
+        const bool swlReadOk = ps2::xbox360::guest_memory::readLittleEndian(
             std::span<const uint8_t>(ram), 0x40u, stored);
-        if (swl.status != StepStatus::Executed || stored != expectedSwl[offset])
+        if (!swlInitOk || !swlReadOk || swl.status != StepStatus::Executed ||
+            stored != expectedSwl[offset])
             failures |= 1u << (8u + offset);
 
-        ps2::xbox360::guest_memory::writeLittleEndian(
+        const bool swrInitOk = ps2::xbox360::guest_memory::writeLittleEndian(
             std::span<uint8_t>(ram), 0x40u, 0x44332211u);
         const auto swr = executeAtOffset(0x2Eu, 2u, offset);
-        ps2::xbox360::guest_memory::readLittleEndian(
+        const bool swrReadOk = ps2::xbox360::guest_memory::readLittleEndian(
             std::span<const uint8_t>(ram), 0x40u, stored);
-        if (swr.status != StepStatus::Executed || stored != expectedSwr[offset])
+        if (!swrInitOk || !swrReadOk || swr.status != StepStatus::Executed ||
+            stored != expectedSwr[offset])
             failures |= 1u << (12u + offset);
     }
 
@@ -479,7 +484,7 @@ int main()
     xsdk_log_write("MKSM smoke: scalar PS2 packed-vector checks passed");
 #if defined(MKSM_XENIA_HEADLESS_SMOKE)
     xsdk_log_write("MKSM_XENIA_GRAPHICS_SKIPPED reason=xenia-has-no-display-controller");
-    xsdk_log_write("MKSM_XENIA_SMOKE_PASS checks=cpp20,guest-memory,ee,ee-lq-sq,mmi,spr-dma,generated-recomp");
+    xsdk_log_write("MKSM_XENIA_SMOKE_PASS checks=cpp20,guest-memory,ee,ee-lq-sq,ee-unaligned-merge,mmi,spr-dma,generated-recomp");
     return 0;
 #else
     return runTitle();
