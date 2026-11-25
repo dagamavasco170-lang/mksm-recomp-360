@@ -30,7 +30,7 @@ int main()
     for (std::size_t i = 0; i < sizeof(path); ++i)
         ram[8u + i] = static_cast<std::uint8_t>(path[i]);
 
-    const auto fd = ioman.dispatch(IomanCommand::Open, 8u, 0u, 0u, ram);
+    const auto fd = ioman.dispatch(IomanCommand::Open, 8u, 1u, 0u, ram);
     assert(fd == 3);
     assert(ioman.openFileCount() == 1u);
 
@@ -49,6 +49,7 @@ int main()
     assert(ioman.dispatch(IomanCommand::Read, static_cast<std::uint32_t>(fd),
                           127u, 2u, ram) == -EFAULT);
     assert(ioman.dispatch(IomanCommand::Open, 127u, 0u, 0u, ram) == -EFAULT);
+    assert(ioman.dispatch(IomanCommand::Open, 8u, 0u, 0u, ram) == -EACCES);
     assert(ioman.dispatch(static_cast<IomanCommand>(99), 0u, 0u, 0u, ram) == -ENOSYS);
     assert(ioman.dispatch(IomanCommand::Close, static_cast<std::uint32_t>(fd),
                           0u, 0u, ram) == 0);
