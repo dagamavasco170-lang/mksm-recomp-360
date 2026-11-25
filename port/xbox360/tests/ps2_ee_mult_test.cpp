@@ -22,6 +22,8 @@ static void runCase(std::uint8_t funct, std::uint32_t lhs, std::uint32_t rhs,
     state.retiredInstructions = 4;
     simd::writeLane<std::uint32_t>(state.gpr[1], 0, lhs);
     simd::writeLane<std::uint32_t>(state.gpr[2], 0, rhs);
+    for (std::size_t i = 0; i < 8; ++i)
+        state.gpr[3].bytes[i] = 0x5A;
     for (std::size_t i = 8; i < 16; ++i)
     {
         state.gpr[3].bytes[i] = 0xA5;
@@ -41,7 +43,7 @@ static void runCase(std::uint8_t funct, std::uint32_t lhs, std::uint32_t rhs,
                static_cast<std::uint8_t>(expectedLo >> (byte * 8u)));
         assert(state.hilo.hi.bytes[byte] ==
                static_cast<std::uint8_t>(expectedHi >> (byte * 8u)));
-        assert(state.gpr[3].bytes[byte] == state.hilo.lo.bytes[byte]);
+        assert(state.gpr[3].bytes[byte] == 0x5A);
     }
     for (std::size_t byte = 8; byte < 16; ++byte)
     {
