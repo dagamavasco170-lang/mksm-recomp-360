@@ -30,6 +30,37 @@ enum class LoadStoreStatus : std::uint8_t
         std::bit_cast<std::int16_t>(d.immediate));
     const std::uint32_t address = base + static_cast<std::uint32_t>(displacement);
 
+    // R5900 LQ/SQ silently align the effective address down to 16 bytes.
+    // They transfer all 128 guest bytes and do not raise the scalar alignment
+    // exception used by LB/LH/LW and SB/SH/SW.
+    if (d.opcode == 0x1Eu || d.opcode == 0x1Fu)
+    {
+        if (!guest_memory::validWrappedRam(memory))
+            return LoadStoreStatus::InvalidMemory;
+
+        const std::uint32_t alignedAddress = address & ~0x0Fu;
+        if (d.opcode == 0x1Eu) // LQ
+        {
+            guest_memory::Raw128 raw{};
+            if (!guest_memory::readRaw128(memory, alignedAddress, raw))
+                return LoadStoreStatus::InvalidMemory;
+
+            simd::Vector128 value{};
+            value.bytes = raw;
+            state.writeGpr(d.rt, value);
+        }
+        else // SQ
+        {
+            const guest_memory::Raw128 raw = state.readGpr(d.rt).bytes;
+            if (!guest_memory::writeRaw128(memory, alignedAddress, raw))
+                return LoadStoreStatus::InvalidMemory;
+        }
+
+        state.advancePc();
+        state.recordRetiredInstruction();
+        return LoadStoreStatus::Executed;
+    }
+
     std::size_t width = 0;
     bool load = false;
     bool signExtend = false;
