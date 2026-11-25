@@ -78,16 +78,31 @@ jobs:
           path: build/xbox360/mksm_xbox360_smoke.xex
           if-no-files-found: error
           retention-days: 7
+      - name: Configure Xenia headless diagnostics target
+        run: |
+          cmake -S port/xbox360 -B build/xbox360-xenia -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$HOME/xsdk/cmake/xsdk.cmake" \
+            -DXSDK_TOOLCHAIN="$HOME/xsdk-gcc" -DCMAKE_BUILD_TYPE=Release \
+            -DMKSM_XBOX360_GENERATED_DIR="$GITHUB_WORKSPACE/build/xbox360-codegen/xbox360-codegen-probe/generated" \
+            -DMKSM_XENIA_HEADLESS_SMOKE=ON
+      - name: Build Xenia headless diagnostics XEX
+        run: cmake --build build/xbox360-xenia --parallel
+      - name: Upload Xenia headless diagnostics XEX
+        uses: actions/upload-artifact@v4
+        with:
+          name: mksm-xbox360-xenia-smoke-xex
+          path: build/xbox360-xenia/mksm_xbox360_smoke.xex
+          if-no-files-found: error
+          retention-days: 7
   xenia-emulator-smoke:
     needs: build-smoke-xex
     runs-on: windows-2022
     timeout-minutes: 10
-    continue-on-error: true
     steps:
-      - name: Download smoke XEX artifact
+      - name: Download Xenia headless diagnostics XEX
         uses: actions/download-artifact@v4
         with:
-          name: mksm-xbox360-smoke-xex
+          name: mksm-xbox360-xenia-smoke-xex
           path: smoke
       - name: Download latest Xenia Canary (Windows)
         shell: pwsh
@@ -103,30 +118,96 @@ jobs:
           $exe = Get-ChildItem xenia -Recurse -Filter xenia_canary.exe | Select-Object -First 1
           if (-not $exe) { throw 'xenia_canary.exe not found in downloaded archive.' }
           "XENIA_EXE=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
-          # Force the emulator's Null GPU backend so the runner's virtual display/GPU is not required.
-          Set-Content -Path (Join-Path (Split-Path $exe) 'xenia-canary-config.toml') -Value 'gpu = "null"'
-      - name: Attempt to boot diagnostic XEX in Xenia (non-blocking experiment)
+          $xeniaDir = Split-Path $exe.FullName
+          # Canary reads this exact filename. The previous workflow wrote a misspelled config filename.
+          New-Item -ItemType File -Force -Path (Join-Path $xeniaDir 'portable.txt') | Out-Null
+          @'
+          [GPU]
+          gpu = "null"
+
+          [Logging]
+          flush_log = true
+          log_file = "xenia-ci.log"
+          log_level = 3
+          log_to_debugprint = true
+          '@ | Set-Content -Path (Join-Path $xeniaDir 'xenia-canary.config.toml') -Encoding utf8
+          Get-Content (Join-Path $xeniaDir 'xenia-canary.config.toml')
+      - name: Run XEX and require guest diagnostic pass markers
         id: emulator
-        continue-on-error: true
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Continue'
-          New-Item -ItemType Directory -Force -Path emulator-logs | Out-Null
+          $ErrorActionPreference = 'Stop'
+          $logRoot = Join-Path $PWD 'emulator-logs'
+          New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
           $xex = (Resolve-Path 'smoke/mksm_xbox360_smoke.xex').Path
           $exe = $env:XENIA_EXE
           if (-not $exe -or -not (Test-Path $exe)) { throw 'Xenia executable path missing.' }
-          'Attempting Xenia Canary launch on GitHub Windows runner; this runner may lack GPU support.' | Tee-Object emulator-logs/summary.txt
-          $proc = Start-Process -FilePath $exe -ArgumentList @($xex) -WorkingDirectory (Split-Path $exe) -PassThru -RedirectStandardOutput (Join-Path $PWD 'emulator-logs/stdout.txt') -RedirectStandardError (Join-Path $PWD 'emulator-logs/stderr.txt')
+          $xeniaDir = Split-Path $exe
+          $xeniaLog = Join-Path $xeniaDir 'xenia-ci.log'
+          $proc = $null
+          $failure = $null
+          $passed = $false
           try {
-            Wait-Process -Id $proc.Id -Timeout 45 -ErrorAction Stop
-            $proc.Refresh()
-            'Process exited before timeout. ExitCode=' + $proc.ExitCode | Add-Content emulator-logs/summary.txt
+            "Launching Xenia Canary with headless diagnostics XEX: $xex" | Tee-Object (Join-Path $logRoot 'summary.txt')
+            $proc = Start-Process -FilePath $exe -ArgumentList @($xex) -WorkingDirectory $xeniaDir -PassThru -RedirectStandardOutput (Join-Path $logRoot 'stdout.txt') -RedirectStandardError (Join-Path $logRoot 'stderr.txt')
+            $deadline = [DateTime]::UtcNow.AddSeconds(90)
+            $content = ''
+            while ([DateTime]::UtcNow -lt $deadline) {
+              if (Test-Path $xeniaLog) {
+                $content = Get-Content $xeniaLog -Raw -ErrorAction SilentlyContinue
+                if ($content -match 'MKSM_XENIA_SMOKE_PASS') { $passed = $true; break }
+              }
+              $proc.Refresh()
+              if ($proc.HasExited) {
+                $failure = "Xenia exited before the guest PASS marker (exit code $($proc.ExitCode))."
+                break
+              }
+              Start-Sleep -Seconds 2
+            }
+            if (-not $passed -and -not $failure) {
+              $failure = 'Timed out after 90 seconds without MKSM_XENIA_SMOKE_PASS.'
+            }
+            if ($passed) {
+              $required = @(
+                'MKSM_XEX_ENTRY mode=xenia-headless',
+                'MKSM_EE_TRACE signature=4F63CD2AAFC519CE failures=00000000',
+                'MKSM_RECOMP_XENON_TRACE failures=00000000',
+                'MKSM_SPR_DMA_TRACE failures=00000000',
+                'MKSM_SPR_DMA_GENERATED_TRACE failures=00000000',
+                'MKSM_XENIA_GRAPHICS_SKIPPED',
+                'MKSM_XENIA_SMOKE_PASS'
+              )
+              foreach ($pattern in $required) {
+                if ($content -notmatch $pattern) {
+                  $failure = "Guest PASS marker found, but required trace was missing: $pattern"
+                  $passed = $false
+                  break
+                }
+              }
+            }
+            if ($passed) {
+              'XENIA_RESULT=PASS; guest main reached the end of the headless diagnostics path.' | Add-Content (Join-Path $logRoot 'summary.txt')
+            }
           } catch {
-            'Timeout after 45s or process wait failure: ' + $_.Exception.Message | Add-Content emulator-logs/summary.txt
-            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            $failure = $_.Exception.Message
+          } finally {
+            if ($proc) {
+              $proc.Refresh()
+              if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+              $proc.Refresh()
+              "XENIA_PROCESS_EXITED=$($proc.HasExited)" | Add-Content (Join-Path $logRoot 'summary.txt')
+              if ($proc.HasExited) { "XENIA_PROCESS_EXIT_CODE=$($proc.ExitCode)" | Add-Content (Join-Path $logRoot 'summary.txt') }
+            }
+            if (Test-Path $xeniaLog) { Copy-Item $xeniaLog (Join-Path $logRoot 'xenia-ci.log') -Force }
+            Get-ChildItem $xeniaDir -Recurse -File -Filter '*.log' -ErrorAction SilentlyContinue |
+              ForEach-Object { if ($_.FullName -ne $xeniaLog) { Copy-Item $_.FullName $logRoot -Force -ErrorAction SilentlyContinue } }
+            Get-ChildItem smoke -Recurse -File -Filter '*.log' -ErrorAction SilentlyContinue |
+              ForEach-Object { Copy-Item $_.FullName $logRoot -Force -ErrorAction SilentlyContinue }
+            if (Test-Path (Join-Path $logRoot 'summary.txt')) {
+              Get-ChildItem $logRoot -Force | Format-Table Name,Length | Out-String | Add-Content (Join-Path $logRoot 'summary.txt')
+            }
           }
-          Get-ChildItem (Split-Path $exe) -Recurse -File -Filter '*.log' | ForEach-Object { Copy-Item $_.FullName emulator-logs -Force -ErrorAction SilentlyContinue }
-          Get-ChildItem emulator-logs -Force | Format-Table Name,Length | Out-String | Add-Content emulator-logs/summary.txt
+          if ($failure) { throw $failure }
       - name: Upload Xenia logs (always)
         if: always()
         uses: actions/upload-artifact@v4
