@@ -10,7 +10,8 @@ add_library(ps2_iop STATIC
     src/plugin_loader.cpp
     src/modules/dbcman.cpp
     src/modules/libsd.cpp
-    src/modules/mcserv.cpp
+    src/modules/mcserv.cpp
+    src/modules/fileio.cpp
     src/modules/tsnddrv.cpp
     src/modules/cri_dtx.cpp
     src/modules/clfile.cpp
