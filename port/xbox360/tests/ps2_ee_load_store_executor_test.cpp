@@ -59,4 +59,41 @@ int main()
     assert(cpu.pc == oldPc && cpu.retiredInstructions == oldRetired);
     assert(executeLoadStore(cpu, ins(0x30, 1, 6, 0), ram) == LoadStoreStatus::Unsupported);
     assert(cpu.pc == oldPc && cpu.retiredInstructions == oldRetired);
+
+    // LQ/SQ transfer the complete 128-bit GPR and silently align the address
+    // down to a 16-byte boundary (unlike scalar LH/LW/SH/SW).
+    simd::Vector128 quadSource{};
+    for (std::size_t i = 0; i < quadSource.bytes.size(); ++i)
+        quadSource.bytes[i] = static_cast<std::uint8_t>(0xA0u + i);
+    cpu.writeGpr(7, quadSource);
+    simd::writeLane<std::uint32_t>(base, 0, 0x5Bu);
+    cpu.writeGpr(1, base);
+    assert(executeLoadStore(cpu, ins(0x1F, 1, 7, 0), ram) == LoadStoreStatus::Executed); // SQ
+    assert(cpu.pc == oldPc + 4u && cpu.retiredInstructions == oldRetired + 1u);
+    for (std::size_t i = 0; i < quadSource.bytes.size(); ++i)
+        assert(ram[0x50u + i] == quadSource.bytes[i]);
+
+    simd::Vector128 previousQuad{};
+    previousQuad.bytes.fill(0x5Au);
+    cpu.writeGpr(8, previousQuad);
+    assert(executeLoadStore(cpu, ins(0x1E, 1, 8, 0), ram) == LoadStoreStatus::Executed); // LQ
+    assert(cpu.pc == oldPc + 8u && cpu.retiredInstructions == oldRetired + 2u);
+    assert(cpu.readGpr(8).bytes == quadSource.bytes);
+
+    // LQ to the architectural zero register is discarded.
+    cpu.writeGpr(0, previousQuad); // writeGpr must preserve GPR[0] as zero.
+    assert(executeLoadStore(cpu, ins(0x1E, 1, 0, 0), ram) == LoadStoreStatus::Executed);
+    assert(cpu.readGpr(0).bytes == simd::Vector128{}.bytes);
+
+    // SQ from GPR[0] writes a full zero quadword.
+    assert(executeLoadStore(cpu, ins(0x1F, 1, 0, 0x10), ram) == LoadStoreStatus::Executed);
+    for (std::size_t i = 0; i < 16u; ++i)
+        assert(ram[0x60u + i] == 0u);
+
+    // LQ/SQ still reject a backing store that violates the wrapped-RAM contract.
+    std::array<std::uint8_t, 255> invalidRam{};
+    const auto beforeInvalidPc = cpu.pc;
+    const auto beforeInvalidRetired = cpu.retiredInstructions;
+    assert(executeLoadStore(cpu, ins(0x1E, 1, 9, 0), invalidRam) == LoadStoreStatus::InvalidMemory);
+    assert(cpu.pc == beforeInvalidPc && cpu.retiredInstructions == beforeInvalidRetired);
 }
