@@ -250,10 +250,14 @@ namespace ps2_syscalls
         uint32_t bufAddr = getRegU32(ctx, 5); // $a1
         size_t size = getRegU32(ctx, 6);      // $a2
 
-        const uint8_t *hostBuf = getConstMemPtr(rdram, bufAddr);
+        uint32_t guestOffset = 0;
+        bool scratch = false;
+        const bool validGuestRange = rdram && resolveEeGuestRange(bufAddr, size, guestOffset, scratch);
+        const uint8_t *hostBuf = validGuestRange ? getConstMemPtr(rdram, bufAddr) : nullptr;
         if (!hostBuf)
         {
-            setReturnS32(ctx, -1);
+            std::cerr << "fioWrite error: Invalid buffer range for fd " << ps2Fd << std::endl;
+            setReturnS32(ctx, -1); // -EFAULT
             return;
         }
 
