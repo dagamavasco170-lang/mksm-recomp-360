@@ -164,6 +164,17 @@ public:
         return ps2::xbox360::dmac::writeRegister(dmac_,rdram,eeScratchpad(),address,value);
     }
 
+    // PS2Recomp emits these methods for statically classified 32-bit MMIO
+    // instructions. Their definitions below delegate to the same guest-memory
+    // dispatcher used by the READ32/WRITE32 ABI macros.
+    [[nodiscard]] std::uint32_t Load32(std::uint8_t *rdram,
+                                       R5900Context *ctx,
+                                       std::uint32_t address);
+    void Store32(std::uint8_t *rdram,
+                 R5900Context *ctx,
+                 std::uint32_t address,
+                 std::uint32_t value);
+
 private:
     // Scratchpad and the initial SPR DMAC register bank are per EE runtime.
     std::array<std::uint8_t, kScratchpadSize> scratchpad_{};
@@ -292,6 +303,25 @@ inline void writeGuestMemory(std::uint8_t *rdram,
         throw std::out_of_range("PS2 generated ABI: scratchpad write crosses its 16 KiB boundary");
 }
 } // namespace ps2::xbox360::generated_abi
+
+inline std::uint32_t PS2Runtime::Load32(std::uint8_t *rdram,
+                                        R5900Context *ctx,
+                                        std::uint32_t address)
+{
+    (void)ctx;
+    return ps2::xbox360::generated_abi::readGuestMemory<std::uint32_t>(
+        rdram, this, address);
+}
+
+inline void PS2Runtime::Store32(std::uint8_t *rdram,
+                                R5900Context *ctx,
+                                std::uint32_t address,
+                                std::uint32_t value)
+{
+    (void)ctx;
+    ps2::xbox360::generated_abi::writeGuestMemory<std::uint32_t>(
+        rdram, this, address, value);
+}
 
 // 32-bit EE arithmetic wraps modulo 2^32 on ADDIU/ADDU.
 #define ADD32(lhs, rhs) \
