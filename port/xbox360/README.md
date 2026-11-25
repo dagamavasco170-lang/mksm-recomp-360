@@ -68,7 +68,7 @@ cmake --build build/xbox360 --parallel
 
 Expected output: `build/xbox360/mksm_xbox360_smoke.xex`.
 
-A GitHub Actions workflow builds this target on updates to the `xbox360/**` branch family or on a pull request. It uploads the XEX as the `mksm-xbox360-smoke-xex` artifact when the build succeeds. The artifact is a smoke-test title, not the game.
+A GitHub Actions workflow builds the interactive console XEX as `mksm-xbox360-smoke-xex` and a separate diagnostics-only XEX as `mksm-xbox360-xenia-smoke-xex`. The latter is compiled with `MKSM_XENIA_HEADLESS_SMOKE=ON`: it runs the same C++20, EE, MMI, scratchpad-DMA and generated-recomp checks, writes its trace markers to Xenia's log through DbgPrint, then exits without opening the Xenos display path. This separation matters because Xenia does not emulate the Xbox 360 display controller used by xSDK presentation. GitHub Actions requires explicit zero-failure trace markers and `MKSM_XENIA_SMOKE_PASS`; merely leaving the emulator process open is not a pass. Both artifacts are diagnostic smoke titles, not the game.
 
 ## Hardware test
 

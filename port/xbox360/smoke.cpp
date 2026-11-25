@@ -34,10 +34,12 @@ static_assert(std::endian::native == std::endian::big,
 
 namespace
 {
+#if !defined(MKSM_XENIA_HEADLESS_SMOKE)
 constexpr uint32_t kClearArgb = 0xFF182840u;
 constexpr uint32_t kBuffers = 2u;
 constexpr uint32_t kSwapInterval = 1u;
 constexpr uint32_t kBeginTimeoutMs = 5000u;
+#endif
 
 bool checkGuestMemoryEndian()
 {
@@ -193,6 +195,7 @@ bool checkCpp20Runtime()
            ps2::xbox360::encodePs2Pad(ps2::xbox360::GamepadSnapshot{})[1] == 0x73u;
 }
 
+#if !defined(MKSM_XENIA_HEADLESS_SMOKE)
 int runTitle()
 {
     const NTSTATUS splash = xsdk_splash_show(1200u);
@@ -274,10 +277,19 @@ int runTitle()
                    exitCode);
     return exitCode;
 }
+#endif
 } // namespace
 
 int main()
 {
+#if defined(MKSM_XENIA_HEADLESS_SMOKE)
+    // Xenia has no emulated display controller for xSDK presentation. Route the
+    // diagnostic markers to xenia.log and skip only the display/controller loop.
+    (void)xsdk_log_set_dbgprint(true);
+    xsdk_log_write("MKSM_XEX_ENTRY mode=xenia-headless");
+#else
+    xsdk_log_write("MKSM_XEX_ENTRY mode=console-interactive");
+#endif
     xsdk_log_write("MKSM Xbox 360 smoke: starting");
     xsdk_log_write("MKSM smoke: target ABI verified (32-bit big-endian PowerPC)");
 
@@ -321,5 +333,11 @@ int main()
     xsdk_log_write("MKSM smoke: C++20 runtime checks passed");
     xsdk_log_write("MKSM smoke: little-endian guest memory check passed");
     xsdk_log_write("MKSM smoke: scalar PS2 packed-vector checks passed");
+#if defined(MKSM_XENIA_HEADLESS_SMOKE)
+    xsdk_log_write("MKSM_XENIA_GRAPHICS_SKIPPED reason=xenia-has-no-display-controller");
+    xsdk_log_write("MKSM_XENIA_SMOKE_PASS checks=cpp20,guest-memory,ee,mmi,spr-dma,generated-recomp");
+    return 0;
+#else
     return runTitle();
+#endif
 }

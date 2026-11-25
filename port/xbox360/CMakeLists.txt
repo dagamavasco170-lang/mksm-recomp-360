@@ -7,6 +7,9 @@ if(NOT XSDK)
         "Configure with the xSDK toolchain: -DCMAKE_TOOLCHAIN_FILE=<xsdk>/cmake/xsdk.cmake")
 endif()
 
+option(MKSM_XENIA_HEADLESS_SMOKE
+    "Build a finite diagnostics-only XEX for Xenia CI (no Xenos presentation)" OFF)
+
 add_executable(mksm_xbox360_smoke
     smoke.cpp
     ps2_pad_xbox360.cpp
@@ -49,6 +52,10 @@ if(MKSM_XBOX360_GENERATED_DIR)
         MKSM_HAS_GENERATED_RECOMP_PROBE=1
     )
 endif()
+if(MKSM_XENIA_HEADLESS_SMOKE)
+    target_compile_definitions(mksm_xbox360_smoke PRIVATE MKSM_XENIA_HEADLESS_SMOKE=1)
+endif()
+
 target_compile_features(mksm_xbox360_smoke PRIVATE cxx_std_20)
 target_compile_options(mksm_xbox360_smoke PRIVATE -Wall -Wextra -Werror)
 
