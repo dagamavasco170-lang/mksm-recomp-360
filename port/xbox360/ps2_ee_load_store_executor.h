@@ -30,6 +30,87 @@ enum class LoadStoreStatus : std::uint8_t
         std::bit_cast<std::int16_t>(d.immediate));
     const std::uint32_t address = base + static_cast<std::uint32_t>(displacement);
 
+    // R5900 unaligned word merges access the containing aligned word and
+    // merge only the addressed byte lanes. They do not raise scalar address
+    // alignment exceptions.
+    if (d.opcode == 0x22u || d.opcode == 0x26u ||
+        d.opcode == 0x2Au || d.opcode == 0x2Eu) // LWL/LWR/SWL/SWR
+    {
+        if (!guest_memory::validWrappedRam(memory))
+            return LoadStoreStatus::InvalidMemory;
+
+        const std::uint32_t alignedAddress = address & ~0x03u;
+        const std::uint32_t offset = address & 0x03u;
+        std::uint32_t memoryWord{};
+        if (!guest_memory::readLittleEndian(
+                std::span<const std::uint8_t>(memory), alignedAddress, memoryWord))
+            return LoadStoreStatus::InvalidMemory;
+
+        if (d.opcode == 0x22u || d.opcode == 0x26u) // LWL / LWR
+        {
+            if (d.rt != 0u)
+            {
+                simd::Vector128 result = state.readGpr(d.rt);
+                const std::uint32_t oldLow =
+                    simd::readLane<std::uint32_t>(result, 0u);
+                std::uint32_t merged{};
+                bool signExtendLow64 = false;
+
+                if (d.opcode == 0x22u) // LWL
+                {
+                    const std::uint32_t shift = (3u - offset) * 8u;
+                    const std::uint32_t keepMask =
+                        shift == 0u ? 0u : ((std::uint32_t{1u} << shift) - 1u);
+                    merged = (oldLow & keepMask) | (memoryWord << shift);
+                    signExtendLow64 = true;
+                }
+                else // LWR
+                {
+                    const std::uint32_t shift = offset * 8u;
+                    const std::uint32_t keepMask =
+                        shift == 0u ? 0u : (0xFFFFFFFFu << (32u - shift));
+                    merged = (oldLow & keepMask) | (memoryWord >> shift);
+                    signExtendLow64 = offset == 0u;
+                }
+
+                simd::writeLane<std::uint32_t>(result, 0u, merged);
+                if (signExtendLow64)
+                {
+                    const std::uint32_t fill =
+                        (merged & 0x80000000u) != 0u ? 0xFFFFFFFFu : 0u;
+                    simd::writeLane<std::uint32_t>(result, 1u, fill);
+                }
+                state.writeGpr(d.rt, result);
+            }
+        }
+        else // SWL / SWR
+        {
+            const std::uint32_t value =
+                simd::readLane<std::uint32_t>(state.readGpr(d.rt), 0u);
+            std::uint32_t merged{};
+            if (d.opcode == 0x2Au) // SWL
+            {
+                const std::uint32_t shift = (3u - offset) * 8u;
+                const std::uint32_t keepMask =
+                    shift == 0u ? 0u : (0xFFFFFFFFu << (32u - shift));
+                merged = (memoryWord & keepMask) | (value >> shift);
+            }
+            else // SWR
+            {
+                const std::uint32_t shift = offset * 8u;
+                const std::uint32_t keepMask =
+                    shift == 0u ? 0u : ((std::uint32_t{1u} << shift) - 1u);
+                merged = (memoryWord & keepMask) | (value << shift);
+            }
+            if (!guest_memory::writeLittleEndian(memory, alignedAddress, merged))
+                return LoadStoreStatus::InvalidMemory;
+        }
+
+        state.advancePc();
+        state.recordRetiredInstruction();
+        return LoadStoreStatus::Executed;
+    }
+
     // R5900 LQ/SQ silently align the effective address down to 16 bytes.
     // They transfer all 128 guest bytes and do not raise the scalar alignment
     // exception used by LB/LH/LW and SB/SH/SW.
