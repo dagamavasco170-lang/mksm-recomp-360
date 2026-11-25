@@ -26,9 +26,27 @@ The resulting XEX is under the build directory. Deploy it to an RGH/JTAG console
 
 - [ ] XEX builds using the documented xsdk toolchain
 - [ ] XEX launches on RGH/JTAG
-- [ ] Log reports successful GPU/presentation startup and dimensions
-- [ ] Screen remains a stable blue clear while running
-- [ ] Back exits to dashboard
-- [ ] Log ends with the frame count and GPU close status
+- [ ] Log reports the display dimensions and non-zero display check
+- [ ] Screen remains a stable blue clear (`0xFF203060`) while running
+- [ ] The log's pixel check reports `PASS` for the clear colour
+- [ ] Back exits cleanly
+- [ ] Final log reports 0 failed checks and `mksm-xbox360-smoke: PASS`
 
-This target is not yet wired into the project's default CMake build and does not prove that the PS2 runtime is Xenon-compatible.
+The smoke test waits for the GPU fence, reads the center pixel back from the resolved frame and compares it with the expected clear colour. This verifies more than a launch or a visible screen: it exercises the GPU resolve, presentation buffer and texture download path.
+
+## Run and report back
+
+Copy `xbox360/build/mksm_xbox360_smoke.xex` to the console (FTP is fine), launch it from Aurora or another dashboard, wait a few seconds, then press **Back**. Retrieve `mksm_xbox360_smoke.log` beside the XEX and share it here. A successful run should include lines similar to:
+
+```
+PASS: display dimensions are non-zero
+PASS: first resolved frame contains the clear colour
+PASS: GPU closed cleanly
+PASS: at least one frame presented
+PASS: frame loop did not fail
+PASS: clear-colour pixel verification ran
+smoke: frames=... checks=6 passed, 0 failed
+mksm-xbox360-smoke: PASS
+```
+
+The exact frame count varies. The XEX has not yet been built or tested on hardware by this project. This target is not wired into the project's default CMake build and does not prove that the PS2 runtime is Xenon-compatible.
