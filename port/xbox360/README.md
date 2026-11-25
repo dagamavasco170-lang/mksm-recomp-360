@@ -89,7 +89,7 @@ The run #80 smoke XEX passed its recorded console checks, but it predates the cu
 
 ## Console-side retail file probe
 
-The current ioman smoke probe is opt-in: set `MKSM_DISC_ROOT` to the root of an extracted disc tree before launching the XEX. The root must contain the probe file `GAMEDATA.WAD`. If the variable is unset, the XEX logs `MKSM_IOMAN_BRIDGE status=not-configured` and skips only this retail-file probe; it does not imply the file bridge passed.
+The current ioman smoke probe is opt-in: set `MKSM_DISC_ROOT` to the root of an extracted disc tree before launching the XEX. The root must contain the probe file `GAMEDATA.WAD`. Configure the root during the xSDK CMake build with `-DMKSM_DISC_ROOT="H:/MKSM"` (replace with the actual Xbox storage path). The compiled setting takes precedence; the `MKSM_DISC_ROOT` environment fallback is retained for host/emulator environments. If the variable is unset, the XEX logs `MKSM_IOMAN_BRIDGE status=not-configured` and skips only this retail-file probe; it does not imply the file bridge passed.
 
 Recommended extracted layout on the console storage device:
 
