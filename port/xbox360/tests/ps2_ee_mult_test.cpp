@@ -43,7 +43,8 @@ static void runCase(std::uint8_t funct, std::uint32_t lhs, std::uint32_t rhs,
                static_cast<std::uint8_t>(expectedLo >> (byte * 8u)));
         assert(state.hilo.hi.bytes[byte] ==
                static_cast<std::uint8_t>(expectedHi >> (byte * 8u)));
-        assert(state.gpr[3].bytes[byte] == 0x5A);
+        assert(state.gpr[3].bytes[byte] ==
+               static_cast<std::uint8_t>(expectedLo >> (byte * 8u)));
     }
     for (std::size_t byte = 8; byte < 16; ++byte)
     {
