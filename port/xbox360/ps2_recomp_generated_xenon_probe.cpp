@@ -57,5 +57,22 @@ bool checkGeneratedRecompProbe()
                    static_cast<unsigned>(result.mmi.pmthlLo[1]),
                    static_cast<unsigned>(result.mmi.pmthlLo[2]),
                    static_cast<unsigned>(result.mmi.pmthlLo[3]));
+    xsdk_log_write("MKSM_SPR_DMA_GENERATED_TRACE failures=%08X "
+                   "from=%08X/%08X/%08X/%08X stadr=%08X dstat=%08X "
+                   "ram=%08X to=%08X/%08X/%08X/%08X spr=%08X/%08X",
+                   static_cast<unsigned>(result.failures >> 24u),
+                   static_cast<unsigned>(result.sprDmaMadrFrom),
+                   static_cast<unsigned>(result.sprDmaQwcFrom),
+                   static_cast<unsigned>(result.sprDmaSadrFrom),
+                   static_cast<unsigned>(result.sprDmaChcrFrom),
+                   static_cast<unsigned>(result.sprDmaStadr),
+                   static_cast<unsigned>(result.sprDmaDstat),
+                   static_cast<unsigned>(result.sprDmaRdramWord),
+                   static_cast<unsigned>(result.sprDmaMadrTo),
+                   static_cast<unsigned>(result.sprDmaQwcTo),
+                   static_cast<unsigned>(result.sprDmaSadrTo),
+                   static_cast<unsigned>(result.sprDmaChcrTo),
+                   static_cast<unsigned>(result.sprDmaScratchWord0),
+                   static_cast<unsigned>(result.sprDmaScratchWord1));
     return result.failures == 0u;
 }

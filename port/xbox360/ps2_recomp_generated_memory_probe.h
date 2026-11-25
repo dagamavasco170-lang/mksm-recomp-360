@@ -32,6 +32,10 @@ struct Ps2GeneratedMemoryProbeResult
     std::uint32_t scratchpadAliasWord{};
     std::uint32_t scratchpadAliasByte{};
     std::uint32_t scratchpadIsolationWord{};
+    std::uint32_t sprDmaMadrFrom{}, sprDmaQwcFrom{}, sprDmaSadrFrom{}, sprDmaChcrFrom{};
+    std::uint32_t sprDmaStadr{}, sprDmaDstat{}, sprDmaRdramWord{};
+    std::uint32_t sprDmaMadrTo{}, sprDmaQwcTo{}, sprDmaSadrTo{}, sprDmaChcrTo{};
+    std::uint32_t sprDmaScratchWord0{}, sprDmaScratchWord1{};
     Ps2GeneratedMmiProbeResult mmi{};
 };
 
@@ -167,6 +171,48 @@ struct Ps2GeneratedMemoryProbeResult
         scratchpad[19] != 0xDEu || rdram[0x10u] != 0u ||
         rdram[0x11u] != 0u || rdram[0x12u] != 0u || rdram[0x13u] != 0u)
         result.failures |= 1u << 20u;
+
+    // Real translated SW/LW instructions drive both normal SPR DMA
+    // directions through the per-runtime EE MMIO bank.
+    constexpr std::uint32_t kSprStart=0x3FF0u;
+    for(std::uint32_t i=0;i<32u;++i){
+        runtime->eeScratchpad()[(kSprStart+i)&0x3FFFu]=static_cast<std::uint8_t>(0x40u+i);
+        rdram[0x00090000u+i]=static_cast<std::uint8_t>(0xA0u+i);
+    }
+    R5900Context dmaContext{};
+    SET_GPR_U32(&dmaContext,31u,kReturnPc);
+    SET_GPR_U32(&dmaContext,30u,0x70000000u);
+    MKSM_RECOMP_GENERATED_SPR_DMA_ENTRY(rdram.data(),&dmaContext,runtime);
+
+    result.sprDmaMadrFrom=GPR_U32(&dmaContext,11u);
+    result.sprDmaQwcFrom=GPR_U32(&dmaContext,12u);
+    result.sprDmaSadrFrom=GPR_U32(&dmaContext,13u);
+    result.sprDmaChcrFrom=GPR_U32(&dmaContext,14u);
+    result.sprDmaStadr=GPR_U32(&dmaContext,16u);
+    result.sprDmaDstat=GPR_U32(&dmaContext,18u);
+    result.sprDmaRdramWord=GPR_U32(&dmaContext,20u);
+    result.sprDmaMadrTo=GPR_U32(&dmaContext,6u);
+    result.sprDmaQwcTo=GPR_U32(&dmaContext,24u);
+    result.sprDmaSadrTo=GPR_U32(&dmaContext,26u);
+    result.sprDmaChcrTo=GPR_U32(&dmaContext,2u);
+    result.sprDmaScratchWord0=GPR_U32(&dmaContext,29u);
+    result.sprDmaScratchWord1=GPR_U32(&dmaContext,30u);
+
+    if(dmaContext.pc!=kReturnPc||dmaContext.in_delay_slot)
+        result.failures|=1u<<24u;
+    if(result.sprDmaMadrFrom!=0x20080020u||result.sprDmaQwcFrom!=0u||
+       result.sprDmaSadrFrom!=0x10u||result.sprDmaChcrFrom!=0u||
+       result.sprDmaStadr!=0x20080020u)
+        result.failures|=1u<<25u;
+    if(result.sprDmaRdramWord!=0x43424140u)
+        result.failures|=1u<<26u;
+    if(result.sprDmaMadrTo!=0x00090020u||result.sprDmaQwcTo!=0u||
+       result.sprDmaSadrTo!=0x10u||result.sprDmaChcrTo!=0u)
+        result.failures|=1u<<27u;
+    if((result.sprDmaDstat&0x300u)!=0x300u||
+       result.sprDmaScratchWord0!=0xA3A2A1A0u||
+       result.sprDmaScratchWord1!=0xA7A6A5A4u)
+        result.failures|=1u<<28u;
 
     result.mmi = runGeneratedMmiProbe(rdram.data());
     if (result.mmi.failures != 0u)

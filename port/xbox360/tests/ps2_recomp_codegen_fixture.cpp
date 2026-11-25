@@ -18,6 +18,7 @@ namespace
 constexpr std::uint32_t kGuestStart = 0x00100000u;
 constexpr std::uint32_t kScratchpadProbeStart = kGuestStart + 0x100u;
 constexpr std::uint32_t kMmiProbeStart = kGuestStart + 0x200u;
+constexpr std::uint32_t kSprDmaProbeStart = kGuestStart + 0x300u;
 
 constexpr std::array<std::uint32_t, 23> makeProbeWords()
 {
@@ -94,6 +95,43 @@ constexpr std::array<std::uint32_t, 16> makeMmiProbeWords()
     };
 }
 
+constexpr std::array<std::uint32_t, 57> makeSprDmaProbeWords()
+{
+    using namespace ps2::xbox360::ee::test_program::detail;
+    return {
+        iType(0x0Fu,0u,1u,0x1000u), iType(0x0Du,1u,1u,0xE000u),
+        iType(0x09u,0u,2u,0x0021u), iType(0x2Bu,1u,2u,0u),
+        iType(0x0Fu,0u,3u,0x1000u), iType(0x0Du,3u,3u,0xD010u),
+        iType(0x0Fu,0u,4u,0xA008u), iType(0x2Bu,3u,4u,0u),
+        iType(0x0Fu,0u,5u,0x1000u), iType(0x0Du,5u,5u,0xD020u),
+        iType(0x09u,0u,6u,2u), iType(0x2Bu,5u,6u,0u),
+        iType(0x0Fu,0u,7u,0x1000u), iType(0x0Du,7u,7u,0xD080u),
+        iType(0x09u,0u,8u,0x3FF0u), iType(0x2Bu,7u,8u,0u),
+        iType(0x0Fu,0u,9u,0x1000u), iType(0x0Du,9u,9u,0xD000u),
+        iType(0x09u,0u,10u,0x0100u), iType(0x2Bu,9u,10u,0u),
+        iType(0x23u,3u,11u,0u), iType(0x23u,5u,12u,0u),
+        iType(0x23u,7u,13u,0u), iType(0x23u,9u,14u,0u),
+        iType(0x0Fu,0u,15u,0x1000u), iType(0x0Du,15u,15u,0xE060u),
+        iType(0x23u,15u,16u,0u),
+        iType(0x0Fu,0u,17u,0x1000u), iType(0x0Du,17u,17u,0xE010u),
+        iType(0x23u,17u,18u,0u),
+        iType(0x0Fu,0u,19u,0x0008u), iType(0x23u,19u,20u,0u),
+        iType(0x0Fu,0u,21u,0x1000u), iType(0x0Du,21u,21u,0xD410u),
+        iType(0x0Fu,0u,22u,0x0009u), iType(0x2Bu,21u,22u,0u),
+        iType(0x0Fu,0u,23u,0x1000u), iType(0x0Du,23u,23u,0xD420u),
+        iType(0x09u,0u,24u,2u), iType(0x2Bu,23u,24u,0u),
+        iType(0x0Fu,0u,25u,0x1000u), iType(0x0Du,25u,25u,0xD480u),
+        iType(0x09u,0u,26u,0x3FF0u), iType(0x2Bu,25u,26u,0u),
+        iType(0x0Fu,0u,27u,0x1000u), iType(0x0Du,27u,27u,0xD400u),
+        iType(0x09u,0u,28u,0x0100u), iType(0x2Bu,27u,28u,0u),
+        iType(0x23u,21u,6u,0u), iType(0x23u,23u,24u,0u),
+        iType(0x23u,25u,26u,0u), iType(0x23u,27u,2u,0u),
+        iType(0x23u,17u,18u,0u),
+        iType(0x23u,30u,29u,0x3FF0u), iType(0x23u,30u,30u,0x3FF4u),
+        rType(31u,0u,0u,0x08u), 0u
+    };
+}
+
 bool writeFixtureElf(const std::filesystem::path &path)
 {
     ELFIO::elfio writer;
@@ -106,12 +144,15 @@ bool writeFixtureElf(const std::filesystem::path &path)
     constexpr auto words = makeProbeWords();
     constexpr auto scratchpadWords = makeScratchpadProbeWords();
     constexpr auto mmiWords = makeMmiProbeWords();
+    constexpr auto sprDmaWords = makeSprDmaProbeWords();
     constexpr std::size_t kScratchpadOffset =
         static_cast<std::size_t>(kScratchpadProbeStart - kGuestStart);
     constexpr std::size_t kMmiOffset =
         static_cast<std::size_t>(kMmiProbeStart - kGuestStart);
+    constexpr std::size_t kSprDmaOffset =
+        static_cast<std::size_t>(kSprDmaProbeStart - kGuestStart);
     std::vector<char> textBytes(
-        kMmiOffset + mmiWords.size() * sizeof(std::uint32_t), 0);
+        kSprDmaOffset + sprDmaWords.size() * sizeof(std::uint32_t), 0);
 
     const auto writeWords = [&](const auto &program, std::size_t offset)
     {
@@ -127,6 +168,7 @@ bool writeFixtureElf(const std::filesystem::path &path)
     writeWords(words, 0u);
     writeWords(scratchpadWords, kScratchpadOffset);
     writeWords(mmiWords, kMmiOffset);
+    writeWords(sprDmaWords, kSprDmaOffset);
 
     ELFIO::section *text = writer.sections.add(".text");
     text->set_type(ELFIO::SHT_PROGBITS);
@@ -160,6 +202,10 @@ bool writeFixtureElf(const std::filesystem::path &path)
     symbols.add_symbol(strings, "mksm_ee_mmi_probe", kMmiProbeStart,
                        static_cast<ELFIO::Elf_Word>(
                            mmiWords.size() * sizeof(std::uint32_t)),
+                       ELFIO::STB_GLOBAL, ELFIO::STT_FUNC, 0u, text->get_index());
+    symbols.add_symbol(strings, "mksm_ee_spr_dma_probe", kSprDmaProbeStart,
+                       static_cast<ELFIO::Elf_Word>(
+                           sprDmaWords.size() * sizeof(std::uint32_t)),
                        ELFIO::STB_GLOBAL, ELFIO::STT_FUNC, 0u, text->get_index());
 
     ELFIO::segment *segment = writer.segments.add();
@@ -260,6 +306,7 @@ int main(int argc, char **argv)
             "mksm_ee_codegen_probe_0x100000",
             "mksm_ee_scratchpad_probe_0x100100",
             "mksm_ee_mmi_probe_0x100200",
+            "mksm_ee_spr_dma_probe_0x100300",
             "Ps2MmiPmthi(ctx, 1);",
             "Ps2MmiPmtlo(ctx, 2);",
             "Ps2MmiPmfhi(ctx, 3);",
@@ -332,14 +379,18 @@ int main(int argc, char **argv)
         extractFunctionName("mksm_ee_scratchpad_probe_0x100100");
     const std::string mmiEntryName =
         extractFunctionName("mksm_ee_mmi_probe_0x100200");
+    const std::string sprDmaEntryName =
+        extractFunctionName("mksm_ee_spr_dma_probe_0x100300");
     if (entryName.empty() || scratchpadEntryName.empty() || mmiEntryName.empty() ||
+        sprDmaEntryName.empty() ||
         source.find("void " + entryName + "(") == std::string::npos ||
         source.find("void " + scratchpadEntryName + "(") == std::string::npos ||
-        source.find("void " + mmiEntryName + "(") == std::string::npos)
+        source.find("void " + mmiEntryName + "(") == std::string::npos ||
+        source.find("void " + sprDmaEntryName + "(") == std::string::npos)
     {
         std::cerr << "Generated header entries do not match generated C++: "
                   << entryName << ", " << scratchpadEntryName << ", "
-                  << mmiEntryName << '\n';
+                  << mmiEntryName << ", " << sprDmaEntryName << '\n';
         return 1;
     }
 
@@ -356,15 +407,18 @@ int main(int argc, char **argv)
                 << "#define MKSM_RECOMP_GENERATED_SCRATCHPAD_ENTRY "
                 << scratchpadEntryName << "\n"
                 << "#define MKSM_RECOMP_GENERATED_MMI_ENTRY "
-                << mmiEntryName << "\n";
+                << mmiEntryName << "\n"
+                << "#define MKSM_RECOMP_GENERATED_SPR_DMA_ENTRY "
+                << sprDmaEntryName << "\n";
     if (!entryOutput)
     {
         std::cerr << "Could not finish generated probe entry adapter header\n";
         return 1;
     }
 
-    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+15+16 entry=00100000/00100100/00100200 symbols="
+    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+15+16+57 entry=00100000/00100100/00100200/00100300 symbols="
               << entryName << "," << scratchpadEntryName << "," << mmiEntryName
+              << "," << sprDmaEntryName
               << " output=" << generatedCpp.string() << '\n';
     return 0;
 }
