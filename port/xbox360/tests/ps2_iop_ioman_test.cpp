@@ -46,6 +46,25 @@ int main()
     assert((std::array<std::uint8_t, 4>{ram[80], ram[81], ram[82], ram[83]} ==
             std::array<std::uint8_t, 4>{3, 4, 5, 6}));
 
+    // Zero-length reads are successful no-ops, including at EOF.
+    assert(ioman.dispatch(IomanCommand::Read, static_cast<std::uint32_t>(fd),
+                          127u, 0u, ram) == 0);
+    assert(ioman.dispatch(IomanCommand::Lseek, static_cast<std::uint32_t>(fd),
+                          static_cast<std::uint32_t>(-2), 2u, ram) == 4);
+    assert(ioman.dispatch(IomanCommand::Read, static_cast<std::uint32_t>(fd),
+                          96u, 2u, ram) == 2);
+    assert((std::array<std::uint8_t, 2>{ram[96], ram[97]} ==
+            std::array<std::uint8_t, 2>{5, 6}));
+    assert(ioman.dispatch(IomanCommand::Lseek, static_cast<std::uint32_t>(fd),
+                          6u, 0u, ram) == 6);
+    assert(ioman.dispatch(IomanCommand::Read, static_cast<std::uint32_t>(fd),
+                          96u, 2u, ram) == 0); // EOF
+    assert(ioman.dispatch(IomanCommand::Lseek, static_cast<std::uint32_t>(fd),
+                          static_cast<std::uint32_t>(-1), 0u, ram) == -EINVAL);
+    assert(ioman.dispatch(IomanCommand::Lseek, static_cast<std::uint32_t>(fd),
+                          0u, 3u, ram) == -EINVAL);
+    assert(ioman.dispatch(IomanCommand::Read, 999u, 96u, 1u, ram) == -EBADF);
+
     assert(ioman.dispatch(IomanCommand::Read, static_cast<std::uint32_t>(fd),
                           127u, 2u, ram) == -EFAULT);
     assert(ioman.dispatch(IomanCommand::Open, 127u, 0u, 0u, ram) == -EFAULT);
