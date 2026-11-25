@@ -15,6 +15,12 @@ The first target is a **C++20 smoke title**, not the game yet. It tests:
 
 It draws a solid background only. It does not load the retail game, render the PS2 GS, or contain any game data.
 
+### Retail disc file access foundation
+
+A read-only `ps2::xbox360::disc::RetailDisc` backend now resolves files beneath a caller-supplied extraction root, reports file sizes, reads bounded byte ranges (for streaming large WAD/movie files), and optionally reads a whole small file. It normalizes slash direction and rejects absolute paths, drive-qualified paths and `..` traversal. Host regression tests create a temporary `GAMEDATA.WAD` and `IOP/SIO2MAN.IRX` tree and exercise range reads, missing files and path rejection.
+
+This is the first filesystem primitive only: it is not yet connected to the game's `sceOpen/sceRead/sceLseek` IOP services, the EE loader, or the XEX startup path. The Xbox build still does not load retail data. The intended console layout is a user-extracted NTSC-U disc tree (including `GAMEDATA.WAD`, `IOP/` and movie files) on HDD/USB; no copyrighted files are committed. The next integration gate is to route the IOP file RPC/syscall layer through this backend, then load and verify one known asset before attempting full game startup.
+
 The revised run #76 XEX has now been tested on the physical console. The supplied log records ABI, C++20 and little-endian guest-memory checks, 1280×720 presentation, the Xbox Back → PS2 Select event, 122 presented frames and clean shutdown (exit 0). See [the hardware report](../../docs/xbox360/HARDWARE_SMOKE_2026-11-22.md).
 
 The generated runtime ABI now handles the two normal-mode EE scratchpad DMA channels (scratchpad→RDRAM and RDRAM→scratchpad): MADR alignment/bit-31 behavior, QWC sizing, 16 KiB SADR wrap, completion registers, D_STAT W1C/mask behavior and D_STADR in stall-control mode. The PS2Recomp synthetic ELF also includes a 57-word MIPS function that programs both channels through guest `SW`, starts each transfer and verifies registers/payload through guest `LW`; the exact generated function is linked into the smoke XEX and emits `MKSM_SPR_DMA_GENERATED_TRACE`. Chain/interleave/MFIFO modes and DMA timing/arbitration remain unsupported. Host regressions cover aliases, both directions, QWC boundaries, disabled DMA and invalid ranges; the smoke XEX also runs a small wraparound DMA probe at startup.
