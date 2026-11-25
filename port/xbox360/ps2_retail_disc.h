@@ -3,9 +3,11 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <span>
 #include <string>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 namespace ps2::xbox360::disc
@@ -36,7 +38,7 @@ public:
     }
 
     [[nodiscard]] FileStatus fileSize(const std::string &relativePath,
-                                      std::uint64_t &size) const noexcept
+                                      std::uint64_t &size) const
     {
         std::filesystem::path path;
         if (!resolve(relativePath, path))
@@ -53,7 +55,7 @@ public:
         return FileStatus::Ok;
     }
 
-    [[nodiscard]] bool exists(const std::string &relativePath) const noexcept
+    [[nodiscard]] bool exists(const std::string &relativePath) const
     {
         std::uint64_t ignored{};
         return fileSize(relativePath, ignored) == FileStatus::Ok;
@@ -116,7 +118,7 @@ public:
 
 private:
     [[nodiscard]] bool resolve(const std::string &relativePath,
-                               std::filesystem::path &result) const noexcept
+                               std::filesystem::path &result) const
     {
         if (relativePath.empty())
             return false;
