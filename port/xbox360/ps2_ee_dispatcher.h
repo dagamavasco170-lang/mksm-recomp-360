@@ -11,7 +11,7 @@
 
 namespace ps2::xbox360::ee
 {
-enum class StepStatus : std::uint8_t { Executed, Unsupported, InvalidMemory, AddressError };
+enum class StepStatus : std::uint8_t { Executed, Exception, Unsupported, InvalidMemory, AddressError };
 struct StepResult { StepStatus status{StepStatus::Unsupported}; std::uint32_t instruction{}; DecodedInstruction decoded{}; };
 
 [[nodiscard]] constexpr std::uint32_t branchTarget(std::uint32_t pc, std::uint16_t imm) noexcept
@@ -85,7 +85,15 @@ struct StepResult { StepStatus status{StepStatus::Unsupported}; std::uint32_t in
     StepStatus status = StepStatus::Unsupported;
     if (d.kind == InstructionKind::Special)
     {
-        status = executeSpecial(state, d) == ExecuteStatus::Executed ? StepStatus::Executed : StepStatus::Unsupported;
+        const auto specialStatus = executeSpecial(state, d);
+        switch (specialStatus)
+        {
+        case ExecuteStatus::Executed: status = StepStatus::Executed; break;
+        case ExecuteStatus::Overflow: state.raiseException(12u, wasDelaySlot); return {StepStatus::Exception, word, d};
+        case ExecuteStatus::Syscall: state.raiseException(8u, wasDelaySlot); return {StepStatus::Exception, word, d};
+        case ExecuteStatus::Breakpoint: state.raiseException(9u, wasDelaySlot); return {StepStatus::Exception, word, d};
+        case ExecuteStatus::Unsupported: status = StepStatus::Unsupported; break;
+        }
     }
     else if (d.opcode == 0x09u || d.opcode == 0x0Au || d.opcode == 0x0Bu ||
              d.opcode == 0x0Cu || d.opcode == 0x0Du || d.opcode == 0x0Eu || d.opcode == 0x0Fu)
