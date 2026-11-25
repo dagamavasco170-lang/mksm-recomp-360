@@ -154,4 +154,45 @@ int main()
     std::span<std::uint8_t> empty{};
     result=step(cpu,empty); assert(result.status==StepStatus::InvalidMemory);
     assert(cpu.pc==beforePc&&cpu.retiredInstructions==beforeRetired);
+
+    // Signed ADD overflow enters the EE general exception vector without retiring.
+    const std::uint32_t addOverflow=(1u<<21)|(2u<<16)|(3u<<11)|0x20u;
+    assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0x10u,addOverflow));
+    ps2::xbox360::simd::writeLane<std::uint32_t>(one,0,0x7FFFFFFFu);
+    ps2::xbox360::simd::writeLane<std::uint32_t>(two,0,1u);
+    cpu.writeGpr(1,one); cpu.writeGpr(2,two); cpu.pc=0x10u;
+    cpu.cop0={};
+    const auto retiredBeforeOverflow=cpu.retiredInstructions;
+    result=step(cpu,ram);
+    assert(result.status==StepStatus::Exception&&cpu.pc==0x80000180u);
+    assert(cpu.cop0.epc==0x10u&&(cpu.cop0.cause&CpuState::CauseExcCodeMask)==(12u<<2u));
+    assert((cpu.cop0.status&CpuState::StatusExl)!=0u);
+    assert(cpu.retiredInstructions==retiredBeforeOverflow);
+
+    // Overflow in a branch delay slot records the branch PC and Cause.BD.
+    const std::uint32_t branch=(4u<<26)|(1u<<21)|(1u<<16)|1u;
+    assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0x20u,branch));
+    assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0x24u,addOverflow));
+    cpu.cop0={}; cpu.pc=0x20u; cpu.branchDelayPending=false;
+    result=step(cpu,ram); assert(result.status==StepStatus::Executed&&cpu.branchDelayPending);
+    result=step(cpu,ram);
+    assert(result.status==StepStatus::Exception&&cpu.pc==0x80000180u);
+    assert(cpu.cop0.epc==0x20u&&(cpu.cop0.cause&CpuState::CauseBd)!=0u);
+    assert(!cpu.branchDelayPending);
+
+    // BEV selects the bootstrap general vector; SYSCALL records ExcCode 8.
+    const std::uint32_t syscall=0x0000000Cu;
+    assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0x30u,syscall));
+    cpu.cop0={}; cpu.cop0.status=CpuState::StatusBev; cpu.pc=0x30u;
+    result=step(cpu,ram);
+    assert(result.status==StepStatus::Exception&&cpu.pc==0xBFC00380u);
+    assert(cpu.cop0.epc==0x30u&&(cpu.cop0.cause&CpuState::CauseExcCodeMask)==(8u<<2u));
+
+    // BREAK maps to ExcCode 9 and does not overwrite EPC while EXL is already set.
+    const std::uint32_t breakpoint=0x0000000Du;
+    assert(ps2::xbox360::guest_memory::writeLittleEndian(std::span<std::uint8_t>(ram),0x34u,breakpoint));
+    cpu.cop0.status=CpuState::StatusExl; cpu.cop0.epc=0x12345678u; cpu.pc=0x34u;
+    result=step(cpu,ram);
+    assert(result.status==StepStatus::Exception&&cpu.cop0.epc==0x12345678u);
+    assert((cpu.cop0.cause&CpuState::CauseExcCodeMask)==(9u<<2u));
 }
