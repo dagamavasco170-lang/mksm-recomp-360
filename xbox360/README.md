@@ -62,4 +62,4 @@ ctest --test-dir build/guest-endian --output-on-failure
 ```
 
 
-See [core-smoke README](core-smoke/README.md) and [endian audit](../docs/XBOX360_ENDIAN_AUDIT.md). The helper test was compiled and run with a local host C++ compiler; it is not yet integrated into PS2Memory or cross-compiled for Xenon.
+See [core-smoke README](core-smoke/README.md) and [endian audit](../docs/XBOX360_ENDIAN_AUDIT.md). The scalar little-endian helpers have now been integrated into PS2Memory's shared scalar load/store routines. A focused host compiler check passed for 16/32/64-bit values; the full runtime regression suite and Xenon cross-build remain pending.
