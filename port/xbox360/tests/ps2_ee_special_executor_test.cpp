@@ -141,8 +141,8 @@ int main()
     writeLow64(state.gpr[2], 2ull);
     auto divuDecoded = decodeInstruction(encodeSpecial(1, 2, 0, 0, 0x1B));
     assert(executeSpecial(state, divuDecoded) == ExecuteStatus::Executed);
-    assert(simd::readLane<std::uint64_t>(state.hilo.lo, 0) == 0x000000007FFFFFFFull);
-    assert(simd::readLane<std::uint64_t>(state.hilo.hi, 0) == 1ull);
+    assert(readLow64(state.hilo.lo) == 0x000000007FFFFFFFull);
+    assert(readLow64(state.hilo.hi) == 1ull);
 
     // A zero divisor is architecturally undefined: reject atomically.
     writeLow64(state.gpr[2], 0ull);
