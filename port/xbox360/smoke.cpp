@@ -313,7 +313,7 @@ bool checkIomanBridge()
         return true;
     }
 
-    ps2::xbox360::iop::IomanDispatcher ioman(std::filesystem::path(discRoot));
+    ps2::xbox360::iop::IomanDispatcher ioman{std::filesystem::path(discRoot)};
     std::array<std::uint8_t, 128> iopRam{};
     constexpr char probePath[] = "GAMEDATA.WAD";
     for (size_t i = 0; i < sizeof(probePath); ++i)
