@@ -75,7 +75,7 @@ int main()
     assert(guest_memory::writeLittleEndian(std::span<std::uint8_t>(mergeRam), 0x40u, 0xF2332211u));
 
     constexpr std::array<std::uint32_t, 4> expectedLwl{
-        0xF2BBCCDDu, 0x33F2CCDDu, 0x2233F2DDu, 0xF2332211u};
+        0x11BBCCDDu, 0x2211CCDDu, 0x332211DDu, 0xF2332211u};
     constexpr std::array<std::uint32_t, 4> expectedLwr{
         0xF2332211u, 0xAAF23322u, 0xAABBF233u, 0xAABBCCF2u};
     for (std::uint16_t offset = 0u; offset < 4u; ++offset)
@@ -86,7 +86,7 @@ int main()
         assert(simd::readLane<std::uint32_t>(mergeCpu.readGpr(5u), 0u) ==
                expectedLwl[offset]);
         assert(simd::readLane<std::uint32_t>(mergeCpu.readGpr(5u), 1u) ==
-               0xFFFFFFFFu);
+               (offset == 3u ? 0xFFFFFFFFu : 0u));
         assert(simd::readLane<std::uint32_t>(mergeCpu.readGpr(5u), 2u) ==
                0x10203040u);
         assert(simd::readLane<std::uint32_t>(mergeCpu.readGpr(5u), 3u) ==
