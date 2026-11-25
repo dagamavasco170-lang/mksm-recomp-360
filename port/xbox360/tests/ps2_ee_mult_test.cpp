@@ -4,6 +4,7 @@
 #include <cstdint>
 
 using namespace ps2::xbox360::ee;
+namespace simd = ps2::xbox360::simd;
 
 static constexpr std::uint32_t encode(std::uint8_t rs, std::uint8_t rt,
                                       std::uint8_t rd, std::uint8_t funct)
