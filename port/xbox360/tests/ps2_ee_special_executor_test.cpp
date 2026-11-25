@@ -75,24 +75,44 @@ int main()
     assert(executeSpecial(state, sravDecoded) == ExecuteStatus::Executed);
     assert(simd::readLane<std::uint32_t>(state.gpr[15], 0) == 2u);
 
-    // HI/LO transfer instructions preserve the complete 128-bit banks.
+    // Scalar HI/LO transfers touch only the low 64 bits; MMI banks stay intact.
     for (std::size_t lane = 0; lane < 4; ++lane)
         simd::writeLane<std::uint32_t>(state.gpr[16], lane, 0xA0B0C000u + static_cast<std::uint32_t>(lane));
+    for (std::size_t byte = 8; byte < 16; ++byte)
+        state.hilo.hi.bytes[byte] = 0xCC;
+    for (std::size_t byte = 8; byte < 16; ++byte)
+        state.gpr[17].bytes[byte] = 0xDD;
     auto mthiDecoded = decodeInstruction(encodeSpecial(16, 0, 0, 0, 0x11));
     assert(executeSpecial(state, mthiDecoded) == ExecuteStatus::Executed);
+    for (std::size_t byte = 0; byte < 8; ++byte)
+        assert(state.hilo.hi.bytes[byte] == state.gpr[16].bytes[byte]);
+    for (std::size_t byte = 8; byte < 16; ++byte)
+        assert(state.hilo.hi.bytes[byte] == 0xCC);
     auto mfhiDecoded = decodeInstruction(encodeSpecial(0, 0, 17, 0, 0x10));
     assert(executeSpecial(state, mfhiDecoded) == ExecuteStatus::Executed);
-    for (std::size_t lane = 0; lane < 4; ++lane)
-        assert(simd::readLane<std::uint32_t>(state.gpr[17], lane) == 0xA0B0C000u + static_cast<std::uint32_t>(lane));
+    for (std::size_t byte = 0; byte < 8; ++byte)
+        assert(state.gpr[17].bytes[byte] == state.hilo.hi.bytes[byte]);
+    for (std::size_t byte = 8; byte < 16; ++byte)
+        assert(state.gpr[17].bytes[byte] == 0xDD);
 
     for (std::size_t lane = 0; lane < 4; ++lane)
         simd::writeLane<std::uint32_t>(state.gpr[18], lane, 0x11223340u + static_cast<std::uint32_t>(lane));
+    for (std::size_t byte = 8; byte < 16; ++byte)
+        state.hilo.lo.bytes[byte] = 0xEE;
+    for (std::size_t byte = 8; byte < 16; ++byte)
+        state.gpr[19].bytes[byte] = 0xBB;
     auto mtloDecoded = decodeInstruction(encodeSpecial(18, 0, 0, 0, 0x13));
     assert(executeSpecial(state, mtloDecoded) == ExecuteStatus::Executed);
+    for (std::size_t byte = 0; byte < 8; ++byte)
+        assert(state.hilo.lo.bytes[byte] == state.gpr[18].bytes[byte]);
+    for (std::size_t byte = 8; byte < 16; ++byte)
+        assert(state.hilo.lo.bytes[byte] == 0xEE);
     auto mfloDecoded = decodeInstruction(encodeSpecial(0, 0, 19, 0, 0x12));
     assert(executeSpecial(state, mfloDecoded) == ExecuteStatus::Executed);
-    for (std::size_t lane = 0; lane < 4; ++lane)
-        assert(simd::readLane<std::uint32_t>(state.gpr[19], lane) == 0x11223340u + static_cast<std::uint32_t>(lane));
+    for (std::size_t byte = 0; byte < 8; ++byte)
+        assert(state.gpr[19].bytes[byte] == state.hilo.lo.bytes[byte]);
+    for (std::size_t byte = 8; byte < 16; ++byte)
+        assert(state.gpr[19].bytes[byte] == 0xBB);
 
     auto unsupported = decodeInstruction(encodeSpecial(1, 2, 7, 0, 0x20)); // ADD (trapping, intentionally unsupported)
     const auto pcBefore = state.pc;
