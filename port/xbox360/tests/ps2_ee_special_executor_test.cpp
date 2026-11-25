@@ -219,10 +219,12 @@ int main()
     assert(executeSpecial(state, dsravDecoded) == ExecuteStatus::Executed);
     assert(readLow64(state.gpr[21]) == 0xFFFFFFFFFFFFFFFFull);
 
-    auto unsupported = decodeInstruction(encodeSpecial(1, 2, 7, 0, 0x20)); // ADD (trapping, intentionally unsupported)
+    auto addOverflow = decodeInstruction(encodeSpecial(1, 2, 7, 0, 0x20));
+    writeLow64(state.gpr[1], 0x7FFFFFFFull);
+    writeLow64(state.gpr[2], 1ull);
     const auto pcBefore = state.pc;
     const auto retiredBefore = state.retiredInstructions;
-    assert(executeSpecial(state, unsupported) == ExecuteStatus::Unsupported);
+    assert(executeSpecial(state, addOverflow) == ExecuteStatus::Overflow);
     assert(state.pc == pcBefore && state.retiredInstructions == retiredBefore);
 
     auto nonSpecial = decodeInstruction(0x8C220004u);
