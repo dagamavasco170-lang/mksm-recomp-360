@@ -53,7 +53,7 @@ namespace ps2_syscalls
             if (create && truncate)
                 return "w+b";
             if (create)
-                return "a+b";
+                return "r+b";
             return "r+b";
         }
         else if (write)
@@ -63,7 +63,7 @@ namespace ps2_syscalls
             if (create && truncate)
                 return "wb";
             if (create)
-                return "wx";
+                return "r+b";
             return "r+b";
         }
         else if (read)
@@ -98,6 +98,14 @@ namespace ps2_syscalls
         RUNTIME_LOG("fioOpen: '" << hostPath << "' flags=0x" << std::hex << flags << std::dec << " mode='" << mode << "'");
 
         FILE *fp = ::fopen(hostPath.c_str(), mode);
+        // O_CREAT without O_TRUNC must preserve existing contents. The host's
+        // "a+b" mode incorrectly forces every write to EOF, so create missing
+        // files only after a non-destructive open reports ENOENT.
+        if (!fp && (flags & PS2_FIO_O_CREAT) && !(flags & PS2_FIO_O_TRUNC) && errno == ENOENT)
+        {
+            const char *createMode = (flags & PS2_FIO_O_RDWR) ? "w+b" : "w+b";
+            fp = ::fopen(hostPath.c_str(), createMode);
+        }
         if (!fp)
         {
             std::cerr << "fioOpen error: fopen failed for '" << hostPath << "': " << strerror(errno) << std::endl;
