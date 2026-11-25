@@ -152,7 +152,7 @@ enum class MmiStatus : std::uint8_t
                     : static_cast<std::int32_t>(a) - b;
                 const auto clamped = wide > INT16_MAX ? INT16_MAX
                     : (wide < INT16_MIN ? INT16_MIN : static_cast<std::int16_t>(wide));
-                simd::writeLane<std::uint16_t>(value, lane, std::bit_cast<std::uint16_t>(clamped));
+                simd::writeLane<std::uint16_t>(value, lane, static_cast<std::uint16_t>(clamped));
             }
             state.writeGpr(instruction.rd, value);
             executed = true;
@@ -173,7 +173,7 @@ enum class MmiStatus : std::uint8_t
                     : static_cast<int>(a) - b;
                 const auto clamped = wide > INT8_MAX ? INT8_MAX
                     : (wide < INT8_MIN ? INT8_MIN : static_cast<std::int8_t>(wide));
-                value.bytes[lane] = std::bit_cast<std::uint8_t>(clamped);
+                value.bytes[lane] = static_cast<std::uint8_t>(clamped);
             }
             state.writeGpr(instruction.rd, value);
             executed = true;
