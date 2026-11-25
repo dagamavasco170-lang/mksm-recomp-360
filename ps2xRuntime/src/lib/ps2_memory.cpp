@@ -20,20 +20,28 @@ namespace
         }
     }
 
+    // PS2 guest memory is little-endian. Decode/encode scalar values explicitly
+    // so the same runtime behaves correctly on big-endian Xenon PowerPC hosts.
     template <typename T>
     inline T loadScalar(const uint8_t *base, uint32_t offset, size_t regionSize, const char *op, uint32_t address)
     {
+        static_assert(std::is_unsigned_v<T> && std::is_integral_v<T>,
+                      "loadScalar only supports unsigned integer scalar types");
         inRange(offset, sizeof(T), regionSize, op, address);
-        T value{};
-        std::memcpy(&value, base + offset, sizeof(T));
+        T value = 0;
+        for (size_t i = 0; i < sizeof(T); ++i)
+            value |= static_cast<T>(base[offset + i]) << (i * 8);
         return value;
     }
 
     template <typename T>
     inline void storeScalar(uint8_t *base, uint32_t offset, size_t regionSize, T value, const char *op, uint32_t address)
     {
+        static_assert(std::is_unsigned_v<T> && std::is_integral_v<T>,
+                      "storeScalar only supports unsigned integer scalar types");
         inRange(offset, sizeof(T), regionSize, op, address);
-        std::memcpy(base + offset, &value, sizeof(T));
+        for (size_t i = 0; i < sizeof(T); ++i)
+            base[offset + i] = static_cast<uint8_t>(value >> (i * 8));
     }
 
     inline bool isGsPrivReg(uint32_t addr)
