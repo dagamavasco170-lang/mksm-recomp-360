@@ -4,7 +4,9 @@
 #include "mksm_generated_probe_entry.h"
 #include "ps2_recomp_generated_mmi_probe.h"
 
+#include <array>
 #include <cstdint>
+#include <span>
 #include <vector>
 
 struct Ps2GeneratedMemoryProbeResult
@@ -33,6 +35,7 @@ struct Ps2GeneratedMemoryProbeResult
     std::uint32_t scratchpadAliasByte{};
     std::uint32_t scratchpadIsolationWord{};
     std::uint32_t lqSqFailures{};
+    std::uint32_t unalignedMergeFailures{};
     std::uint32_t sprDmaMadrFrom{}, sprDmaQwcFrom{}, sprDmaSadrFrom{}, sprDmaChcrFrom{};
     std::uint32_t sprDmaStadr{}, sprDmaDstat{}, sprDmaRdramWord{};
     std::uint32_t sprDmaMadrTo{}, sprDmaQwcTo{}, sprDmaSadrTo{}, sprDmaChcrTo{};
@@ -213,6 +216,82 @@ struct Ps2GeneratedMemoryProbeResult
                           (lqSqScratchpadOk ? 0u : 2u);
     if (result.lqSqFailures != 0u)
         result.failures |= 1u << 22u;
+
+    // Exercise the generated LWL/LWR/SWL/SWR function through the Xenon
+    // ABI on both an uncached RDRAM alias and the per-runtime scratchpad.
+    constexpr std::array<std::uint32_t, 4> kExpectedLwl{
+        0x11BBCCDDu, 0x2211CCDDu, 0x332211DDu, 0xF2332211u};
+    constexpr std::array<std::uint32_t, 4> kExpectedLwr{
+        0xF2332211u, 0xAAF23322u, 0xAABBF233u, 0xAABBCCF2u};
+    constexpr std::array<std::uint32_t, 4> kExpectedSwl{
+        0x443322AAu, 0x4433AABBu, 0x44AABBCCu, 0xAABBCCDDu};
+    constexpr std::array<std::uint32_t, 4> kExpectedSwr{
+        0xAABBCCDDu, 0xBBCCDD11u, 0xCCDD2211u, 0xDD332211u};
+    const auto runUnalignedMergeProbe = [&](std::uint32_t baseAddress) {
+        bool ok = generated_abi::writeGuestMemory<std::uint32_t>(
+                      rdram.data(), runtime, baseAddress, 0xF2332211u);
+        for (std::uint32_t i = 0; i < 4u; ++i) {
+            ok = ok && generated_abi::writeGuestMemory<std::uint32_t>(
+                rdram.data(), runtime, baseAddress + 0x20u + i * 4u,
+                0x44332211u);
+            ok = ok && generated_abi::writeGuestMemory<std::uint32_t>(
+                rdram.data(), runtime, baseAddress + 0x40u + i * 4u,
+                0x44332211u);
+        }
+
+        R5900Context mergeContext{};
+        SET_GPR_U32(&mergeContext, 31u, kReturnPc);
+        SET_GPR_U32(&mergeContext, 2u, 0xAABBCCDDu);
+        for (std::uint32_t i = 0; i < 4u; ++i) {
+            SET_GPR_U32(&mergeContext, 4u + i, baseAddress + i);
+            SET_GPR_U32(&mergeContext, 8u + i, baseAddress + i);
+            SET_GPR_U32(&mergeContext, 12u + i,
+                         baseAddress + 0x20u + i * 4u + i);
+            SET_GPR_U32(&mergeContext, 16u + i,
+                         baseAddress + 0x40u + i * 4u + i);
+            mergeContext.r[20u + i].low64 = 0x55667788AABBCCDDull;
+            mergeContext.r[20u + i].high64 = 0x5060708010203040ull;
+            mergeContext.r[24u + i].low64 = 0x55667788AABBCCDDull;
+            mergeContext.r[24u + i].high64 = 0x5060708010203040ull;
+        }
+
+        mksm_ee_unaligned_merge_probe_0x100500(
+            rdram.data(), &mergeContext, runtime);
+        ok = ok && mergeContext.pc == kReturnPc &&
+             !mergeContext.in_delay_slot;
+
+        for (std::uint32_t i = 0; i < 4u; ++i) {
+            const std::uint64_t lwlLow = mergeContext.r[20u + i].low64;
+            const std::uint64_t lwrLow = mergeContext.r[24u + i].low64;
+            const std::uint32_t expectedLwlUpper =
+                i == 3u ? 0xFFFFFFFFu : 0u;
+            const std::uint32_t expectedLwrUpper =
+                i == 0u ? 0xFFFFFFFFu : 0x55667788u;
+            ok = ok &&
+                static_cast<std::uint32_t>(lwlLow) == kExpectedLwl[i] &&
+                static_cast<std::uint32_t>(lwlLow >> 32u) == expectedLwlUpper &&
+                static_cast<std::uint32_t>(lwrLow) == kExpectedLwr[i] &&
+                static_cast<std::uint32_t>(lwrLow >> 32u) == expectedLwrUpper &&
+                mergeContext.r[20u + i].high64 == 0x5060708010203040ull &&
+                mergeContext.r[24u + i].high64 == 0x5060708010203040ull;
+
+            std::uint32_t swlWord{}, swrWord{};
+            const bool swlRead = generated_abi::readGuestMemory<std::uint32_t>(
+                rdram.data(), runtime, baseAddress + 0x20u + i * 4u, swlWord);
+            const bool swrRead = generated_abi::readGuestMemory<std::uint32_t>(
+                rdram.data(), runtime, baseAddress + 0x40u + i * 4u, swrWord);
+            ok = ok && swlRead && swrRead &&
+                 swlWord == kExpectedSwl[i] && swrWord == kExpectedSwr[i];
+        }
+        return ok;
+    };
+
+    const bool mergeRdramOk = runUnalignedMergeProbe(0x20001080u);
+    const bool mergeScratchpadOk = runUnalignedMergeProbe(0x70000080u);
+    result.unalignedMergeFailures = (mergeRdramOk ? 0u : 1u) |
+                                    (mergeScratchpadOk ? 0u : 2u);
+    if (result.unalignedMergeFailures != 0u)
+        result.failures |= 1u << 21u;
 
     // Real translated SW/LW instructions drive both normal SPR DMA
     // directions through the per-runtime EE MMIO bank.
