@@ -1,6 +1,7 @@
 #pragma once
 
-#include "ps2_iop_retail_fileio.h"\n#include "ps2_iop_afs_stream.h"
+#include "ps2_iop_retail_fileio.h"
+#include "ps2_iop_afs_stream.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -45,16 +46,20 @@ public:
             std::string path;
             if (!readGuestString(iopRam, a0, path))
                 return -EFAULT;
-            if (path.starts_with("afs0:/"))\n                return afsFiles_.open(path);\n            return files_.sceOpen(path, static_cast<std::int32_t>(a1));
+            if (path.starts_with("afs0:/"))
+                return afsFiles_.open(path);
+            return files_.sceOpen(path, static_cast<std::int32_t>(a1));
         }
         case IomanCommand::Close:
-            const auto fd = static_cast<std::int32_t>(a0);\n            return afsFiles_.ownsDescriptor(fd) ? afsFiles_.close(fd) : files_.sceClose(fd);
+            const auto fd = static_cast<std::int32_t>(a0);
+            return afsFiles_.ownsDescriptor(fd) ? afsFiles_.close(fd) : files_.sceClose(fd);
         case IomanCommand::Read:
         {
             if (a1 > iopRam.size() || a2 > iopRam.size() - a1)
                 return -EFAULT;
             auto destination = iopRam.subspan(a1, a2);
-            const auto fd = static_cast<std::int32_t>(a0);\n            return afsFiles_.ownsDescriptor(fd) ? afsFiles_.read(fd, destination) : files_.sceRead(fd, destination);
+            const auto fd = static_cast<std::int32_t>(a0);
+            return afsFiles_.ownsDescriptor(fd) ? afsFiles_.read(fd, destination) : files_.sceRead(fd, destination);
         }
         case IomanCommand::Lseek:
             if (a2 > static_cast<std::uint32_t>(SeekWhence::End))
@@ -91,6 +96,7 @@ private:
         return !out.empty();
     }
 
-    RetailFileIo files_;\n    AfsStreamIo afsFiles_;
+    RetailFileIo files_;
+    AfsStreamIo afsFiles_;
 };
 } // namespace ps2::xbox360::iop
