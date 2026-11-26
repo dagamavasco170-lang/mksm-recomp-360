@@ -67,7 +67,23 @@ namespace ps2_syscalls
 
     void dispatchDmacHandlersForCause(uint8_t *, PS2Runtime *runtime, uint32_t cause)
     {
-        runtime->eeScheduler().dispatchIrq(true, cause);
+        if (!runtime)
+        {
+            return;
+        }
+
+        EeScheduler &ee = runtime->eeScheduler();
+        if (ee.isExecutorThread())
+        {
+            // Preserve immediate guest interrupt ordering while already on the EE thread.
+            ee.dispatchIrq(true, cause);
+            return;
+        }
+
+        // DMA completion can also be reported by host-side IOP/device work. Marshal
+        // that interrupt back to the EE executor instead of mutating guest scheduler
+        // state from the calling host thread.
+        ee.postEvent(EeEvent{EeEventType::Dmac, cause, 0u});
     }
 
     uint64_t GetCurrentVSyncTick(PS2Runtime *runtime)
