@@ -166,12 +166,15 @@ namespace ps2recomp
         }
 
         std::stringstream ss;
+        ss << "#ifdef PS2X_GENERATED_RUNTIME_ABI\n";
+        ss << "#include \"ps2_generated_runtime_abi.h\"\n";
+        ss << "#else\n";
         ss << "#include \"ps2_runtime.h\"\n";
         ss << "#include \"ps2_recompiled_functions.h\"\n";
         ss << "#include \"ps2_stubs.h\"\n";
-        ss << "#include \"ps2_recompiled_stubs.h\"//this will give duplicated erros because runtime maybe has it define already, just delete the TODOS ones\n";
-        ss << "#include \"ps2_syscalls.h\"\n\n";
-
+        ss << "#include \"ps2_recompiled_stubs.h\"\n";
+        ss << "#include \"ps2_syscalls.h\"\n";
+        ss << "#endif\n\n";
         ss << "extern const uint32_t g_ps2RecompiledFunctionTableBase = 0x" << std::hex << tableBase << "u;\n";
         ss << "extern const uint32_t g_ps2RecompiledFunctionTableEnd = 0x" << std::hex << tableEnd << "u;\n";
         ss << "extern const uint32_t g_ps2RecompiledFunctionTableSlotCount = " << std::dec << slotCount << "u;\n";
@@ -186,18 +189,18 @@ namespace ps2recomp
             const std::string xboxBridge = xboxFioBridgeTarget(name);
             if (!xboxBridge.empty())
             {
-                ss << "#ifdef PS2X_GENERATED_RUNTIME_ABI\\n";
+                ss << "#ifdef PS2X_GENERATED_RUNTIME_ABI\n";
                 ss << "        g_ps2RecompiledFunctionTable[" << std::dec << slot << "] = " << xboxBridge
-                   << "; // Xbox direct FileIO bridge, 0x" << std::hex << address << std::dec << "\\n";
-                ss << "#else\\n";
+                   << "; // Xbox direct FileIO bridge, 0x" << std::hex << address << std::dec << "\n";
+                ss << "#else\n";
                 ss << "        g_ps2RecompiledFunctionTable[" << std::dec << slot << "] = " << name
-                   << "; // desktop FileIO, 0x" << std::hex << address << std::dec << "\\n";
-                ss << "#endif\\n";
+                   << "; // desktop FileIO, 0x" << std::hex << address << std::dec << "\n";
+                ss << "#endif\n";
             }
             else
             {
                 ss << "        g_ps2RecompiledFunctionTable[" << std::dec << slot << "] = " << name
-                   << "; // 0x" << std::hex << address << std::dec << "\\n";
+                   << "; // 0x" << std::hex << address << std::dec << "\n";
             }
         }
         ss << "    }\n";
