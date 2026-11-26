@@ -3,6 +3,7 @@
 #include "ps2_resource_loading_runtime.h"
 #include <cerrno>
 #include <cstdint>
+#include <limits>
 #include <span>
 #include <string>
 
@@ -24,6 +25,7 @@ public:
         afs_.close(fd);if(!ok)out.clear();return ok;
     }
     [[nodiscard]] std::int32_t readChunk(std::uint32_t entry,std::uint64_t offset,std::span<std::uint8_t>out){
+        if(offset>static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max()))return -EINVAL;
         const auto fd=afs_.open(path(entry));if(fd<0)return fd;
         const auto pos=afs_.seek(fd,static_cast<std::int32_t>(offset),iop::SeekWhence::Set);
         const auto n=pos<0?pos:afs_.read(fd,out);afs_.close(fd);return n;
