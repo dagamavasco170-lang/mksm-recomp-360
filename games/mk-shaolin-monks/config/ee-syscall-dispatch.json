@@ -1,0 +1,872 @@
+{
+  "schema": "mksm-ee-dispatch-table-v1",
+  "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+  "entries": [
+    {
+      "syscall_id": "0x00000001",
+      "handler": "ResetEE",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 17,
+      "case_expression": "0x01",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000002",
+      "handler": "GsSetCrt",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 20,
+      "case_expression": "0x02",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000004",
+      "handler": "ExitThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 23,
+      "case_expression": "0x04",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000010",
+      "handler": "AddIntcHandler",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 26,
+      "case_expression": "0x10",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000011",
+      "handler": "RemoveIntcHandler",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 29,
+      "case_expression": "0x11",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000012",
+      "handler": "AddDmacHandler",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 32,
+      "case_expression": "0x12",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000013",
+      "handler": "RemoveDmacHandler",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 35,
+      "case_expression": "0x13",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000014",
+      "handler": "EnableIntc",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 38,
+      "case_expression": "0x14",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000015",
+      "handler": "DisableIntc",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 41,
+      "case_expression": "0x15",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000016",
+      "handler": "EnableDmac",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 44,
+      "case_expression": "0x16",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000017",
+      "handler": "DisableDmac",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 47,
+      "case_expression": "0x17",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFE6",
+      "handler": "iEnableIntc",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 50,
+      "case_expression": "static_cast<uint32_t>(-0x1A)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFE5",
+      "handler": "iDisableIntc",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 53,
+      "case_expression": "static_cast<uint32_t>(-0x1B)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFE4",
+      "handler": "iEnableDmac",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 56,
+      "case_expression": "static_cast<uint32_t>(-0x1C)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFE3",
+      "handler": "iDisableDmac",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 59,
+      "case_expression": "static_cast<uint32_t>(-0x1D)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000018",
+      "handler": "SetAlarm",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 63,
+      "case_expression": "0x18",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x000000FC",
+      "handler": "SetAlarm",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 63,
+      "case_expression": "0xFC",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000019",
+      "handler": "CancelAlarm",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 67,
+      "case_expression": "0x19",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x000000FE",
+      "handler": "CancelAlarm",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 67,
+      "case_expression": "0xFE",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFE2",
+      "handler": "iSetAlarm",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 71,
+      "case_expression": "static_cast<uint32_t>(-0x1E)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFF03",
+      "handler": "iSetAlarm",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 71,
+      "case_expression": "static_cast<uint32_t>(-0xFD)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFE1",
+      "handler": "iCancelAlarm",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 75,
+      "case_expression": "static_cast<uint32_t>(-0x1F)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFF01",
+      "handler": "iCancelAlarm",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 75,
+      "case_expression": "static_cast<uint32_t>(-0xFF)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000020",
+      "handler": "CreateThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 78,
+      "case_expression": "0x20",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000021",
+      "handler": "DeleteThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 81,
+      "case_expression": "0x21",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000022",
+      "handler": "StartThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 84,
+      "case_expression": "0x22",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000023",
+      "handler": "ExitThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 87,
+      "case_expression": "0x23",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000024",
+      "handler": "ExitDeleteThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 90,
+      "case_expression": "0x24",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000025",
+      "handler": "TerminateThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 94,
+      "case_expression": "0x25",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFDA",
+      "handler": "TerminateThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 94,
+      "case_expression": "static_cast<uint32_t>(-0x26)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000029",
+      "handler": "ChangeThreadPriority",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 97,
+      "case_expression": "0x29",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFD6",
+      "handler": "iChangeThreadPriority",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 100,
+      "case_expression": "static_cast<uint32_t>(-0x2A)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000002B",
+      "handler": "RotateThreadReadyQueue",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 103,
+      "case_expression": "0x2B",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFD4",
+      "handler": "iRotateThreadReadyQueue",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 106,
+      "case_expression": "static_cast<uint32_t>(-0x2C)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000002D",
+      "handler": "ReleaseWaitThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 109,
+      "case_expression": "0x2D",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFD2",
+      "handler": "iReleaseWaitThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 112,
+      "case_expression": "static_cast<uint32_t>(-0x2E)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000002F",
+      "handler": "GetThreadId",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 116,
+      "case_expression": "0x2F",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFD1",
+      "handler": "GetThreadId",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 116,
+      "case_expression": "static_cast<uint32_t>(-0x2F)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000030",
+      "handler": "ReferThreadStatus",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 119,
+      "case_expression": "0x30",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFCF",
+      "handler": "iReferThreadStatus",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 122,
+      "case_expression": "static_cast<uint32_t>(-0x31)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000032",
+      "handler": "SleepThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 125,
+      "case_expression": "0x32",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000033",
+      "handler": "WakeupThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 128,
+      "case_expression": "0x33",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFCC",
+      "handler": "iWakeupThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 131,
+      "case_expression": "static_cast<uint32_t>(-0x34)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000035",
+      "handler": "CancelWakeupThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 134,
+      "case_expression": "0x35",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFCA",
+      "handler": "iCancelWakeupThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 137,
+      "case_expression": "static_cast<uint32_t>(-0x36)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000037",
+      "handler": "SuspendThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 141,
+      "case_expression": "0x37",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFC8",
+      "handler": "SuspendThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 141,
+      "case_expression": "static_cast<uint32_t>(-0x38)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000039",
+      "handler": "ResumeThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 145,
+      "case_expression": "0x39",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFC6",
+      "handler": "ResumeThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 145,
+      "case_expression": "static_cast<uint32_t>(-0x3A)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000003C",
+      "handler": "SetupThread",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 148,
+      "case_expression": "0x3C",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000003D",
+      "handler": "SetupHeap",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 151,
+      "case_expression": "0x3D",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000003E",
+      "handler": "EndOfHeap",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 154,
+      "case_expression": "0x3E",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000040",
+      "handler": "CreateSema",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 157,
+      "case_expression": "0x40",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000041",
+      "handler": "DeleteSema",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 160,
+      "case_expression": "0x41",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFB7",
+      "handler": "iDeleteSema",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 163,
+      "case_expression": "static_cast<uint32_t>(-0x49)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000042",
+      "handler": "SignalSema",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 166,
+      "case_expression": "0x42",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFBD",
+      "handler": "iSignalSema",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 169,
+      "case_expression": "static_cast<uint32_t>(-0x43)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000044",
+      "handler": "WaitSema",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 172,
+      "case_expression": "0x44",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000045",
+      "handler": "PollSema",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 175,
+      "case_expression": "0x45",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFBA",
+      "handler": "iPollSema",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 178,
+      "case_expression": "static_cast<uint32_t>(-0x46)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000047",
+      "handler": "ReferSemaStatus",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 181,
+      "case_expression": "0x47",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFB8",
+      "handler": "iReferSemaStatus",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 184,
+      "case_expression": "static_cast<uint32_t>(-0x48)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000004A",
+      "handler": "SetOsdConfigParam",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 187,
+      "case_expression": "0x4A",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000004B",
+      "handler": "GetOsdConfigParam",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 190,
+      "case_expression": "0x4B",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000050",
+      "handler": "CreateEventFlag",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 193,
+      "case_expression": "0x50",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000051",
+      "handler": "DeleteEventFlag",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 196,
+      "case_expression": "0x51",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000052",
+      "handler": "SetEventFlag",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 199,
+      "case_expression": "0x52",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFAD",
+      "handler": "iSetEventFlag",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 202,
+      "case_expression": "static_cast<uint32_t>(-0x53)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000054",
+      "handler": "ClearEventFlag",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 205,
+      "case_expression": "0x54",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFAB",
+      "handler": "iClearEventFlag",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 208,
+      "case_expression": "static_cast<uint32_t>(-0x55)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000056",
+      "handler": "WaitEventFlag",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 211,
+      "case_expression": "0x56",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000057",
+      "handler": "PollEventFlag",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 214,
+      "case_expression": "0x57",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFA8",
+      "handler": "iPollEventFlag",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 217,
+      "case_expression": "static_cast<uint32_t>(-0x58)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000059",
+      "handler": "ReferEventFlagStatus",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 220,
+      "case_expression": "0x59",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFA6",
+      "handler": "iReferEventFlagStatus",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 223,
+      "case_expression": "static_cast<uint32_t>(-0x5A)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000005A",
+      "handler": "Copy",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 226,
+      "case_expression": "0x5A",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000005B",
+      "handler": "GetEntryAddress",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 229,
+      "case_expression": "0x5B",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000005C",
+      "handler": "EnableIntcHandler",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 233,
+      "case_expression": "0x5C",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFA4",
+      "handler": "EnableIntcHandler",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 233,
+      "case_expression": "static_cast<uint32_t>(-0x5C)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000005D",
+      "handler": "DisableIntcHandler",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 237,
+      "case_expression": "0x5D",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFA3",
+      "handler": "DisableIntcHandler",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 237,
+      "case_expression": "static_cast<uint32_t>(-0x5D)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000005E",
+      "handler": "EnableDmacHandler",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 241,
+      "case_expression": "0x5E",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFA2",
+      "handler": "EnableDmacHandler",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 241,
+      "case_expression": "static_cast<uint32_t>(-0x5E)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000005F",
+      "handler": "DisableDmacHandler",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 245,
+      "case_expression": "0x5F",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFFA1",
+      "handler": "DisableDmacHandler",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 245,
+      "case_expression": "static_cast<uint32_t>(-0x5F)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000061",
+      "handler": "EnableCache",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 248,
+      "case_expression": "0x61",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000062",
+      "handler": "DisableCache",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 251,
+      "case_expression": "0x62",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000064",
+      "handler": "FlushCache",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 254,
+      "case_expression": "0x64",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000006E",
+      "handler": "SetOsdConfigParam2",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 257,
+      "case_expression": "0x6E",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000006F",
+      "handler": "GetOsdConfigParam2",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 260,
+      "case_expression": "0x6F",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000070",
+      "handler": "GsGetIMR",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 263,
+      "case_expression": "0x70",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFF90",
+      "handler": "iGsGetIMR",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 266,
+      "case_expression": "static_cast<uint32_t>(-0x70)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000071",
+      "handler": "GsPutIMR",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 269,
+      "case_expression": "0x71",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFF8F",
+      "handler": "iGsPutIMR",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 272,
+      "case_expression": "static_cast<uint32_t>(-0x71)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000073",
+      "handler": "SetVSyncFlag",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 275,
+      "case_expression": "0x73",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000074",
+      "handler": "SetSyscall",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 278,
+      "case_expression": "0x74",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000076",
+      "handler": "GetMemorySize",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 293,
+      "case_expression": "0x76",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFF8A",
+      "handler": "GetMemorySize",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 293,
+      "case_expression": "static_cast<uint32_t>(-0x76)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000077",
+      "handler": "GetMemorySize",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 293,
+      "case_expression": "0x77",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFF89",
+      "handler": "GetMemorySize",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 293,
+      "case_expression": "static_cast<uint32_t>(-0x77)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000078",
+      "handler": "GetMemorySize",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 293,
+      "case_expression": "0x78",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFF88",
+      "handler": "GetMemorySize",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 293,
+      "case_expression": "static_cast<uint32_t>(-0x78)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000007F",
+      "handler": "GetMemorySize",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 293,
+      "case_expression": "0x7F",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000082",
+      "handler": "InitTLB",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 296,
+      "case_expression": "0x82",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x0000007C",
+      "handler": "Deci2Call",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 300,
+      "case_expression": "0x7C",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0xFFFFFF84",
+      "handler": "Deci2Call",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 300,
+      "case_expression": "static_cast<uint32_t>(-0x7C)",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000083",
+      "handler": "FindAddress",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 303,
+      "case_expression": "0x83",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    },
+    {
+      "syscall_id": "0x00000085",
+      "handler": "SetMemoryMode",
+      "source": "ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp",
+      "line": 306,
+      "case_expression": "0x85",
+      "evidence": "explicit numeric case in dispatchNumericSyscall"
+    }
+  ],
+  "unique_syscall_count": 108,
+  "mapping_policy": "Extracted from explicit dispatcher case labels; no guest IDs inferred."
+}
