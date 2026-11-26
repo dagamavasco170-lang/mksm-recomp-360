@@ -17,6 +17,7 @@ SYSCALL_RE = re.compile(
     re.MULTILINE,
 )
 FIO_RE = re.compile(r"\b(?:ps2_syscalls::)?(fioOpen|fioRead|fioLseek|fioClose|fioWrite)\s*\(")
+SYSCALL_SITE_RE = re.compile(r"EE_SYSCALL_SITE:\s*pc=(0[xX][0-9a-fA-F]+)\s+id=(0[xX][0-9a-fA-F]+)")
 
 
 def scan_source(path: Path) -> list[dict]:
