@@ -320,6 +320,8 @@ bool checkIomanBridge()
     }
 
     ps2::xbox360::iop::IomanDispatcher ioman{std::filesystem::path(discRoot)};
+    PS2Runtime runtime{};
+    runtime.attachIoman(&ioman);
     std::array<std::uint8_t, 128> iopRam{};
     constexpr char probePath[] = "GAMEDATA.WAD";
     for (size_t i = 0; i < sizeof(probePath); ++i)
@@ -327,7 +329,7 @@ bool checkIomanBridge()
 
     using ps2::xbox360::iop::IomanCommand;
     // PS2SDK FIO_O_RDONLY is 0x0001; zero is not a valid read-only mode.
-    const auto fd = ioman.dispatch(IomanCommand::Open, 16u, 0x0001u, 0u, iopRam);
+    const auto fd = runtime.dispatchIoman(IomanCommand::Open, 16u, 0x0001u, 0u, iopRam);
     if (fd < 0)
     {
         xsdk_log_write("MKSM_IOMAN_BRIDGE status=asset-open-failed error=%d", fd);
