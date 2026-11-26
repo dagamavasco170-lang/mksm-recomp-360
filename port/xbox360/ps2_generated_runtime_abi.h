@@ -154,6 +154,12 @@ public:
         ioman_ = dispatcher;
     }
 
+    void attachIomanTrace(ps2::xbox360::iop::IomanTraceSink *traceSink) noexcept
+    {
+        if (ioman_)
+            ioman_->setTraceSink(traceSink);
+    }
+
     [[nodiscard]] std::int32_t dispatchIoman(
         ps2::xbox360::iop::IomanCommand command,
         std::uint32_t a0, std::uint32_t a1, std::uint32_t a2,
