@@ -59,7 +59,7 @@ def run(candidates_path,outdir,profile_path=None,intelligence_path=None):
     profile=json.loads(profile_path.read_text(encoding="utf-8")) if profile_path else None
     intelligence=json.loads(intelligence_path.read_text(encoding="utf-8")) if intelligence_path else None
     data=bind(candidates,profile,intelligence); outdir.mkdir(parents=True,exist_ok=True)
-    (outdir/"afs_runtime_bindings.json").write_text(json.dumps(data,indent=2)+"\\n",encoding="utf-8")
+    (outdir/"afs_runtime_bindings.json").write_text(json.dumps(data,indent=2)+"\n",encoding="utf-8")
     rows=data["entries"]; columns=list(rows[0]) if rows else ["archive","entry_index","resource_type_suggestion","load_strategy_suggestion","status"]
     with (outdir/"afs_runtime_bindings.csv").open("w",newline="",encoding="utf-8") as f:
         w=csv.DictWriter(f,fieldnames=columns);w.writeheader();w.writerows(rows)
@@ -67,7 +67,7 @@ def run(candidates_path,outdir,profile_path=None,intelligence_path=None):
       "Bindings (candidate only):"]
     lines += [f'{r["archive"]}:{r["entry_index"]} -> {r["resource_type_suggestion"]}/{r["load_strategy_suggestion"]} ({r["type_confidence"]}, {r["strategy_confidence"]})' for r in rows]
     lines += ["","No logical IDs assigned. Manual validation is required before runtime catalog activation."]
-    (outdir/"afs_runtime_bindings_report.txt").write_text("\\n".join(lines)+"\\n",encoding="utf-8")
+    (outdir/"afs_runtime_bindings_report.txt").write_text("\n".join(lines)+"\n",encoding="utf-8")
     return data
 
 def main():
