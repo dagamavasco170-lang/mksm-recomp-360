@@ -595,7 +595,11 @@ void register_ps2_runtime_io_tests()
         tc.Run("fioRead and fioClose serialize descriptor lifetime", [](TestCase &t)
         {
             TestContext test;
-            const std::string payload = "descriptor-race-regression";
+            // Use a multi-megabyte read so the competing close has a
+            // meaningful window in which to collide with the stream operation.
+            std::string payload(2u * 1024u * 1024u, '\\0');
+            for (std::size_t i = 0; i < payload.size(); ++i)
+                payload[i] = static_cast<char>('A' + (i % 26u));
             {
                 std::ofstream out(test.paths.cdRoot / "RACE.BIN", std::ios::binary);
                 out.write(payload.data(), static_cast<std::streamsize>(payload.size()));
