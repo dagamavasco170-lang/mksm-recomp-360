@@ -46,7 +46,7 @@ def scan_source(path: Path) -> list[dict]:
             "target": None,
         })
     for match in FIO_RE.finditer(text):
-        line = text.count("\\n", 0, match.start()) + 1
+        line = text.count("\n", 0, match.start()) + 1
         records.append({
             "source": str(path),
             "line": line,
