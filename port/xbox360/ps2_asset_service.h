@@ -37,6 +37,7 @@ public:
  }
  [[nodiscard]] bool release(AssetHandle h){auto it=entries_.find(h.value);if(it==entries_.end())return false;if(--it->second.refs)return true;byId_.erase(static_cast<std::uint32_t>(it->second.id));entries_.erase(it);return true;}
  [[nodiscard]] std::uint32_t refCount(AssetHandle h)const{auto it=entries_.find(h.value);return it==entries_.end()?0:it->second.refs;}
+ [[nodiscard]] std::uint64_t size(AssetHandle h)const{auto it=entries_.find(h.value);if(it==entries_.end())return 0;return resolver_.resolve(it->second.id).expectedSize;}
  [[nodiscard]] std::size_t activeHandles()const noexcept{return entries_.size();}
  void clear(){entries_.clear();byId_.clear();next_=1;}
 private:
