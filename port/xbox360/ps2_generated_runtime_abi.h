@@ -9,6 +9,7 @@
 #include "ps2_recompiled_functions.h"
 
 #include <array>
+#include <cerrno>
 #include <cstdint>
 #include <span>
 #include <stdexcept>
@@ -253,6 +254,61 @@ private:
     ps2::xbox360::iop::IomanDispatcher *ioman_ = nullptr;
     ps2::xbox360::iop::EeIomanSyscallMap<32> iomanSyscalls_{};
 };
+
+
+// Xbox generated-runtime FileIO shims. These match the PS2 runtime function-table
+// signature and route through the EE-pointer-aware IOMAN bridge.
+inline std::uint32_t ps2XboxFioArg(const R5900Context *ctx, std::uint32_t reg) noexcept
+{
+    return (ctx == nullptr || reg >= ctx->r.size()) ? 0u :
+        static_cast<std::uint32_t>(ctx->r[reg].low64);
+}
+inline void ps2XboxFioReturn(R5900Context *ctx, std::int32_t value) noexcept
+{
+    if (ctx != nullptr)
+        ctx->r[2].low64 = static_cast<std::uint64_t>(static_cast<std int64_t>(value));
+}
+inline std::span<std::uint8_t> ps2XboxFioRam(std::uint8_t *rdram) noexcept
+{
+    return rdram ? std::span<std::uint8_t>(rdram, ps2::xbox360::rdram_address::kRdramSize)
+                 : std::span<std::uint8_t>{};
+}
+inline void ps2XboxFioOpen(std::uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
+{
+    if (!runtime || !rdram || !ctx) { ps2XboxFioReturn(ctx, -ENOSYS); return; }
+    const auto flags = ps2XboxFioArg(ctx, 5);
+    if ((flags & 3u) != 1u || (flags & 0x0F00u) != 0u) {
+        ps2XboxFioReturn(ctx, -EACCES); return;
+    }
+    ps2XboxFioReturn(ctx, runtime->dispatchIomanEe(
+        ps2::xbox360::iop::IomanCommand::Open, ps2XboxFioArg(ctx, 4),
+        ps2::xbox360::iop::RetailFileIo::OpenReadOnly, 0, ps2XboxFioRam(rdram)));
+}
+inline void ps2XboxFioRead(std::uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
+{
+    if (!runtime || !rdram || !ctx) { ps2XboxFioReturn(ctx, -ENOSYS); return; }
+    ps2XboxFioReturn(ctx, runtime->dispatchIomanEe(
+        ps2::xbox360::iop::IomanCommand::Read, ps2XboxFioArg(ctx, 4),
+        ps2XboxFioArg(ctx, 5), ps2XboxFioArg(ctx, 6), ps2XboxFioRam(rdram)));
+}
+inline void ps2XboxFioLseek(std::uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
+{
+    if (!runtime || !rdram || !ctx) { ps2XboxFioReturn(ctx, -ENOSYS); return; }
+    ps2XboxFioReturn(ctx, runtime->dispatchIomanEe(
+        ps2::xbox360::iop::IomanCommand::Lseek, ps2XboxFioArg(ctx, 4),
+        ps2XboxFioArg(ctx, 5), ps2XboxFioArg(ctx, 6), ps2XboxFioRam(rdram)));
+}
+inline void ps2XboxFioClose(std::uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
+{
+    if (!runtime || !rdram || !ctx) { ps2XboxFioReturn(ctx, -ENOSYS); return; }
+    ps2XboxFioReturn(ctx, runtime->dispatchIomanEe(
+        ps2::xbox360::iop::IomanCommand::Close, ps2XboxFioArg(ctx, 4),
+        0, 0, ps2XboxFioRam(rdram)));
+}
+inline void ps2XboxFioWrite(std::uint8_t *, R5900Context *ctx, PS2Runtime *)
+{
+    ps2XboxFioReturn(ctx, -EACCES);
+}
 
 namespace ps2::xbox360::generated_abi
 {
