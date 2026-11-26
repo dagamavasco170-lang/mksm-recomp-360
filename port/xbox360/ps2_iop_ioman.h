@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ps2_iop_retail_fileio.h"
+#include "ps2_iop_retail_fileio.h"\n#include "ps2_iop_afs_stream.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -28,7 +28,7 @@ public:
     static constexpr std::size_t MaxPathBytes = 4096u;
 
     explicit IomanDispatcher(std::filesystem::path extractionRoot)
-        : files_(std::move(extractionRoot))
+        : files_(extractionRoot), afsFiles_(std::move(extractionRoot))
     {
     }
 
@@ -45,16 +45,16 @@ public:
             std::string path;
             if (!readGuestString(iopRam, a0, path))
                 return -EFAULT;
-            return files_.sceOpen(path, static_cast<std::int32_t>(a1));
+            if (path.starts_with("afs0:/"))\n                return afsFiles_.open(path);\n            return files_.sceOpen(path, static_cast<std::int32_t>(a1));
         }
         case IomanCommand::Close:
-            return files_.sceClose(static_cast<std::int32_t>(a0));
+            const auto fd = static_cast<std::int32_t>(a0);\n            return afsFiles_.ownsDescriptor(fd) ? afsFiles_.close(fd) : files_.sceClose(fd);
         case IomanCommand::Read:
         {
             if (a1 > iopRam.size() || a2 > iopRam.size() - a1)
                 return -EFAULT;
             auto destination = iopRam.subspan(a1, a2);
-            return files_.sceRead(static_cast<std::int32_t>(a0), destination);
+            const auto fd = static_cast<std::int32_t>(a0);\n            return afsFiles_.ownsDescriptor(fd) ? afsFiles_.read(fd, destination) : files_.sceRead(fd, destination);
         }
         case IomanCommand::Lseek:
             if (a2 > static_cast<std::uint32_t>(SeekWhence::End))
@@ -67,7 +67,7 @@ public:
         }
     }
 
-    void reset() noexcept { files_.reset(); }
+    void reset() noexcept { files_.reset(); afsFiles_.reset(); }
     [[nodiscard]] std::size_t openFileCount() const noexcept
     {
         return files_.openFileCount();
@@ -91,6 +91,6 @@ private:
         return !out.empty();
     }
 
-    RetailFileIo files_;
+    RetailFileIo files_;\n    AfsStreamIo afsFiles_;
 };
 } // namespace ps2::xbox360::iop
