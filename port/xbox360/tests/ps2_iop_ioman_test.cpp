@@ -102,6 +102,25 @@ int main()
     assert(ioman.dispatch(IomanCommand::Close, static_cast<std::uint32_t>(afsFd),
                          0u, 0u, ram) == 0);
 
+    // Resolve a logical resource ID through the catalog into the same streaming AFS IOMAN.
+    constexpr std::array catalogRecords{
+        ps2::xbox360::iop::AfsResourceRecord{
+            static_cast<ps2::xbox360::iop::AfsResourceId>(1),
+            ps2::xbox360::iop::AfsArchiveId::WAG, 0,
+            ps2::xbox360::iop::AfsResourceType::Other, 4}
+    };
+    constexpr ps2::xbox360::iop::AfsResourceCatalog catalog{catalogRecords};
+    const auto catalogFd = ioman.openAfsResource(
+        catalog, static_cast<ps2::xbox360::iop::AfsResourceId>(1));
+    assert(catalogFd >= ps2::xbox360::iop::AfsStreamIo::FirstDescriptor);
+    assert(ioman.dispatch(IomanCommand::Read, static_cast<std::uint32_t>(catalogFd),
+                         64u, 4u, ram) == 4);
+    assert((std::array<std::uint8_t, 4>{ram[64], ram[65], ram[66], ram[67]} ==
+            std::array<std::uint8_t, 4>{0xCA, 0xFE, 0xBA, 0xBE}));
+    assert(ioman.dispatch(IomanCommand::Close, static_cast<std::uint32_t>(catalogFd),
+                         0u, 0u, ram) == 0);
+    assert(ioman.openAfsResource(catalog, static_cast<ps2::xbox360::iop::AfsResourceId>(99)) == -ENOENT);
+
     // Restore a normal disc path before exhausting the retail descriptor table.
     for (std::size_t i = 0; i < sizeof(path); ++i)
         ram[8u + i] = static_cast<std::uint8_t>(path[i]);
