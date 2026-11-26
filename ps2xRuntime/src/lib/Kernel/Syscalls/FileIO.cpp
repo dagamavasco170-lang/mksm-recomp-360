@@ -225,30 +225,37 @@ namespace ps2_syscalls
         }
 
         {
-            std::lock_guard<std::mutex> lock(g_vagAccumMutex);
-            auto it = g_vagAccum.find(ps2Fd);
-            if (it != g_vagAccum.end())
+            // Keep VAG accumulation tied to a still-open descriptor. The lock
+            // order is descriptor table -> VAG accumulator; fioClose removes
+            // the descriptor before clearing its accumulator entry.
+            std::lock_guard<std::mutex> descriptorLock(g_fd_mutex);
+            if (g_fileDescriptors.find(ps2Fd) != g_fileDescriptors.end())
             {
-                VagAccumEntry &e = it->second;
-                if (e.data.size() + bytesRead <= kVagAccumMaxBytes)
-                    e.data.insert(e.data.end(), hostBuf, hostBuf + bytesRead);
-            }
-            else if (bytesRead >= 4)
-            {
-                const uint32_t magic = (static_cast<uint32_t>(hostBuf[0]) << 24) |
-                                       (static_cast<uint32_t>(hostBuf[1]) << 16) |
-                                       (static_cast<uint32_t>(hostBuf[2]) << 8) |
-                                       static_cast<uint32_t>(hostBuf[3]);
-                const uint32_t magicLE = (static_cast<uint32_t>(hostBuf[3]) << 24) |
-                                         (static_cast<uint32_t>(hostBuf[2]) << 16) |
-                                         (static_cast<uint32_t>(hostBuf[1]) << 8) |
-                                         static_cast<uint32_t>(hostBuf[0]);
-                if (magic == 0x56414770u || magicLE == 0x56414770u)
+                std::lock_guard<std::mutex> accumulationLock(g_vagAccumMutex);
+                auto it = g_vagAccum.find(ps2Fd);
+                if (it != g_vagAccum.end())
                 {
-                    VagAccumEntry &e = g_vagAccum[ps2Fd];
-                    e.firstBufAddr = bufAddr;
-                    if (bytesRead <= kVagAccumMaxBytes)
-                        e.data.assign(hostBuf, hostBuf + bytesRead);
+                    VagAccumEntry &e = it->second;
+                    if (e.data.size() + bytesRead <= kVagAccumMaxBytes)
+                        e.data.insert(e.data.end(), hostBuf, hostBuf + bytesRead);
+                }
+                else if (bytesRead >= 4)
+                {
+                    const uint32_t magic = (static_cast<uint32_t>(hostBuf[0]) << 24) |
+                                           (static_cast<uint32_t>(hostBuf[1]) << 16) |
+                                           (static_cast<uint32_t>(hostBuf[2]) << 8) |
+                                           static_cast<uint32_t>(hostBuf[3]);
+                    const uint32_t magicLE = (static_cast<uint32_t>(hostBuf[3]) << 24) |
+                                             (static_cast<uint32_t>(hostBuf[2]) << 16) |
+                                             (static_cast<uint32_t>(hostBuf[1]) << 8) |
+                                             static_cast<uint32_t>(hostBuf[0]);
+                    if (magic == 0x56414770u || magicLE == 0x56414770u)
+                    {
+                        VagAccumEntry &e = g_vagAccum[ps2Fd];
+                        e.firstBufAddr = bufAddr;
+                        if (bytesRead <= kVagAccumMaxBytes)
+                            e.data.assign(hostBuf, hostBuf + bytesRead);
+                    }
                 }
             }
         }
