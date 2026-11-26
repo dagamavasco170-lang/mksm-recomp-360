@@ -168,21 +168,21 @@ public:
     {
         if (!ioman_)
             return -ENOSYS;
-        if (eeRdram.size() < ps2::xbox360::generated_abi::kGuestRdramSize)
+        if (eeRdram.size() < ps2::xbox360::rdram_address::kRdramSize)
             return -EFAULT;
         switch (command)
         {
         case ps2::xbox360::iop::IomanCommand::Open:
         {
             std::uint32_t pathOffset{};
-            try { pathOffset = ps2::xbox360::generated_abi::resolveRdramOffset(a0); }
+            try { pathOffset = ps2::xbox360::rdram_address::resolveOffset(a0); }
             catch (...) { return -EFAULT; }
             return ioman_->dispatch(command, pathOffset, a1, a2, eeRdram);
         }
         case ps2::xbox360::iop::IomanCommand::Read:
         {
             std::uint32_t destinationOffset{};
-            try { destinationOffset = ps2::xbox360::generated_abi::resolveRdramOffset(a1); }
+            try { destinationOffset = ps2::xbox360::rdram_address::resolveOffset(a1); }
             catch (...) { return -EFAULT; }
             return ioman_->dispatch(command, a0, destinationOffset, a2, eeRdram);
         }
