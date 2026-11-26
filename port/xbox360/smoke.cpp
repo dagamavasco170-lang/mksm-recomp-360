@@ -24,6 +24,9 @@
 #include "ps2_simd_scalar.h"
 #include "ps2_spr_dma.h"
 #include "ps2_iop_ioman.h"
+#if defined(MKSM_HAS_GENERATED_RECOMP_PROBE)
+#include "ps2_generated_runtime_abi.h"
+#endif
 #include "runtime/ps2_pad.h"
 
 #if defined(MKSM_HAS_GENERATED_RECOMP_PROBE)
@@ -320,8 +323,17 @@ bool checkIomanBridge()
     }
 
     ps2::xbox360::iop::IomanDispatcher ioman{std::filesystem::path(discRoot)};
+#if defined(MKSM_HAS_GENERATED_RECOMP_PROBE)
     PS2Runtime runtime{};
     runtime.attachIoman(&ioman);
+    auto dispatch = [&](IomanCommand command, std::uint32_t a0, std::uint32_t a1, std::uint32_t a2, std::span<std::uint8_t> ram) {
+        return dispatch(command, a0, a1, a2, ram);
+    };
+#else
+    auto dispatch = [&](IomanCommand command, std::uint32_t a0, std::uint32_t a1, std::uint32_t a2, std::span<std::uint8_t> ram) {
+        return dispatch(command, a0, a1, a2, ram);
+    };
+#endif
     std::array<std::uint8_t, 128> iopRam{};
     constexpr char probePath[] = "GAMEDATA.WAD";
     for (size_t i = 0; i < sizeof(probePath); ++i)
