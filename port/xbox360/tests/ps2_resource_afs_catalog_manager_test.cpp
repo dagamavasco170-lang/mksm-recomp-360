@@ -27,7 +27,10 @@ int main(){
  AfsCatalogResourceManager manager(catalog,wag,wah,wai,waj,runtime);
  auto cache=manager.loadCached(static_cast<AfsResourceId>(101));assert(cache&&cache->size()==5&&(*cache)[0]==1);
  assert(manager.loadCached(static_cast<AfsResourceId>(102))==nullptr);
+ std::array<std::uint8_t,2> cachedRead{};assert(manager.read(static_cast<AfsResourceId>(101),2,cachedRead)==2);
+ assert((cachedRead==std::array<std::uint8_t,2>{3,4}));
  ResourceLoadingRuntime::Blob transient;assert(manager.loadOnDemand(static_cast<AfsResourceId>(102),transient)&&transient.size()==3&&transient[0]==6);
+ assert(runtime.state(102)==ResourceState::Ready);
  std::array<std::uint8_t,3> audio{};assert(manager.read(static_cast<AfsResourceId>(103),1,audio)==3);
  assert((audio==std::array<std::uint8_t,3>{10,11,12}));
  std::array<std::uint8_t,2> anim{};assert(manager.read(static_cast<AfsResourceId>(104),4,anim)==2);
