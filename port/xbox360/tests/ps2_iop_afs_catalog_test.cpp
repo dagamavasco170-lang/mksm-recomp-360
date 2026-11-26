@@ -17,7 +17,7 @@ int main()
         AfsResourceRecord{static_cast<AfsResourceId>(4), AfsArchiveId::WAH, 2,
                           AfsResourceType::Model, 8192},
     };
-    constexpr AfsResourceCatalog catalog{records};
+    const AfsResourceCatalog catalog{records};
     assert(catalog.records().size() == 4);
     assert(catalog.find(static_cast<AfsResourceId>(1)) != nullptr);
     assert(catalog.find(static_cast<AfsResourceId>(1))->expectedSize == 4096);
