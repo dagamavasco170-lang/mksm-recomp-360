@@ -7,6 +7,8 @@ on:
       - "port/xbox360/**"
       - "tools/afs_inventory.py"
       - "tools/tests/test_afs_inventory.py"
+      - "tools/afs_candidates.py"
+      - "tools/tests/test_afs_candidates.py"
       - "ps2xRuntime/include/**"
       - "ps2xRuntime/src/lib/Kernel/**"
       - "ps2xTest/**"
@@ -126,7 +128,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run AFS inventory unit tests
-        run: python3 -m unittest discover -s tools/tests -p 'test_afs_inventory.py' -v
+        run: python3 -m unittest discover -s tools/tests -p 'test_afs_*.py' -v
 
   ee-core-tests:
     runs-on: ubuntu-24.04
