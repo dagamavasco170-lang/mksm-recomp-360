@@ -177,6 +177,7 @@ jobs:
           compile_run ps2_resource_afs_bridge_test -Iport/xbox360 port/xbox360/tests/ps2_resource_afs_bridge_test.cpp
           compile_run ps2_resource_afs_catalog_manager_test -Iport/xbox360 port/xbox360/tests/ps2_resource_afs_catalog_manager_test.cpp
           compile_run ps2_runtime_asset_resolver_test -Iport/xbox360 port/xbox360/tests/ps2_runtime_asset_resolver_test.cpp
+          compile_run ps2_asset_service_test -Iport/xbox360 port/xbox360/tests/ps2_asset_service_test.cpp
           compile_run ps2_rdram_address_test -Iport/xbox360 port/xbox360/tests/ps2_rdram_address_test.cpp
           compile_run ps2_retail_disc_test -Iport/xbox360 port/xbox360/tests/ps2_retail_disc_test.cpp
           compile_run ps2_afs_archive_test -Iport/xbox360 port/xbox360/tests/ps2_afs_archive_test.cpp
