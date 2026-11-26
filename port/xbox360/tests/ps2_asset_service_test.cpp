@@ -1,0 +1,11 @@
+#include "ps2_asset_service.h"
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <vector>
+static void put32(std::vector<std::uint8_t>&b,std::size_t at,std::uint32_t v){for(int i=0;i<4;++i)b[at+i]=static_cast<std::uint8_t>(v>>(8*i));}
+static void makeAfs(const std::filesystem::path&p,const std::vector<std::uint8_t>&d){std::vector<std::uint8_t>b(16+d.size());b[0]='A';b[1]='F';b[2]='S';put32(b,4,1);put32(b,8,16);put32(b,12,d.size());std::copy(d.begin(),d.end(),b.begin()+16);std::ofstream f(p,std::ios::binary);f.write(reinterpret_cast<const char*>(b.data()),b.size());}
+int main(){namespace fs=std::filesystem;using namespace ps2::xbox360::iop;using namespace ps2::xbox360::resources;auto root=fs::temp_directory_path()/"mksm_asset_service_test";fs::remove_all(root);fs::create_directories(root);makeAfs(root/"GAMEDATA.WAG",{1,2,3,4});makeAfs(root/"GAMEDATA.WAH",{5,6,7});makeAfs(root/"GAMEDATA.WAI",{8,9});makeAfs(root/"GAMEDATA.WAJ",{10,11,12});constexpr std::array rec{AfsResourceRecord{static_cast<AfsResourceId>(1),AfsArchiveId::WAG,0,AfsResourceType::Texture,4,AfsLoadStrategy::Cache},AfsResourceRecord{static_cast<AfsResourceId>(2),AfsArchiveId::WAH,0,AfsResourceType::Model,3,AfsLoadStrategy::OnDemand}};AfsResourceCatalog catalog(rec);AfsStreamIo wag(root),wah(root),wai(root),waj(root);ResourceLoadingRuntime rt(32);AfsCatalogResourceManager mgr(catalog,wag,wah,wai,waj,rt);RuntimeAssetResolver resolver(mgr);AssetService service(resolver);auto a=service.acquire(static_cast<AfsResourceId>(1));assert(a.status==AssetServiceStatus::Ok&&a.handle);auto b=service.acquire(static_cast<AfsResourceId>(1));assert(b.handle.value==a.handle.value&&service.refCount(a.handle)==2);std::array<std::uint8_t,2>out{};assert(service.read(a.handle,1,out)==2&&out[0]==2&&out[1]==3);assert(service.release(a.handle)&&service.refCount(b.handle)==1);assert(service.release(b.handle)&&service.activeHandles()==0);auto d=service.acquire(static_cast<AfsResourceId>(2));assert(d.status==AssetServiceStatus::Ok);assert(service.read(d.handle,0,out)==2&&out[0]==5);assert(service.release(d.handle));auto bad=service.acquire(static_cast<AfsResourceId>(99));assert(bad.status==AssetServiceStatus::UnknownAsset);assert(!service.release({999}));fs::remove_all(root);}
