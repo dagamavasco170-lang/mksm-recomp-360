@@ -5,6 +5,8 @@ on:
     branches: [xbox360/bootstrap]
     paths:
       - "port/xbox360/**"
+      - "tools/afs_inventory.py"
+      - "tools/tests/test_afs_inventory.py"
       - "ps2xRuntime/include/**"
       - "ps2xRuntime/src/lib/Kernel/**"
       - "ps2xTest/**"
