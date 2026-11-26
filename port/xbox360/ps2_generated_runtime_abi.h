@@ -4,6 +4,7 @@
 #include "ps2_mmi_hilo_helpers.h"
 #include "ps2_rdram_address.h"
 #include "ps2_spr_dma.h"
+#include "ps2_iop_ioman.h"
 #include "ps2_recompiled_functions.h"
 
 #include <array>
@@ -143,6 +144,21 @@ public:
 
     [[nodiscard]] bool eeCheckpointDue() const noexcept { return false; }
 
+    // Runtime-owned syscall bridge: generated EE code can route IOP file calls
+    // through the same dispatcher used by the standalone smoke tests.
+    void attachIoman(ps2::xbox360::iop::IomanDispatcher *dispatcher) noexcept
+    {
+        ioman_ = dispatcher;
+    }
+
+    [[nodiscard]] std::int32_t dispatchIoman(
+        ps2::xbox360::iop::IomanCommand command,
+        std::uint32_t a0, std::uint32_t a1, std::uint32_t a2,
+        std::span<std::uint8_t> iopRam)
+    {
+        return ioman_ ? ioman_->dispatch(command, a0, a1, a2, iopRam) : -ENOSYS;
+    }
+
     [[nodiscard]] std::span<std::uint8_t> eeScratchpad() noexcept
     {
         return std::span<std::uint8_t>(scratchpad_);
@@ -179,6 +195,7 @@ private:
     // Scratchpad and the initial SPR DMAC register bank are per EE runtime.
     std::array<std::uint8_t, kScratchpadSize> scratchpad_{};
     ps2::xbox360::dmac::ControllerState dmac_{};
+    ps2::xbox::iop::IomanDispatcher *ioman_ = nullptr;
 };
 
 namespace ps2::xbox360::generated_abi
