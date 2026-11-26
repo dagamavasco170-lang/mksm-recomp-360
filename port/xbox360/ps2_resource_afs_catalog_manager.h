@@ -1,6 +1,8 @@
 #pragma once
 #include "ps2_iop_afs_catalog.h"
 #include "ps2_resource_afs_bridge.h"
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <span>
 
@@ -26,7 +28,7 @@ public:
  }
  [[nodiscard]] std::int32_t read(iop::AfsResourceId id,std::uint64_t offset,std::span<std::uint8_t>out) {
   const auto*r=resolve(id);if(!r||(r->strategy!=iop::AfsLoadStrategy::Stream&&r->strategy!=iop::AfsLoadStrategy::SeekAware))return -1;
-  return runtime_.stream(static_cast<ResourceLoadingRuntime::ResourceId>(id),offset,out,bridgeFor(r->archive).streamReader(r->entryIndex));
+  return runtime_.stream(static_cast<ResourceLoadingRuntime::ResourceId>(id),offset,out,bridgeFor(r->archive).streamReader(r->entryIndex),out);
  }
  [[nodiscard]] const iop::AfsResourceRecord* findByEntry(iop::AfsArchiveId archive,std::uint32_t entry)const noexcept {
   return catalog_.valid()?catalog_.find(archive,entry):nullptr;
