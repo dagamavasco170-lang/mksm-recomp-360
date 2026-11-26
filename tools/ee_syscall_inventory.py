@@ -32,6 +32,18 @@ def scan_source(path: Path) -> list[dict]:
             "syscall_id": f"0x{value:X}",
             "target": None,
         })
+    for match in SYSCALL_SITE_RE.finditer(text):
+        guest_pc = int(match.group(1), 0)
+        syscall_id = int(match.group(2), 0)
+        line = text.count("\\n", 0, match.start()) + 1
+        records.append({
+            "source": str(path),
+            "line": line,
+            "kind": "generated_syscall_site",
+            "guest_pc": f"0x{guest_pc:X}",
+            "syscall_id": f"0x{syscall_id:X}",
+            "target": None,
+        })
     for match in FIO_RE.finditer(text):
         line = text.count("\\n", 0, match.start()) + 1
         records.append({
