@@ -11,7 +11,8 @@
 #include <limits>
 #include <string>
 #include <string_view>
-#include <vector>\n#include <utility>
+#include <vector>
+#include <utility>
 
 namespace ps2::xbox360::iop
 {
