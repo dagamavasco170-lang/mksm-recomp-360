@@ -1,5 +1,6 @@
 #pragma once
 #include "ps2_runtime_asset_resolver.h"
+#include <algorithm>
 #include <cstdint>
 #include <span>
 #include <unordered_map>
