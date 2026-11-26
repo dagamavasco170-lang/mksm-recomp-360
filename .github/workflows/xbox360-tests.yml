@@ -5,6 +5,7 @@ on:
     branches: [xbox360/bootstrap]
     paths:
       - "port/xbox360/**"
+      - "tools/tests/test_xbox_generated_fio_routing.py"
       - "ps2xRecomp/src/lib/function_table_emitter.cpp"
       - "port/xbox360/tests/ps2_generated_runtime_fio_dispatch_test.cpp"
       - "port/xbox360/ps2_resource_loading_runtime.h"
