@@ -5,7 +5,7 @@ import argparse, json, re
 from pathlib import Path
 
 MARKER = "MKSM_IOMAN_EVENT "
-LINE = re.compile(r"\\bop=(open|close|read|lseek)\\s+path=(.*?)\\s+fd=(-?\\d+)\\s+a1=(\\d+)\\s+a2=(\\d+)\\s+result=(-?\\d+)")
+LINE = re.compile(r"\bop=(open|close|read|lseek)\s+path=(.*?)\s+fd=(-?\d+)\s+a1=(\d+)\s+a2=(\d+)\s+result=(-?\d+)")
 
 def parse_lines(text: str):
     events=[]
@@ -25,7 +25,7 @@ def parse_lines(text: str):
 def run(log_path: Path, output_path: Path):
     events=parse_lines(log_path.read_text(encoding="utf-8-sig",errors="replace"))
     output_path.parent.mkdir(parents=True,exist_ok=True)
-    output_path.write_text(json.dumps({"schema_version":1,"events":events},indent=2)+"\\n",encoding="utf-8")
+    output_path.write_text(json.dumps({"schema_version":1,"events":events},indent=2)+"\n",encoding="utf-8")
     return events
 
 def main():
