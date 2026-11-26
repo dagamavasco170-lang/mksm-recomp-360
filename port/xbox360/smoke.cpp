@@ -340,7 +340,7 @@ bool checkIomanBridge()
     std::array<std::uint8_t, 128> iopRam{};
     constexpr char probePath[] = "GAMEDATA.WAD";
     for (size_t i = 0; i < sizeof(probePath); ++i)
-        iopRam[16u + i] = static_cast<stduint8_t>(probePath[i]);
+        iopRam[16u + i] = static_cast<std::uint8_t>(probePath[i]);
 
     const auto fd = dispatch(IomanCommand::Open, 16u, 0x0001u, 0u, iopRam);
     if (fd < 0)
@@ -358,7 +358,7 @@ bool checkIomanBridge()
     const auto secondRead = seekResult == 0
         ? dispatch(IomanCommand::Read, static_cast<std::uint32_t>(fd), 80u, 16u, iopRam)
         : -1;
-    std::array<stduint8_t, 16> secondBytes{};
+    std::array<std::uint8_t, 16> secondBytes{};
     std::copy_n(iopRam.begin() + 80, secondBytes.size(), secondBytes.begin());
     const auto closeResult = dispatch(IomanCommand::Close, static_cast<std::uint32_t>(fd), 0u, 0u, iopRam);
     const auto openFilesAfterClose = ioman.openFileCount();
