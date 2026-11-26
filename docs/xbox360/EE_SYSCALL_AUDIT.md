@@ -77,3 +77,7 @@ numeric dispatcher.
 
 Review source handler definitions and generated game call sites before binding
 IDs into the Xbox EE IOMAN map.
+
+### Dispatcher findings
+
+The extracted numeric table contains **108 explicit IDs** in `games/mk-shaolin-monks/config/ee-syscall-dispatch.json`. Review of `Dispatcher.cpp` shows that its numeric cases dispatch kernel operations (threads, semaphores, event flags, interrupts, etc.); the FileIO functions `fioOpen`, `fioRead`, `fioWrite`, `fioLseek`, and `fioClose` are implemented separately in `Syscalls/FileIO.cpp` and are not numeric cases in this dispatcher. Therefore, the Xbox IOMAN bridge should connect at the direct FileIO call layer rather than fabricate numeric syscall bindings.
