@@ -47,17 +47,24 @@ def correlate(trace_records, inventory, candidates=None):
             cand[(row["archive"].upper(), int(row["entry_index"]))]=row
     grouped={}
     unmatched=[]
+    fd_to_key={}
     for event in trace_records:
         op=normalize_op(event)
         path=event.get("path", "")
+        result=event.get("result")
+        try: result=int(result)
+        except (TypeError,ValueError): result=None
         parsed=parse_afs_path(path) if op=="open" else None
-        if parsed is None:
+        descriptor=event.get("descriptor",event.get("fd",event.get("a0")))
+        try: descriptor=int(descriptor)
+        except (TypeError,ValueError): descriptor=None
+        key=parsed if parsed is not None else fd_to_key.get(descriptor)
+        if key is None:
             if op=="open" and path:
                 unmatched.append({"operation":op,"path":path,"result":event.get("result"),
                                 "reason":"not an AFS archive-entry path"})
             continue
-        archive,index=parsed
-        key=(archive,index)
+        archive,index=key
         entry=inv.get(key)
         c=cand.get(key)
         agg=grouped.setdefault(key,{"archive":archive,"entry_index":index,
@@ -68,17 +75,18 @@ def correlate(trace_records, inventory, candidates=None):
             "opens":0,"reads":0,"read_bytes":0,"seeks":0,"closes":0,
             "failed_operations":0,"trace_event_count":0,"last_result":None})
         agg["trace_event_count"]+=1
-        result=event.get("result")
-        try: result=int(result)
-        except (TypeError,ValueError): result=None
         agg["last_result"]=result
         if result is not None and result<0: agg["failed_operations"]+=1
-        if op=="open": agg["opens"]+=1
+        if op=="open":
+            agg["opens"]+=1
+            if result is not None and result>=0: fd_to_key[result]=key
         elif op=="read":
             agg["reads"]+=1
             if result is not None and result>0: agg["read_bytes"]+=result
         elif op=="lseek": agg["seeks"]+=1
-        elif op=="close": agg["closes"]+=1
+        elif op=="close":
+            agg["closes"]+=1
+            if descriptor is not None: fd_to_key.pop(descriptor,None)
         else: agg["unknown_operations"] = agg.get("unknown_operations",0)+1
     rows=sorted(grouped.values(),key=lambda x:(x["archive"],x["entry_index"]))
     summary={"trace_events":len(trace_records),"afs_entries_touched":len(rows),
