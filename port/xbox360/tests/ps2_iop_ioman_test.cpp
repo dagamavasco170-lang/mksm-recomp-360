@@ -8,6 +8,7 @@
 #include <fstream>
 #include <span>
 #include <vector>
+#include <string>
 
 int main()
 {
@@ -26,6 +27,43 @@ int main()
     }
 
     IomanDispatcher ioman(root);
+    struct TraceEvent
+    {
+        IomanCommand command;
+        std::string path;
+        std::int32_t descriptor;
+        std::int32_t result;
+    };
+    struct TraceCollector final : ps2::xbox360::iop::IomanTraceSink
+    {
+        std::vector<TraceEvent> events;
+        void onIomanTrace(const ps2::xbox360::iop::IomanTraceRecord &record) noexcept override
+        {
+            events.push_back({record.command, std::string(record.path), record.descriptor, record.result});
+        }
+    } trace;
+    IomanDispatcher tracedIoman(root, &trace);
+    std::array<std::uint8_t, 128> traceRam{};
+    for (std::size_t i = 0; i < sizeof(path); ++i)
+        traceRam[8u + i] = static_cast<std::uint8_t>(path[i]);
+    const auto tracedFd = tracedIoman.dispatch(IomanCommand::Open, 8u, 1u, 0u, traceRam);
+    assert(tracedFd == 3);
+    assert(trace.events.size() == 1u);
+    assert(trace.events[0].command == IomanCommand::Open);
+    assert(trace.events[0].path == path);
+    assert(trace.events[0].result == tracedFd);
+    assert(tracedIoman.dispatch(IomanCommand::Read, static_cast<std::uint32_t>(tracedFd),
+                               64u, 2u, traceRam) == 2);
+    assert(trace.events.size() == 2u && trace.events[1].command == IomanCommand::Read);
+    assert(trace.events[1].descriptor == tracedFd && trace.events[1].result == 2);
+    assert(tracedIoman.dispatch(IomanCommand::Lseek, static_cast<std::uint32_t>(tracedFd),
+                               0u, 0u, traceRam) == 0);
+    assert(trace.events.size() == 3u && trace.events[2].command == IomanCommand::Lseek);
+    assert(tracedIoman.dispatch(IomanCommand::Close, static_cast<std::uint32_t>(tracedFd),
+                               0u, 0u, traceRam) == 0);
+    assert(trace.events.size() == 4u && trace.events[3].command == IomanCommand::Close);
+    assert(trace.events[3].result == 0);
+
     std::array<std::uint8_t, 128> ram{};
     constexpr char path[] = "cdrom0:\\\\iop\\\\module.irx;1";
     for (std::size_t i = 0; i < sizeof(path); ++i)
