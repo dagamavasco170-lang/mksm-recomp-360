@@ -27,8 +27,17 @@ public:
   return runtime_.loadOnDemand(static_cast<ResourceLoadingRuntime::ResourceId>(id),bridgeFor(r->archive).loader(r->entryIndex),out);
  }
  [[nodiscard]] std::int32_t read(iop::AfsResourceId id,std::uint64_t offset,std::span<std::uint8_t>out) {
-  const auto*r=resolve(id);if(!r||(r->strategy!=iop::AfsLoadStrategy::Stream&&r->strategy!=iop::AfsLoadStrategy::SeekAware))return -1;
-  return runtime_.stream(static_cast<ResourceLoadingRuntime::ResourceId>(id),offset,out,bridgeFor(r->archive).streamReader(r->entryIndex),out);
+  const auto*r=resolve(id);if(!r)return -1;
+  if(r->strategy==iop::AfsLoadStrategy::Cache) {
+   const auto*data=loadCached(id);if(!data)return -1;
+   if(offset>=data->size()||out.empty())return 0;
+   const auto count=std::min(out.size(),data->size()-static_cast<std::size_t>(offset));
+   std::copy_n(data->begin()+static_cast<std::ptrdiff_t>(offset),count,out.begin());
+   return static_cast<std::int32_t>(count);
+  }
+  if(r->strategy!=iop::AfsLoadStrategy::Stream&&r->strategy!=iop::AfsLoadStrategy::SeekAware)return -1;
+  return runtime_.stream(static_cast<ResourceLoadingRuntime::ResourceId>(id),offset,
+      bridgeFor(r->archive).streamReader(r->entryIndex),out);
  }
  [[nodiscard]] const iop::AfsResourceRecord* findByEntry(iop::AfsArchiveId archive,std::uint32_t entry)const noexcept {
   return catalog_.valid()?catalog_.find(archive,entry):nullptr;
