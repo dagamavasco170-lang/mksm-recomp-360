@@ -118,6 +118,14 @@ jobs:
             -o build/host-tests/ps2_pad_xbox360_test
           build/host-tests/ps2_pad_xbox360_test
 
+  afs-inventory-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run AFS inventory unit tests
+        run: python3 -m unittest discover -s tools/tests -p 'test_afs_inventory.py' -v
+
   ee-core-tests:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
