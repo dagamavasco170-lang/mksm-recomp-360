@@ -5,6 +5,7 @@
 #include "ps2_rdram_address.h"
 #include "ps2_spr_dma.h"
 #include "ps2_iop_ioman.h"
+"ps2_ee_ioman_syscall_map.h"
 #include "ps2_recompiled_functions.h"
 
 #include <array>
@@ -161,6 +162,25 @@ public:
 
     // EE-side wrapper: translates guest virtual pointers to bounded RDRAM offsets
     // before handing path/buffer pointers to the IOP dispatcher.
+    [[nodiscard]] bool bindIomanSyscall(
+        std::uint32_t syscallId,
+        ps2::xbox360::iop::IomanCommand command) noexcept
+    {
+        return iomanSyscalls_.bind(syscallId, command);
+    }
+
+    // Generated EE syscall entry point. IDs must be populated from verified
+    // executable metadata; unmapped IDs remain -ENOSYS.
+    [[nodiscard]] std::int32_t dispatchEeIomanSyscall(
+        std::uint32_t syscallId, std::uint32_t a0, std::uint32_t a1,
+        std::uint32_t a2, std::span<std::uint8_t> eeRdram)
+    {
+        ps2::xbox360::iop::IomanCommand command{};
+        if (!iomanSyscalls_.lookup(syscallId, command))
+            return -ENOSYS;
+        return dispatchIomanEe(command, a0, a1, a2, eeRdram);
+    }
+
     [[nodiscard]] std::int32_t dispatchIomanEe(
         ps2::xbox360::iop::IomanCommand command,
         std::uint32_t a0, std::uint32_t a1, std::uint32_t a2,
@@ -231,6 +251,7 @@ private:
     std::array<std::uint8_t, kScratchpadSize> scratchpad_{};
     ps2::xbox360::dmac::ControllerState dmac_{};
     ps2::xbox360::iop::IomanDispatcher *ioman_ = nullptr;
+    ps2::xbox360::iop::EeIomanSyscallMap<32> iomanSyscalls_{};
 };
 
 namespace ps2::xbox360::generated_abi
