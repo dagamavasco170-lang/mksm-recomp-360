@@ -8,6 +8,7 @@
 #include <memory>
 #include <ranges>
 #include <span>
+#include <string_view>
 #include <thread>
 #include <vector>
 
