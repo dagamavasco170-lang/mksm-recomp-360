@@ -1,5 +1,4 @@
 name: Xbox 360 portable tests
-
 on:
   push:
     branches: [xbox360/bootstrap]
@@ -36,6 +35,8 @@ on:
       - "tools/afs_resource_intelligence.py"
       - "tools/afs_runtime_binding.py"
       - "tools/tests/test_afs_runtime_binding.py"
+      - "tools/ioman_trace_log_extract.py"
+      - "tools/tests/test_ioman_trace_log_extract.py"
       - "docs/xbox360/AFS_RUNTIME_BINDING.md"
       - "tools/tests/test_afs_resource_intelligence.py"
       - "docs/xbox360/AFS_RESOURCE_INTELLIGENCE.md"
@@ -80,6 +81,8 @@ on:
       - "tools/tests/test_afs_resource_intelligence.py"
       - "docs/xbox360/AFS_RESOURCE_INTELLIGENCE.md"
       - "tools/afs_runtime_binding.py"
+      - "tools/tests/test_ioman_trace_log_extract.py"
+      - "tools/ioman_trace_log_extract.py"
       - "tools/tests/test_afs_runtime_binding.py"
       - "docs/xbox360/AFS_RUNTIME_BINDING.md"
       - "ps2xRuntime/include/**"
@@ -88,14 +91,11 @@ on:
       - "ps2xIOP/**"
       - ".github/workflows/xbox360-tests.yml"
   workflow_dispatch:
-
 concurrency:
   group: xbox360-tests-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
-
 permissions:
   contents: read
-
 jobs:
   runtime-host-tests:
     runs-on: ubuntu-24.04
@@ -126,7 +126,6 @@ jobs:
         run: cmake --build build/host-tests --target ps2x_runtime_io_tests --parallel 2
       - name: Run runtime FileIO regression suite
         run: ./build/host-tests/ps2xTest/ps2x_runtime_io_tests
-
   runtime-host-full-tests:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -156,7 +155,6 @@ jobs:
         run: cmake --build build/host-tests --target ps2x_tests --parallel 2
       - name: Run complete PS2 runtime regression suite
         run: ./build/host-tests/ps2xTest/ps2x_tests
-
   iop-fileio-rpc-test:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -171,7 +169,6 @@ jobs:
             ps2xIOP/src/modules/fileio.cpp ps2xIOP/tests/fileio_rpc_test.cpp \
             -o build/host-tests/fileio_rpc_test
           build/host-tests/fileio_rpc_test
-
   controller-tests:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -185,7 +182,6 @@ jobs:
             port/xbox360/tests/ps2_pad_xbox360_test.cpp port/xbox360/ps2_pad_mapping.cpp \
             -o build/host-tests/ps2_pad_xbox360_test
           build/host-tests/ps2_pad_xbox360_test
-
   afs-inventory-tests:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -193,7 +189,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run AFS inventory unit tests
         run: python3 -m unittest discover -s tools/tests -p 'test_*.py' -v
-
   ee-core-tests:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -248,7 +243,6 @@ jobs:
           compile_run ps2_ee_mmi_executor_test -Iport/xbox360 port/xbox360/tests/ps2_ee_mmi_executor_test.cpp
           compile_run ps2_ee_test_program_test -Iport/xbox360 port/xbox360/tests/ps2_ee_test_program_test.cpp
           compile_run ps2_ee_immediate_executor_test -Iport/xbox360 port/xbox360/tests/ps2_ee_immediate_executor_test.cpp
-
   simd-tests:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
