@@ -24,6 +24,11 @@ public:
   const auto h=nextHandle();Entry e;e.id=id;e.type=loaded.type;e.refs=1;e.transient=std::move(tmp);e.cacheBacked=(meta.strategy==iop::AfsLoadStrategy::Cache);
   entries_.emplace(h,std::move(e));byId_[static_cast<std::uint32_t>(id)]=h;return {AssetServiceStatus::Ok,{h},id,loaded.type};
  }
+ [[nodiscard]] AssetServiceResult acquireEntry(iop::AfsArchiveId archive,std::uint32_t entry){
+  const auto resolved=resolver_.resolve(archive,entry);
+  if(resolved.status!=AssetResolveStatus::Resolved)return {AssetServiceStatus::UnknownAsset,{},iop::AfsResourceId::Invalid};
+  return acquire(resolved.id);
+ }
  [[nodiscard]] std::int32_t read(AssetHandle h,std::uint64_t offset,std::span<std::uint8_t>out){
   auto it=entries_.find(h.value);if(it==entries_.end())return -1;const auto&e=it->second;
   if(e.cacheBacked)return resolver_.read(e.id,offset,out);
