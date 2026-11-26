@@ -23,6 +23,7 @@ on:
       - "tools/tests/test_afs_resource_intelligence.py"
       - "docs/xbox360/AFS_RESOURCE_INTELLIGENCE.md"
       - "tools/ee_syscall_inventory.py"
+      - "ps2xRecomp/src/lib/special_translator.cpp"
       - "tools/tests/test_ee_syscall_inventory.py"
       - "docs/xbox360/EE_SYSCALL_AUDIT.md"
       - "ps2xRuntime/include/**"
