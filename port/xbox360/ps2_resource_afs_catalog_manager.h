@@ -22,7 +22,7 @@ public:
  }
  [[nodiscard]] bool loadOnDemand(iop::AfsResourceId id,ResourceLoadingRuntime::Blob&out) {
   const auto*r=resolve(id);if(!r||r->strategy!=iop::AfsLoadStrategy::OnDemand){out.clear();return false;}
-  return bridgeFor(r->archive).loadBlob(r->entryIndex,out);
+  return runtime_.loadOnDemand(static_cast<ResourceLoadingRuntime::ResourceId>(id),bridgeFor(r->archive).loader(r->entryIndex),out);
  }
  [[nodiscard]] std::int32_t read(iop::AfsResourceId id,std::uint64_t offset,std::span<std::uint8_t>out) {
   const auto*r=resolve(id);if(!r||(r->strategy!=iop::AfsLoadStrategy::Stream&&r->strategy!=iop::AfsLoadStrategy::SeekAware))return -1;
