@@ -109,7 +109,7 @@ int main()
             ps2::xbox360::iop::AfsArchiveId::WAG, 0,
             ps2::xbox360::iop::AfsResourceType::Other, 4}
     };
-    constexpr ps2::xbox360::iop::AfsResourceCatalog catalog{catalogRecords};
+    const ps2::xbox360::iop::AfsResourceCatalog catalog{catalogRecords};
     const auto catalogFd = ioman.openAfsResource(
         catalog, static_cast<ps2::xbox360::iop::AfsResourceId>(1));
     assert(catalogFd >= ps2::xbox360::iop::AfsStreamIo::FirstDescriptor);
