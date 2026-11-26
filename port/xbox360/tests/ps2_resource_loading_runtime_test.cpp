@@ -12,7 +12,7 @@ int main(){
  assert(runtime.state(1)==ResourceState::Ready&&runtime.cacheUsed()==4);
  auto again=runtime.loadCached(1,loader);assert(again==a&&runtime.stats().cacheHits==1);
  auto b=runtime.loadCached(2,loader);assert(b&&b->size()==6&&runtime.cacheUsed()==6);
- assert(runtime.stats().cacheEvictions==1&&runtime.state(1)==ResourceState::Ready); // cached state semantics are Ready for evicted ID? test corrected below
+ assert(runtime.stats().cacheEvictions==1&&runtime.state(1)==ResourceState::Evicted); // cached state semantics are Ready for evicted ID? test corrected below
  runtime.setCacheBudget(3);assert(runtime.cacheUsed()==0);
  ResourceLoadingRuntime::Blob transient;
  assert(runtime.loadOnDemand(3,loader,transient)&&transient.size()==6&&runtime.cacheUsed()==0);
