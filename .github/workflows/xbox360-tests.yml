@@ -190,6 +190,7 @@ jobs:
           compile_run ps2_generated_abi_memory_test -Ips2xRuntime/include -Iport/xbox360/tests -Iport/xbox360 port/xbox360/tests/ps2_generated_abi_memory_test.cpp
           compile_run ps2_generated_runtime_ioman_bridge_test -Iport/xbox360/tests -Iport/xbox360 port/xbox360/tests/ps2_generated_runtime_ioman_bridge_test.cpp
           compile_run ps2_generated_runtime_ioman_ee_pointer_test -Iport/xbox360/tests -Iport/xbox360 port/xbox360/tests/ps2_generated_runtime_ioman_ee_pointer_test.cpp
+          compile_run ps2_ee_ioman_syscall_dispatch_test -Iport/xbox360/tests -Iport/xbox360 port/xbox360/tests/ps2_ee_ioman_syscall_dispatch_test.cpp
           compile_run ps2_guest_memory_test -Iport/xbox360 port/xbox360/tests/ps2_guest_memory_test.cpp
           compile_run ps2_spr_dma_test -Iport/xbox360 port/xbox360/tests/ps2_spr_dma_test.cpp
           compile_run ps2_mmi_hilo_helpers_test -Ips2xRuntime/include port/xbox360/tests/ps2_mmi_hilo_helpers_test.cpp
