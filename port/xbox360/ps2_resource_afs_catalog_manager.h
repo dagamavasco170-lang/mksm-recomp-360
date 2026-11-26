@@ -36,8 +36,8 @@ public:
    return static_cast<std::int32_t>(count);
   }
   if(r->strategy!=iop::AfsLoadStrategy::Stream&&r->strategy!=iop::AfsLoadStrategy::SeekAware)return -1;
-  return runtime_.stream(static_cast<ResourceLoadingRuntime::ResourceId>(id),offset,
-      bridgeFor(r->archive).streamReader(r->entryIndex),out);
+  return runtime_.stream(static_cast<ResourceLoadingRuntime::ResourceId>(id),offset,out,
+      bridgeFor(r->archive).streamReader(r->entryIndex));
  }
  [[nodiscard]] const iop::AfsResourceRecord* findByEntry(iop::AfsArchiveId archive,std::uint32_t entry)const noexcept {
   return catalog_.valid()?catalog_.find(archive,entry):nullptr;
