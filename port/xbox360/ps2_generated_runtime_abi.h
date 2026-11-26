@@ -195,7 +195,7 @@ private:
     // Scratchpad and the initial SPR DMAC register bank are per EE runtime.
     std::array<std::uint8_t, kScratchpadSize> scratchpad_{};
     ps2::xbox360::dmac::ControllerState dmac_{};
-    ps2::xbox::iop::IomanDispatcher *ioman_ = nullptr;
+    ps2::xbox360::iop::IomanDispatcher *ioman_ = nullptr;
 };
 
 namespace ps2::xbox360::generated_abi
