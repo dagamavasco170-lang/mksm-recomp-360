@@ -7,6 +7,7 @@ on:
       - "port/xbox360/**"
       - "ps2xRecomp/**"
       - "ps2xRuntime/include/**"
+      - "ps2xRuntime/src/lib/Kernel/**"
       - ".github/workflows/xbox360-xex.yml"
   pull_request:
     branches: [main, xbox360/bootstrap]
@@ -14,6 +15,7 @@ on:
       - "port/xbox360/**"
       - "ps2xRecomp/**"
       - "ps2xRuntime/include/**"
+      - "ps2xRuntime/src/lib/Kernel/**"
       - ".github/workflows/xbox360-xex.yml"
   workflow_dispatch:
 
