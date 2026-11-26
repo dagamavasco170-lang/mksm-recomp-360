@@ -99,7 +99,7 @@ int main()
         quadFailures = quadFailures || rdram[0x1050u + i] != i ||
                        rdram[0x1060u + i] != 0u;
     }
-    std::printf("MKSM_RECOMP_LQ_SQ_TRACE failures=%08X\\n",
+    std::printf("MKSM_RECOMP_LQ_SQ_TRACE failures=%08X\n",
                 static_cast<unsigned>(quadFailures ? 1u : 0u));
     if (quadFailures)
         failures |= 1u << 8u;
