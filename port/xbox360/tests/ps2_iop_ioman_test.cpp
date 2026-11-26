@@ -27,6 +27,7 @@ int main()
     }
 
     IomanDispatcher ioman(root);
+    constexpr char path[] = "cdrom0:\\\\iop\\\\module.irx;1";
     struct TraceEvent
     {
         IomanCommand command;
@@ -65,7 +66,6 @@ int main()
     assert(trace.events[3].result == 0);
 
     std::array<std::uint8_t, 128> ram{};
-    constexpr char path[] = "cdrom0:\\\\iop\\\\module.irx;1";
     for (std::size_t i = 0; i < sizeof(path); ++i)
         ram[8u + i] = static_cast<std::uint8_t>(path[i]);
 
