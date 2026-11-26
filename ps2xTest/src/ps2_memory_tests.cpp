@@ -1497,23 +1497,28 @@ void register_ps2_memory_tests()
             });
 
             t.IsTrue(mem.writeIORegister(kVif1Ch + 0x30u, kBaseAddr), "write VIF1 TADR should succeed");
-            t.IsTrue(mem.writeIORegister(kVif1Ch + 0x00u, 0x104u), "write VIF1 CHCR STR|CHAIN should succeed");
+            t.IsTrue(mem.writeIORegister(kVif1Ch + 0x00u, 0x144u), "write VIF1 CHCR STR|TTE|CHAIN should succeed");
 
             mem.processPendingTransfers();
 
             t.Equals(captured.size(), static_cast<size_t>(1u), "live VIF1 packet should emit one GIF packet");
-            t.Equals(captured[0].size(), static_cast<size_t>(16u), "live VIF1 packet should emit one qword");
-
-            bool payloadOk = true;
-            for (uint32_t i = 0; i < 16u; ++i)
+            if (captured.size() == 1u)
             {
-                if (captured[0][i] != static_cast<uint8_t>(0x30u + i))
+                t.Equals(captured[0].size(), static_cast<size_t>(16u), "live VIF1 packet should emit one qword");
+                if (captured[0].size() == 16u)
                 {
-                    payloadOk = false;
-                    break;
+                    bool payloadOk = true;
+                    for (uint32_t i = 0; i < 16u; ++i)
+                    {
+                        if (captured[0][i] != static_cast<uint8_t>(0x30u + i))
+                        {
+                            payloadOk = false;
+                            break;
+                        }
+                    }
+                    t.IsTrue(payloadOk, "live VIF1 packet payload should reach the GIF callback");
                 }
             }
-            t.IsTrue(payloadOk, "live VIF1 packet payload should reach the GIF callback");
         });
 
         tc.Run("VIF1 DMA chain latches terminal tag bits in CHCR", [](TestCase &t)
