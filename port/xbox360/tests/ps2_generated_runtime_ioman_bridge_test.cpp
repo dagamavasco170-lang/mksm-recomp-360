@@ -1,4 +1,5 @@
 #include "ps2_generated_runtime_abi.h"
+#include "ps2_iop_ioman_trace_ring.h"
 
 #include <array>
 #include <cassert>
@@ -19,10 +20,12 @@ int main()
         file.write(reinterpret_cast<const char*>(bytes.data()), bytes.size());
     }
 
-    ps2::xbox360::iop::IomanDispatcher dispatcher(root);
+    ps2::xbox360::iop::IomanTraceRing trace;
+    ps2::xbox360::iop::IomanDispatcher dispatcher(root, &trace);
     PS2Runtime runtime;
     assert(runtime.dispatchIoman(IomanCommand::Open, 8, 1, 0, {}) == -ENOSYS);
     runtime.attachIoman(&dispatcher);
+    runtime.attachIomanTrace(&trace);
     std::array<std::uint8_t, 64> iopRam{};
     constexpr char path[] = "bridge.bin";
     for (std::size_t i = 0; i < sizeof(path); ++i)
@@ -37,6 +40,12 @@ int main()
     assert(runtime.dispatchIoman(IomanCommand::Read, static_cast<std::uint32_t>(fd), 40, 4, iopRam) == 4);
     assert(runtime.dispatchIoman(IomanCommand::Close, static_cast<std::uint32_t>(fd), 0, 0, iopRam) == 0);
     assert(dispatcher.openFileCount() == 0);
+    assert(trace.size() == 5);
+    assert(trace.at(0).command == IomanCommand::Open && trace.at(0).result == fd);
+    assert(std::string(trace.at(0).path.data(), trace.at(0).pathLength) == path);
+    assert(trace.at(1).command == IomanCommand::Read && trace.at(1).result == 4);
+    assert(trace.at(2).command == IomanCommand::Lseek && trace.at(2).result == 0);
+    assert(trace.at(4).command == IomanCommand::Close && trace.at(4).result == 0);
     fs::remove_all(root);
     return 0;
 }
