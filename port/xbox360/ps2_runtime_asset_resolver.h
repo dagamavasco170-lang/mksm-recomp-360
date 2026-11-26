@@ -24,7 +24,7 @@ public:
  [[nodiscard]] AssetResolveResult resolve(iop::AfsResourceId id)const {
   AssetResolveResult r{};r.id=id;const auto*rec=manager_.resolve(id);
   if(!rec){r.status=AssetResolveStatus::UnknownId;return r;}
-  r.status=AssetResolveStatus::Resolved;r.key={rec->archive,rec->entryIndex};r.type=rec->type;r.strategy=rec->strategy;return r;
+  r.status=AssetResolveStatus::Resolved;r.key={rec->archive,rec->entryIndex};r.type=rec->type;r.strategy=rec->strategy;r.expectedSize=rec->expectedSize;return r;
  }
  [[nodiscard]] AssetResolveResult resolve(iop::AfsArchiveId archive,std::uint32_t entry)const {
   const auto*rec=manager_.findByEntry(archive,entry);
