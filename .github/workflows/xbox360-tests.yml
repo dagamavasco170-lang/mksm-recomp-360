@@ -6,7 +6,7 @@ on:
     paths:
       - "port/xbox360/**"
       - "ps2xRuntime/include/**"
-      - "ps2xRuntime/src/lib/Kernel/Syscalls/**"
+      - "ps2xRuntime/src/lib/Kernel/**"
       - "ps2xTest/**"
       - "ps2xIOP/**"
       - ".github/workflows/xbox360-tests.yml"
@@ -15,7 +15,7 @@ on:
     paths:
       - "port/xbox360/**"
       - "ps2xRuntime/include/**"
-      - "ps2xRuntime/src/lib/Kernel/Syscalls/**"
+      - "ps2xRuntime/src/lib/Kernel/**"
       - "ps2xTest/**"
       - "ps2xIOP/**"
       - ".github/workflows/xbox360-tests.yml"
