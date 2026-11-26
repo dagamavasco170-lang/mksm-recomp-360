@@ -152,12 +152,17 @@ public:
     void attachIoman(ps2::xbox360::iop::IomanDispatcher *dispatcher) noexcept
     {
         ioman_ = dispatcher;
+        if (ioman_)
+            ioman_->setTraceSink(traceSink_);
     }
 
+    // Trace attachment is order-independent: callers may install the sink before
+    // the dispatcher exists (e.g. during runtime/bootstrap construction).
     void attachIomanTrace(ps2::xbox360::iop::IomanTraceSink *traceSink) noexcept
     {
+        traceSink_ = traceSink;
         if (ioman_)
-            ioman_->setTraceSink(traceSink);
+            ioman_->setTraceSink(traceSink_);
     }
 
     [[nodiscard]] std::int32_t dispatchIoman(
@@ -259,6 +264,7 @@ private:
     std::array<std::uint8_t, kScratchpadSize> scratchpad_{};
     ps2::xbox360::dmac::ControllerState dmac_{};
     ps2::xbox360::iop::IomanDispatcher *ioman_ = nullptr;
+    ps2::xbox360::iop::IomanTraceSink *traceSink_ = nullptr;
     ps2::xbox360::iop::EeIomanSyscallMap<32> iomanSyscalls_{};
 };
 
