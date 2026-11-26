@@ -5,7 +5,7 @@
 #include "ps2_rdram_address.h"
 #include "ps2_spr_dma.h"
 #include "ps2_iop_ioman.h"
-"ps2_ee_ioman_syscall_map.h"
+#include "ps2_ee_ioman_syscall_map.h"
 #include "ps2_recompiled_functions.h"
 
 #include <array>
