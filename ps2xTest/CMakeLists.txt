@@ -96,6 +96,26 @@ add_executable(ps2x_tests
     $<TARGET_OBJECTS:ps2_test_function_table>
 )
 
+# Focused runner for runtime FileIO tests. This keeps descriptor-lifetime
+# regressions independently executable from unrelated GS/VIF integration
+# suites while still linking the same runtime and test implementation.
+add_executable(ps2x_runtime_io_tests
+    src/runtime_io_main.cpp
+    $<TARGET_OBJECTS:ps2_test_function_table>
+)
+target_include_directories(ps2x_runtime_io_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/ps2xRecomp/include
+    ${CMAKE_SOURCE_DIR}/ps2xAnalyzer/include
+    ${CMAKE_SOURCE_DIR}/ps2xRuntime/include
+)
+target_link_libraries(ps2x_runtime_io_tests PRIVATE
+    ps2_test_lib
+    ps2_recomp_lib
+    ps2_analyzer_lib
+    ps2_runtime
+)
+
 option(PRINT_GENERATED_CODE "Print generated code in tests" OFF)
 if(PRINT_GENERATED_CODE)
 
