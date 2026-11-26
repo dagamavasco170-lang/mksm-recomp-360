@@ -411,6 +411,11 @@ void EeScheduler::accountCycles(uint32_t cycles) noexcept
     }
 }
 
+bool EeScheduler::isExecutorThread() const noexcept
+{
+    return m_executorThread == std::this_thread::get_id();
+}
+
 bool EeScheduler::isExecutingGuest() const noexcept
 {
     return m_guestExecuting.load(std::memory_order_acquire);
@@ -1919,6 +1924,7 @@ void EeScheduler::processEvent(const EeEvent &event)
         dispatchIrq(false, 3u);
         break;
     case EeEventType::Dmac:
+        dispatchIrq(true, event.id);
         break;
     case EeEventType::Alarm:
     {
