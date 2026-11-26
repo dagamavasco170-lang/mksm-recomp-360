@@ -25,7 +25,7 @@ def scan_source(path: Path) -> list[dict]:
     records: list[dict] = []
     for match in SYSCALL_RE.finditer(text):
         value = int(match.group(1), 0)
-        line = text.count("\\n", 0, match.start()) + 1
+        line = text.count("\n", 0, match.start()) + 1
         records.append({
             "source": str(path),
             "line": line,
