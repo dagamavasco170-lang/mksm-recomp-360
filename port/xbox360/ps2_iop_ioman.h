@@ -51,8 +51,10 @@ public:
             return files_.sceOpen(path, static_cast<std::int32_t>(a1));
         }
         case IomanCommand::Close:
+        {
             const auto fd = static_cast<std::int32_t>(a0);
             return afsFiles_.ownsDescriptor(fd) ? afsFiles_.close(fd) : files_.sceClose(fd);
+        }
         case IomanCommand::Read:
         {
             if (a1 > iopRam.size() || a2 > iopRam.size() - a1)
@@ -64,9 +66,12 @@ public:
         case IomanCommand::Lseek:
             if (a2 > static_cast<std::uint32_t>(SeekWhence::End))
                 return -EINVAL;
-            return files_.sceLseek(static_cast<std::int32_t>(a0),
-                                   static_cast<std::int32_t>(a1),
-                                   static_cast<SeekWhence>(a2));
+            {
+                const auto fd = static_cast<std::int32_t>(a0);
+                return afsFiles_.ownsDescriptor(fd)
+                    ? afsFiles_.seek(fd, static_cast<std::int32_t>(a1), static_cast<SeekWhence>(a2))
+                    : files_.sceLseek(fd, static_cast<std::int32_t>(a1), static_cast<SeekWhence>(a2));
+            }
         default:
             return -ENOSYS;
         }
