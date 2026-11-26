@@ -68,10 +68,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("dispatcher", type=Path, help="Dispatcher.cpp")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--output", type=Path, help="write extracted table as JSON to this path")
     args = parser.parse_args()
     report = extract_dispatch_table(args.dispatcher)
+    rendered = json.dumps(report, indent=2) + "\\n"
+    if args.output:
+        args.output.write_text(rendered, encoding="utf-8")
     if args.json:
-        print(json.dumps(report, indent=2))
+        print(rendered, end="")
     else:
         for item in report["entries"]:
             print(f'{item["syscall_id"]} -> {item["handler"]} ({item["source"]}:{item["line"]})')
