@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <sstream>
+#include <string_view>
 #include <stdexcept>
 #include <unordered_set>
 #include <utility>
