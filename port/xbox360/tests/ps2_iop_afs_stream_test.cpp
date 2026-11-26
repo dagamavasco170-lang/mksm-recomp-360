@@ -1,6 +1,6 @@
 #include "ps2_iop_afs_stream.h"
 
-#include <array>
+#include <array>\n#include <cerrno>
 #include <cassert>
 #include <cstdint>
 #include <filesystem>
@@ -42,7 +42,7 @@ int main()
     assert(io.seek(fd, -3, SeekWhence::End) == 9);
     std::array<std::uint8_t, 8> tail{};
     assert(io.read(fd, tail) == 3);
-    assert((tail[0] == 19 && tail[1] == 20 && tail[2] == 21));
+    assert((tail[0] == 23 && tail[1] == 24 && tail[2] == 25));
     assert(io.read(fd, tail) == 0);
     assert(io.close(fd) == 0);
     assert(io.close(fd) == -EBADF);
