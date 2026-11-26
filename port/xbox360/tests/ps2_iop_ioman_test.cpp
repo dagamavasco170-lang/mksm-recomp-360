@@ -102,7 +102,7 @@ int main()
     assert(ioman.dispatch(IomanCommand::Close, static_cast<std::uint32_t>(afsFd),
                          0u, 0u, ram) == 0);
 
-    // Exhaust the descriptor table and verify deterministic EMFILE behavior.
+    // Restore a normal disc path before exhausting the retail descriptor table.\n    for (std::size_t i = 0; i < sizeof(path); ++i)\n        ram[8u + i] = static_cast<std::uint8_t>(path[i]);\n\n    // Exhaust the descriptor table and verify deterministic EMFILE behavior.
     std::array<std::int32_t, ps2::xbox360::iop::RetailFileIo::MaxOpenFiles> descriptors{};
     for (auto &descriptor : descriptors)
     {
