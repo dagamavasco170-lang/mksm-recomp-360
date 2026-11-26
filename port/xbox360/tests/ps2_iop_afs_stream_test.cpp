@@ -1,6 +1,7 @@
 #include "ps2_iop_afs_stream.h"
 
-#include <array>\n#include <cerrno>
+#include <array>
+#include <cerrno>
 #include <cassert>
 #include <cstdint>
 #include <filesystem>
