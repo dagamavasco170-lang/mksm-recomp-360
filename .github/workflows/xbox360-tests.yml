@@ -59,6 +59,36 @@ jobs:
       - name: Run runtime FileIO regression suite
         run: ./build/host-tests/ps2xTest/ps2x_runtime_io_tests
 
+  runtime-host-full-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install desktop runtime build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build pkg-config build-essential \
+            libgl1-mesa-dev libasound2-dev \
+            libx11-dev libxrandr-dev libxi-dev libxcursor-dev \
+            libxinerama-dev libxext-dev libxfixes-dev libxxf86vm-dev
+      - name: Configure complete host regression suite
+        run: |
+          cmake -S . -B build/host-tests -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DPS2X_BUILD_RECOMP=ON \
+            -DPS2X_BUILD_RUNTIME=ON \
+            -DPS2X_BUILD_ANALYZER=ON \
+            -DPS2X_BUILD_TEST=ON \
+            -DPS2X_BUILD_STUDIO=OFF \
+            -DPS2X_ENABLE_DEBUG_UI=OFF \
+            -DPS2X_ENABLE_FFMPEG=OFF \
+            -DPS2X_ENABLE_SCCACHE=OFF
+      - name: Build complete PS2 runtime regression suite
+        run: cmake --build build/host-tests --target ps2x_tests --parallel 2
+      - name: Run complete PS2 runtime regression suite
+        run: ./build/host-tests/ps2xTest/ps2x_tests
+
   iop-fileio-rpc-test:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
