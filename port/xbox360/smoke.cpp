@@ -363,6 +363,16 @@ bool checkIomanBridge()
     std::array<std::uint8_t, 16> secondBytes{};
     std::copy_n(iopRam.begin() + 80, secondBytes.size(), secondBytes.begin());
     const auto closeResult = dispatch(IomanCommand::Close, static_cast<std::uint32_t>(fd), 0u, 0u, iopRam);
+    for (std::size_t eventIndex = 0; eventIndex < iomanTrace.size(); ++eventIndex)
+    {
+        const auto &event = iomanTrace.at(eventIndex);
+        const auto operation = iomanTrace.operationName(event.command);
+        const std::string_view path(event.path.data(), event.pathLength);
+        xsdk_log_write("MKSM_IOMAN_EVENT op=%.*s path=%.*s fd=%d a1=%u a2=%u result=%d",
+                       static_cast<int>(operation.size()), operation.data(),
+                       static_cast<int>(path.size()), path.data(), event.descriptor,
+                       static_cast<unsigned>(event.arg1), static_cast<unsigned>(event.arg2), event.result);
+    }
     const auto openFilesAfterClose = ioman.openFileCount();
     if (firstRead != static_cast<int>(firstBytes.size()) || seekResult != 0 ||
         secondRead != firstRead || firstBytes != secondBytes || closeResult != 0 ||
