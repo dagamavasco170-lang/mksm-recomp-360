@@ -35,6 +35,12 @@ A focused workflow sends a synthetic ELF containing three functions through the 
 
 This is not a complete MMI implementation, an SSE replacement or a VMX128 backend; the full game runtime remains outside the Xbox target.
 
+## AFS archive streaming and resource catalog
+
+The AFS parser validates the retail container header, entry table and payload ranges. The IOP AFS stream adapter exposes read-only virtual paths in the form `afs0:/GAMEDATA.WAG/<entry-index>`, and the IOMAN dispatcher can open those paths through the same streaming interface. The logical resource catalog is currently an empty verified map: real IDs are not assigned from guessed indices.
+
+Use [the AFS resource inventory tool](../../docs/xbox360/AFS_RESOURCE_RESEARCH.md) against your own extracted retail files before populating that catalog. It emits CSV/JSON/TXT metadata, hashes entries incrementally and does not extract or publish payloads. Resource labels are assigned only when backed by validated format structure or a traced runtime load request.
+
 ## Preferred SDK
 
 Use [xenosworks/xsdk](https://github.com/xenosworks/xsdk), pinned for this integration to `9e6de98f6b5d737bce0fecd2864edae94bdd2637`. The SDK is external and MIT-licensed; its own third-party notices remain applicable if it is later vendored or redistributed. Do not add proprietary Microsoft XDK files.
