@@ -159,6 +159,41 @@ public:
         return ioman_ ? ioman_->dispatch(command, a0, a1, a2, iopRam) : -ENOSYS;
     }
 
+    // EE-side wrapper: translates guest virtual pointers to bounded RDRAM offsets
+    // before handing path/buffer pointers to the IOP dispatcher.
+    [[nodiscard]] std::int32_t dispatchIomanEe(
+        ps2::xbox360::iop::IomanCommand command,
+        std::uint32_t a0, std::uint32_t a1, std::uint32_t a2,
+        std::span<std::uint8_t> eeRdram)
+    {
+        if (!ioman_)
+            return -ENOSYS;
+        if (eeRdram.size() < ps2::xbox360::generated_abi::kGuestRdramSize)
+            return -EFAULT;
+        switch (command)
+        {
+        case ps2::xbox360::iop::IomanCommand::Open:
+        {
+            std::uint32_t pathOffset{};
+            try { pathOffset = ps2::xbox360::generated_abi::resolveRdramOffset(a0); }
+            catch (...) { return -EFAULT; }
+            return ioman_->dispatch(command, pathOffset, a1, a2, eeRdram);
+        }
+        case ps2::xbox360::iop::IomanCommand::Read:
+        {
+            std::uint32_t destinationOffset{};
+            try { destinationOffset = ps2::xbox360::generated_abi::resolveRdramOffset(a1); }
+            catch (...) { return -EFAULT; }
+            return ioman_->dispatch(command, a0, destinationOffset, a2, eeRdram);
+        }
+        case ps2::xbox360::iop::IomanCommand::Close:
+        case ps2::xbox360::iop::IomanCommand::Lseek:
+            return ioman_->dispatch(command, a0, a1, a2, eeRdram);
+        default:
+            return -ENOSYS;
+        }
+    }
+
     [[nodiscard]] std::span<std::uint8_t> eeScratchpad() noexcept
     {
         return std::span<std::uint8_t>(scratchpad_);
