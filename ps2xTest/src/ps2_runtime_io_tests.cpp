@@ -8,6 +8,8 @@
 #include <vector>
 #include <cstring>
 #include <chrono>
+#include <atomic>
+#include <thread>
 
 using namespace ps2_syscalls;
 
@@ -588,6 +590,92 @@ void register_ps2_runtime_io_tests()
             setRegU32(test.ctx, 4, static_cast<uint32_t>(fd));
             ps2_stubs::sceClose(test.rdram.data(), &test.ctx, nullptr);
             t.Equals(getRegS32(&test.ctx, 2), 0, "sceClose should release the file descriptor");
+        });
+
+        tc.Run("fioRead and fioClose serialize descriptor lifetime", [](TestCase &t)
+        {
+            TestContext test;
+            const std::string payload = "descriptor-race-regression";
+            {
+                std::ofstream out(test.paths.cdRoot / "RACE.BIN", std::ios::binary);
+                out.write(payload.data(), static_cast<std::streamsize>(payload.size()));
+            }
+
+            constexpr uint32_t pathAddr = GUEST_STRING_AREA_START + 0xD00;
+            constexpr uint32_t readBufAddr = GUEST_BUFFER_AREA_START + 0x1E00;
+            writeGuestString(test.rdram.data(), pathAddr, "cdrom0:/RACE.BIN;1");
+
+            R5900Context openContext{};
+            setRegU32(openContext, 4, pathAddr);
+            setRegU32(openContext, 5, PS2_FIO_O_RDONLY);
+            fioOpen(test.rdram.data(), &openContext, nullptr);
+            const int32_t fd = getRegS32(&openContext, 2);
+            t.IsTrue(fd >= 0, "fioOpen should create the descriptor used by the race test");
+            if (fd < 0)
+                return;
+
+            std::atomic<bool> start{false};
+            std::atomic<int32_t> readResult{-999};
+            std::atomic<int32_t> closeResult{-999};
+
+            std::thread reader([&]
+            {
+                while (!start.load(std::memory_order_acquire))
+                    std::this_thread::yield();
+
+                R5900Context context{};
+                setRegU32(context, 4, static_cast<uint32_t>(fd));
+                setRegU32(context, 5, readBufAddr);
+                setRegU32(context, 6, static_cast<uint32_t>(payload.size()));
+                fioRead(test.rdram.data(), &context, nullptr);
+                readResult.store(getRegS32(&context, 2), std::memory_order_release);
+            });
+
+            std::thread closer([&]
+            {
+                while (!start.load(std::memory_order_acquire))
+                    std::this_thread::yield();
+
+                R5900Context context{};
+                setRegU32(context, 4, static_cast<uint32_t>(fd));
+                fioClose(test.rdram.data(), &context, nullptr);
+                closeResult.store(getRegS32(&context, 2), std::memory_order_release);
+            });
+
+            start.store(true, std::memory_order_release);
+            reader.join();
+            closer.join();
+
+            const int32_t bytesRead = readResult.load(std::memory_order_acquire);
+            t.IsTrue(bytesRead == static_cast<int32_t>(payload.size()) || bytesRead == -1,
+                     "concurrent read must either finish before close or report EBADF");
+            t.Equals(closeResult.load(std::memory_order_acquire), 0,
+                     "concurrent close should release the descriptor exactly once");
+
+            if (bytesRead > 0)
+            {
+                t.Equals(std::string(reinterpret_cast<const char *>(test.rdram.data() + readBufAddr),
+                                     static_cast<size_t>(bytesRead)),
+                         payload, "a read that wins the race should return intact file bytes");
+            }
+
+            // A zero-byte operation still validates the descriptor, but never
+            // touches its guest buffer. This also locks in EBADF after close.
+            R5900Context zeroReadContext{};
+            setRegU32(zeroReadContext, 4, static_cast<uint32_t>(fd));
+            setRegU32(zeroReadContext, 5, 0xFFFFFFFFu);
+            setRegU32(zeroReadContext, 6, 0u);
+            fioRead(test.rdram.data(), &zeroReadContext, nullptr);
+            t.Equals(getRegS32(&zeroReadContext, 2), -1,
+                     "zero-byte read on a closed descriptor should report EBADF");
+
+            R5900Context zeroWriteContext{};
+            setRegU32(zeroWriteContext, 4, static_cast<uint32_t>(fd));
+            setRegU32(zeroWriteContext, 5, 0xFFFFFFFFu);
+            setRegU32(zeroWriteContext, 6, 0u);
+            fioWrite(test.rdram.data(), &zeroWriteContext, nullptr);
+            t.Equals(getRegS32(&zeroWriteContext, 2), -1,
+                     "zero-byte write on a closed descriptor should report EBADF");
         });
 
         tc.Run("sceIoctl cmd1 updates wait flag state", [](TestCase &t)
