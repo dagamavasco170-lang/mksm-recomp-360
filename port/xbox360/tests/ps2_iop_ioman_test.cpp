@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
-#include <span>
+#include <span>\n#include <vector>
 
 int main()
 {
@@ -75,6 +75,31 @@ int main()
     assert(ioman.openFileCount() == 0u);
     assert(ioman.dispatch(IomanCommand::Close, static_cast<std::uint32_t>(fd),
                           0u, 0u, ram) == -EBADF);
+
+    // Route an AFS archive-entry path through the dispatcher.
+    {
+        std::vector<std::uint8_t> archive(20, 0);
+        archive[0] = 'A'; archive[1] = 'F'; archive[2] = 'S'; archive[3] = 0;
+        archive[4] = 1; // one entry
+        archive[8] = 16; // payload offset
+        archive[12] = 4; // payload size
+        archive[16] = 0xCA; archive[17] = 0xFE;
+        archive[18] = 0xBA; archive[19] = 0xBE;
+        std::ofstream afs(root / "GAMEDATA.WAG", std::ios::binary);
+        afs.write(reinterpret_cast<const char *>(archive.data()),
+                  static_cast<std::streamsize>(archive.size()));
+    }
+    constexpr char afsPath[] = "afs0:/GAMEDATA.WAG/0";
+    for (std::size_t i = 0; i < sizeof(afsPath); ++i)
+        ram[8u + i] = static_cast<std::uint8_t>(afsPath[i]);
+    const auto afsFd = ioman.dispatch(IomanCommand::Open, 8u, 1u, 0u, ram);
+    assert(afsFd >= ps2::xbox360::iop::AfsStreamIo::FirstDescriptor);
+    assert(ioman.dispatch(IomanCommand::Read, static_cast<std::uint32_t>(afsFd),
+                         64u, 4u, ram) == 4);
+    assert((std::array<std::uint8_t, 4>{ram[64], ram[65], ram[66], ram[67]} ==
+            std::array<std::uint8_t, 4>{0xCA, 0xFE, 0xBA, 0xBE}));
+    assert(ioman.dispatch(IomanCommand::Close, static_cast<std::uint32_t>(afsFd),
+                         0u, 0u, ram) == 0);
 
     // Exhaust the descriptor table and verify deterministic EMFILE behavior.
     std::array<std::int32_t, ps2::xbox360::iop::RetailFileIo::MaxOpenFiles> descriptors{};
