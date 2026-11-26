@@ -322,58 +322,48 @@ bool checkIomanBridge()
         return true;
     }
 
+    using ps2::xbox360::iop::IomanCommand;
     ps2::xbox360::iop::IomanDispatcher ioman{std::filesystem::path(discRoot)};
 #if defined(MKSM_HAS_GENERATED_RECOMP_PROBE)
     PS2Runtime runtime{};
     runtime.attachIoman(&ioman);
-    auto dispatch = [&](IomanCommand command, std::uint32_t a0, std::uint32_t a1, std::uint32_t a2, std::span<std::uint8_t> ram) {
-        return dispatch(command, a0, a1, a2, ram);
+    auto dispatch = [&](IomanCommand command, std::uint32_t a0, std::uint32_t a1,
+                        std::uint32_t a2, std::span<std::uint8_t> ram) {
+        return runtime.dispatchIoman(command, a0, a1, a2, ram);
     };
 #else
-    auto dispatch = [&](IomanCommand command, std::uint32_t a0, std::uint32_t a1, std::uint32_t a2, std::span<std::uint8_t> ram) {
-        return dispatch(command, a0, a1, a2, ram);
+    auto dispatch = [&](IomanCommand command, std::uint32_t a0, std::uint32_t a1,
+                        std::uint32_t a2, std::span<std::uint8_t> ram) {
+        return ioman.dispatch(command, a0, a1, a2, ram);
     };
 #endif
     std::array<std::uint8_t, 128> iopRam{};
     constexpr char probePath[] = "GAMEDATA.WAD";
     for (size_t i = 0; i < sizeof(probePath); ++i)
-        iopRam[16u + i] = static_cast<std::uint8_t>(probePath[i]);
+        iopRam[16u + i] = static_cast<stduint8_t>(probePath[i]);
 
-    using ps2::xbox360::iop::IomanCommand;
-    // PS2SDK FIO_O_RDONLY is 0x0001; zero is not a valid read-only mode.
-    const auto fd = runtime.dispatchIoman(IomanCommand::Open, 16u, 0x0001u, 0u, iopRam);
+    const auto fd = dispatch(IomanCommand::Open, 16u, 0x0001u, 0u, iopRam);
     if (fd < 0)
     {
         xsdk_log_write("MKSM_IOMAN_BRIDGE status=asset-open-failed error=%d", fd);
         return false;
     }
 
-    const auto firstRead = ioman.dispatch(IomanCommand::Read,
-                                          static_cast<std::uint32_t>(fd),
-                                          64u, 16u, iopRam);
+    const auto firstRead = dispatch(IomanCommand::Read, static_cast<std::uint32_t>(fd),
+                                  64u, 16u, iopRam);
     std::array<std::uint8_t, 16> firstBytes{};
     std::copy_n(iopRam.begin() + 64, firstBytes.size(), firstBytes.begin());
-
-    const auto seekResult = ioman.dispatch(IomanCommand::Lseek,
-                                           static_cast<std::uint32_t>(fd),
-                                           0u,
-                                           static_cast<std::uint32_t>(
-                                               ps2::xbox360::iop::SeekWhence::Set),
-                                           iopRam);
+    const auto seekResult = dispatch(IomanCommand::Lseek, static_cast<std::uint32_t>(fd), 0u,
+                                    static_cast<std::uint32_t>(ps2::xbox360::iop::SeekWhence::Set), iopRam);
     const auto secondRead = seekResult == 0
-        ? ioman.dispatch(IomanCommand::Read,
-                         static_cast<std::uint32_t>(fd), 80u, 16u, iopRam)
+        ? dispatch(IomanCommand::Read, static_cast<std::uint32_t>(fd), 80u, 16u, iopRam)
         : -1;
-    std::array<std::uint8_t, 16> secondBytes{};
+    std::array<stduint8_t, 16> secondBytes{};
     std::copy_n(iopRam.begin() + 80, secondBytes.size(), secondBytes.begin());
-
-    const auto closeResult = ioman.dispatch(IomanCommand::Close,
-                                             static_cast<std::uint32_t>(fd),
-                                             0u, 0u, iopRam);
+    const auto closeResult = dispatch(IomanCommand::Close, static_cast<std::uint32_t>(fd), 0u, 0u, iopRam);
     const auto openFilesAfterClose = ioman.openFileCount();
-    if (firstRead != static_cast<int>(firstBytes.size()) ||
-        seekResult != 0 || secondRead != firstRead ||
-        firstBytes != secondBytes || closeResult != 0 ||
+    if (firstRead != static_cast<int>(firstBytes.size()) || seekResult != 0 ||
+        secondRead != firstRead || firstBytes != secondBytes || closeResult != 0 ||
         openFilesAfterClose != 0u)
     {
         xsdk_log_write("MKSM_IOMAN_BRIDGE status=failed read1=%d seek=%d read2=%d close=%d open_files=%u",
@@ -381,14 +371,10 @@ bool checkIomanBridge()
                        static_cast<unsigned>(openFilesAfterClose));
         return false;
     }
-
     xsdk_log_write("MKSM_IOMAN_BRIDGE status=pass file=GAMEDATA.WAD bytes=%d reread=%d header=%02X%02X%02X%02X open_files=%u",
-                   firstRead, secondRead,
-                   static_cast<unsigned>(firstBytes[0]),
-                   static_cast<unsigned>(firstBytes[1]),
-                   static_cast<unsigned>(firstBytes[2]),
-                   static_cast<unsigned>(firstBytes[3]),
-                   static_cast<unsigned>(openFilesAfterClose));
+                   firstRead, secondRead, static_cast<unsigned>(firstBytes[0]),
+                   static_cast<unsigned>(firstBytes[1]), static_cast<unsigned>(firstBytes[2]),
+                   static_cast<unsigned>(firstBytes[3]), static_cast<unsigned>(openFilesAfterClose));
     return true;
 }
 
