@@ -141,6 +141,7 @@ inline void Ps2MmiPmthlLw(R5900Context *ctx, std::uint32_t rs) noexcept
 class PS2Runtime
 {
 public:
+    using RecompiledFunction = void (*)(std::uint8_t *, R5900Context *, PS2Runtime *);
     static constexpr std::size_t kScratchpadSize =
         ps2::xbox360::rdram_address::kScratchpadSize;
 
