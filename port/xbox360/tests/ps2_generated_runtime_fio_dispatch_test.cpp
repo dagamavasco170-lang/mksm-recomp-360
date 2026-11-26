@@ -34,8 +34,8 @@ int main()
     ctx.r[5].low64 = 1u; // PS2 FIO_O_RDONLY
     ps2XboxFioOpen(ram.data(), &ctx, &runtime);
     const auto fd = static_cast<std::int32_t>(ctx.r[2].low64);
-    assert(fd >= IomanDispatcher::AssetServiceFirstDescriptor ||
-           fd >= ps2::xbox360::iop::RetailFileIo::FirstDescriptor);
+    assert(fd >= ps2::xbox360::iop::RetailFileIo::FirstDescriptor &&
+           fd < IomanDispatcher::AssetServiceFirstDescriptor);
     ctx.r[4].low64 = static_cast<std::uint32_t>(fd);
     ctx.r[5].low64 = readBuffer;
     ctx.r[6].low64 = 3;
