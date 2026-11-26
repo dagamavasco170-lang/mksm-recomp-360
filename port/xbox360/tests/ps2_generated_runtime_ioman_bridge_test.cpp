@@ -22,11 +22,12 @@ int main()
     }
 
     ps2::xbox360::iop::IomanTraceRing trace;
-    ps2::xbox360::iop::IomanDispatcher dispatcher(root, &trace);
+    ps2::xbox360::iop::IomanDispatcher dispatcher(root);
     PS2Runtime runtime;
     assert(runtime.dispatchIoman(IomanCommand::Open, 8, 1, 0, {}) == -ENOSYS);
-    runtime.attachIoman(&dispatcher);
+    // Trace may be installed during bootstrap before the dispatcher is attached.
     runtime.attachIomanTrace(&trace);
+    runtime.attachIoman(&dispatcher);
     std::array<std::uint8_t, 64> iopRam{};
     constexpr char path[] = "bridge.bin";
     for (std::size_t i = 0; i < sizeof(path); ++i)
