@@ -47,7 +47,7 @@ public:
             if (!readGuestString(iopRam, a0, path))
                 return -EFAULT;
             if (path.starts_with("afs0:/"))
-                return afsFiles_.open(path);
+                return a1 == RetailFileIo::OpenReadOnly ? afsFiles_.open(path) : -EACCES;
             return files_.sceOpen(path, static_cast<std::int32_t>(a1));
         }
         case IomanCommand::Close:
