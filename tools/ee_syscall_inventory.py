@@ -12,11 +12,11 @@ import re
 from pathlib import Path
 
 SYSCALL_RE = re.compile(
-    r"handleSyscall\\s*\\(\\s*rdram\\s*,\\s*ctx\\s*,\\s*"
-    r"(0[xX][0-9a-fA-F]+|[0-9]+)\\s*[uU]?\\s*\\)",
+    r"handleSyscall\s*\(\s*rdram\s*,\s*ctx\s*,\s*"
+    r"(0[xX][0-9a-fA-F]+|[0-9]+)\s*[uU]?\s*\)",
     re.MULTILINE,
 )
-FIO_RE = re.compile(r"\\b(?:ps2_syscalls::)?(fioOpen|fioRead|fioLseek|fioClose|fioWrite)\\s*\\(")
+FIO_RE = re.compile(r"\b(?:ps2_syscalls::)?(fioOpen|fioRead|fioLseek|fioClose|fioWrite)\s*\(")
 
 
 def scan_source(path: Path) -> list[dict]:
