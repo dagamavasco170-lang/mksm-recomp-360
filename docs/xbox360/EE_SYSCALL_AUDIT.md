@@ -57,3 +57,23 @@ The report separates verified mappings, unresolved observed IDs, and mapping ent
 that are not present in the inventory. The mapping audit is intentionally
 conservative: evidence descriptions are human assertions and should point to the
 actual dispatcher/table or reviewed generated call-site.
+
+## Extracted numeric dispatcher evidence
+
+The runtime's `dispatchNumericSyscall` table is an explicit source of syscall-ID
+semantics. The table extraction tool parses numeric `case` labels and the handler
+invoked by each group. Signed case expressions are normalized to 32-bit values.
+
+```sh
+python tools/ee_dispatch_table_extract.py ps2xRuntime/src/lib/Kernel/Syscalls/Dispatcher.cpp --json --output games/mk-shaolin-monks/config/ee-syscall-dispatch.json
+```
+
+The checked-in `ee-syscall-dispatch.json` snapshot contains 108 explicit
+dispatcher entries extracted from the current runtime source. It does not imply
+that any game-generated syscall ID is an IOMAN operation. In the current runtime,
+FileIO operations are implemented as direct generated calls to `fioOpen`,
+`fioRead`, `fioWrite`, `fioLseek`, and `fioClose`, not as entries in this
+numeric dispatcher.
+
+Review source handler definitions and generated game call sites before binding
+IDs into the Xbox EE IOMAN map.
