@@ -11,7 +11,7 @@ from ee_syscall_inventory import build_report
 class EeSyscallInventoryTests(unittest.TestCase):
     def test_extracts_numeric_generated_syscalls_and_fileio_calls(self):
         source = """void generated() {
- runtime->handleSyscall(rdram, ctx, 0x123u);
+ // EE_SYSCALL_SITE: pc=0x1000 id=0x123\n runtime->handleSyscall(rdram, ctx, 0x123u);
  runtime->handleSyscall(
    rdram, ctx, 45U);
  ps2_syscalls::fioOpen(rdram, ctx, runtime);
@@ -24,7 +24,7 @@ class EeSyscallInventoryTests(unittest.TestCase):
             report = build_report([path])
         self.assertEqual(report["syscall_ids_observed"], ["0x2D", "0x123"])
         self.assertEqual(report["fileio_targets_observed"], ["fioOpen", "fioRead"])
-        self.assertEqual(len(report["calls"]), 4)
+        self.assertEqual(len(report["calls"]), 5)\n        site = next(c for c in report["calls"] if c["kind"] == "generated_syscall_site")\n        self.assertEqual(site["guest_pc"], "0x1000")\n        self.assertEqual(site["syscall_id"], "0x123")
         self.assertEqual(report["schema"], "mksm-ee-syscall-inventory-v1")
         self.assertIn("No syscall ID is assigned", report["mapping_policy"])
 
