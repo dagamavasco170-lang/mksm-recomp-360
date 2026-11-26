@@ -145,7 +145,7 @@ private:
         if (traceSink_)
         {
             traceSink_->onIomanTrace({command, path,
-                static_cast<std::int32_t>(a0), a1, a2, result});
+                command == IomanCommand::Open ? result : static_cast<std::int32_t>(a0), a1, a2, result});
         }
     }
 
