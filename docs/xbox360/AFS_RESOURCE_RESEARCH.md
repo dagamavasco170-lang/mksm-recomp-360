@@ -67,3 +67,15 @@ Once the three local metadata reports are available, review:
 
 Only the reviewed mapping should populate \`kVerifiedAfsResources\`. No archive
 payload, ISO, extracted asset, or copyrighted executable belongs in this repository.
+
+
+## Candidate-family grouping (metadata only)
+
+After producing `afs_inventory.json`, run:
+
+```powershell
+py -3 tools\afs_candidates.py --inventory-json afs_inventory\afs_inventory.json --output-dir afs_candidates
+```
+
+Outputs `afs_candidates.csv`, `afs_candidates.json`, and `afs_candidates_report.txt`.
+Labels are candidate groups only; no heuristic output directly populates the verified resource catalog.
