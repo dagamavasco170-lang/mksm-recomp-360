@@ -277,7 +277,7 @@ inline void ps2XboxFioOpen(std::uint8_t *rdram, R5900Context *ctx, PS2Runtime *r
 {
     if (!runtime || !rdram || !ctx) { ps2XboxFioReturn(ctx, -ENOSYS); return; }
     const auto flags = ps2XboxFioArg(ctx, 5);
-    if ((flags & 3u) != 1u || (flags & 0x0F00u) != 0u) {
+    if ((flags & 3u) != 1u || (flags & ~0x3u) != 0u) {
         ps2XboxFioReturn(ctx, -EACCES); return;
     }
     ps2XboxFioReturn(ctx, runtime->dispatchIomanEe(
