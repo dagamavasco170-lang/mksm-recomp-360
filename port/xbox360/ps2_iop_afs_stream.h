@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ps2_retail_disc.h"
+#include "ps2_iop_retail_fileio.h"\n\n#include <algorithm>
 
 #include <array>
 #include <cerrno>
