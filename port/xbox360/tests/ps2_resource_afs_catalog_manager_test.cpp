@@ -1,4 +1,5 @@
 #include "ps2_resource_afs_catalog_manager.h"
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstdint>
@@ -32,6 +33,6 @@ int main(){
  std::array<std::uint8_t,2> anim{};assert(manager.read(static_cast<AfsResourceId>(104),4,anim)==2);
  assert((anim==std::array<std::uint8_t,2>{17,18}));
  assert(manager.resolve(static_cast<AfsResourceId>(104))!=nullptr);
- assert(manager.findByEntry(AfsArchiveId::WAI,0)->id==static_cast<AfsResourceId>(103);
+ assert(manager.findByEntry(AfsArchiveId::WAI,0)->id==static_cast<AfsResourceId>(103));
  fs::remove_all(root);
 }
