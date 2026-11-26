@@ -5,7 +5,7 @@ import argparse, csv, json, re
 from collections import defaultdict
 from pathlib import Path
 
-AFS_PATH = re.compile(r"afs0:/([^/\\]+)/(\\d+|\d+)(?:/.*)?$", re.IGNORECASE)
+AFS_PATH = re.compile(r"afs0:/([^/\\]+)/(\d+)(?:/.*)?$", re.IGNORECASE)
 
 def load_records(path: Path):
     text = path.read_text(encoding="utf-8-sig")
@@ -22,7 +22,7 @@ def load_records(path: Path):
 def normalize_op(record):
     op=record.get("command", record.get("operation", record.get("op", "")))
     if isinstance(op, int):
-        return {0:"open",1:"close",2:"read",3:"lseek"}.get(op, str(op))
+        return {1:"open",2:"close",3:"read",4:"lseek"}.get(op, str(op))
     op=str(op).strip().lower()
     return {"iomancommand::open":"open","iomancommand::close":"close",
             "iomancommand::read":"read","iomancommand::lseek":"lseek",
