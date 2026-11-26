@@ -37,7 +37,7 @@ int main()
     assert(archive.entryCount() == 2);
     assert(archive.metadata(1)->offset == 27);
     assert(archive.metadata(1)->size == 5);
-    assert((archive.entry(0) == std::span<const std::uint8_t>(data).subspan(24, 3)));
+    assert(archive.entry(0).size() == 3);\n    assert(archive.entry(0)[0] == 0xA1 && archive.entry(0)[1] == 0xA2 && archive.entry(0)[2] == 0xA3);
     assert(archive.entry(1).size() == 5);
     assert(archive.entry(1)[0] == 0xB1 && archive.entry(1)[4] == 0xB5);
     assert(archive.entry(2).empty());
