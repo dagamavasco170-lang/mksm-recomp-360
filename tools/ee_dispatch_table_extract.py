@@ -71,7 +71,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path, help="write extracted table as JSON to this path")
     args = parser.parse_args()
     report = extract_dispatch_table(args.dispatcher)
-    rendered = json.dumps(report, indent=2) + "\\n"
+    rendered = json.dumps(report, indent=2) + "\n"
     if args.output:
         args.output.write_text(rendered, encoding="utf-8")
     if args.json:
