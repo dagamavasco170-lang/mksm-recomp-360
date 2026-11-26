@@ -14,23 +14,6 @@ namespace ps2_syscalls
         return fd;
     }
 
-    static FILE *getHostFile(int ps2Fd)
-    {
-        std::lock_guard<std::mutex> lock(g_fd_mutex);
-        auto it = g_fileDescriptors.find(ps2Fd);
-        if (it != g_fileDescriptors.end())
-        {
-            return it->second;
-        }
-        return nullptr;
-    }
-
-    static void releasePs2Fd(int ps2Fd)
-    {
-        std::lock_guard<std::mutex> lock(g_fd_mutex);
-        g_fileDescriptors.erase(ps2Fd);
-    }
-
     struct VagAccumEntry
     {
         std::vector<uint8_t> data;
@@ -132,16 +115,23 @@ namespace ps2_syscalls
     {
         int ps2Fd = (int)getRegU32(ctx, 4);
 
-        FILE *fp = getHostFile(ps2Fd);
-        if (!fp)
+        int ret = -1;
         {
-            std::cerr << "fioClose warning: Invalid PS2 file descriptor " << ps2Fd << std::endl;
-            setReturnS32(ctx, -1);
-            return;
-        }
+            // Keep descriptor lookup, stream close, and table removal atomic with
+            // respect to fioRead/fioWrite/fioLseek. A FILE* must never outlive
+            // the lock that protects its descriptor entry.
+            std::lock_guard<std::mutex> lock(g_fd_mutex);
+            const auto it = g_fileDescriptors.find(ps2Fd);
+            if (it == g_fileDescriptors.end() || !it->second)
+            {
+                std::cerr << "fioClose warning: Invalid PS2 file descriptor " << ps2Fd << std::endl;
+                setReturnS32(ctx, -1);
+                return;
+            }
 
-        int ret = ::fclose(fp);
-        releasePs2Fd(ps2Fd);
+            ret = ::fclose(it->second);
+            g_fileDescriptors.erase(it);
+        }
 
         {
             std::lock_guard<std::mutex> lock(g_vagAccumMutex);
@@ -180,13 +170,6 @@ namespace ps2_syscalls
         uint32_t bufAddr = getRegU32(ctx, 5); // $a1
         size_t size = getRegU32(ctx, 6);      // $a2
 
-        FILE *fp = getHostFile(ps2Fd);
-        if (!fp)
-        {
-            std::cerr << "fioRead error: Invalid file descriptor " << ps2Fd << std::endl;
-            setReturnS32(ctx, -1); // -EBADF
-            return;
-        }
         if (size == 0)
         {
             setReturnS32(ctx, 0); // A zero-byte read does not access guest memory.
@@ -205,19 +188,36 @@ namespace ps2_syscalls
         }
 
         size_t bytesRead = 0;
+        bool readError = false;
+        int readErrorCode = 0;
         {
-            std::lock_guard<std::mutex> lock(g_sys_fd_mutex);
+            std::lock_guard<std::mutex> lock(g_fd_mutex);
+            const auto it = g_fileDescriptors.find(ps2Fd);
+            if (it == g_fileDescriptors.end() || !it->second)
+            {
+                std::cerr << "fioRead error: Invalid file descriptor " << ps2Fd << std::endl;
+                setReturnS32(ctx, -1); // -EBADF
+                return;
+            }
+
+            FILE *const fp = it->second;
             bytesRead = fread(hostBuf, 1, size, fp);
+            readError = bytesRead < size && ferror(fp);
+            if (readError)
+            {
+                readErrorCode = errno;
+                clearerr(fp);
+            }
         }
         if (bytesRead > 0)
         {
             ps2TraceGuestRangeWrite(rdram, bufAddr, static_cast<uint32_t>(bytesRead), "fioRead", ctx);
         }
 
-        if (bytesRead < size && ferror(fp))
+        if (readError)
         {
-            std::cerr << "fioRead error: fread failed for fd " << ps2Fd << ": " << strerror(errno) << std::endl;
-            clearerr(fp);
+            std::cerr << "fioRead error: fread failed for fd " << ps2Fd << ": "
+                      << strerror(readErrorCode) << std::endl;
             setReturnS32(ctx, -1);
             return;
         }
@@ -260,12 +260,6 @@ namespace ps2_syscalls
         uint32_t bufAddr = getRegU32(ctx, 5); // $a1
         size_t size = getRegU32(ctx, 6);      // $a2
 
-        FILE *fp = getHostFile(ps2Fd);
-        if (!fp)
-        {
-            setReturnS32(ctx, -1); // -EBADF
-            return;
-        }
         if (size == 0)
         {
             setReturnS32(ctx, 0); // A zero-byte write does not access guest memory.
@@ -284,15 +278,28 @@ namespace ps2_syscalls
         }
 
         size_t bytesWritten = 0;
+        bool writeError = false;
         {
-            std::lock_guard<std::mutex> lock(g_sys_fd_mutex);
-            bytesWritten = ::fwrite(hostBuf, 1, size, fp);
-            if (bytesWritten < size && ferror(fp))
+            std::lock_guard<std::mutex> lock(g_fd_mutex);
+            const auto it = g_fileDescriptors.find(ps2Fd);
+            if (it == g_fileDescriptors.end() || !it->second)
             {
-                clearerr(fp);
-                setReturnS32(ctx, -1); // -EIO, -ENOSPC etc.
+                setReturnS32(ctx, -1); // -EBADF
                 return;
             }
+
+            FILE *const fp = it->second;
+            bytesWritten = ::fwrite(hostBuf, 1, size, fp);
+            writeError = bytesWritten < size && ferror(fp);
+            if (writeError)
+            {
+                clearerr(fp);
+            }
+        }
+        if (writeError)
+        {
+            setReturnS32(ctx, -1); // -EIO, -ENOSPC etc.
+            return;
         }
 
         // returns number of bytes written
@@ -304,14 +311,6 @@ namespace ps2_syscalls
         int ps2Fd = (int)getRegU32(ctx, 4);  // $a0
         int32_t offset = getRegU32(ctx, 5);  // $a1 (PS2 seems to use 32-bit offset here commonly)
         int whence = (int)getRegU32(ctx, 6); // $a2 (PS2 FIO_SEEK constants)
-
-        FILE *fp = getHostFile(ps2Fd);
-        if (!fp)
-        {
-            std::cerr << "fioLseek error: Invalid file descriptor " << ps2Fd << std::endl;
-            setReturnS32(ctx, -1); // -EBADF
-            return;
-        }
 
         int hostWhence;
         switch (whence)
@@ -331,29 +330,40 @@ namespace ps2_syscalls
             return;
         }
 
-        if (::fseek(fp, static_cast<long>(offset), hostWhence) != 0)
         {
-            std::cerr << "fioLseek error: fseek failed for fd " << ps2Fd << ": " << strerror(errno) << std::endl;
-            setReturnS32(ctx, -1); // Return error code
-            return;
-        }
+            std::lock_guard<std::mutex> lock(g_fd_mutex);
+            const auto it = g_fileDescriptors.find(ps2Fd);
+            if (it == g_fileDescriptors.end() || !it->second)
+            {
+                std::cerr << "fioLseek error: Invalid file descriptor " << ps2Fd << std::endl;
+                setReturnS32(ctx, -1); // -EBADF
+                return;
+            }
 
-        long newPos = ::ftell(fp);
-        if (newPos < 0)
-        {
-            std::cerr << "fioLseek error: ftell failed after fseek for fd " << ps2Fd << ": " << strerror(errno) << std::endl;
-            setReturnS32(ctx, -1);
-        }
-        else
-        {
-            if (newPos > 0xFFFFFFFFL)
+            FILE *const fp = it->second;
+            if (::fseek(fp, static_cast<long>(offset), hostWhence) != 0)
+            {
+                std::cerr << "fioLseek error: fseek failed for fd " << ps2Fd << ": "
+                          << strerror(errno) << std::endl;
+                setReturnS32(ctx, -1); // Return error code
+                return;
+            }
+
+            const long newPos = ::ftell(fp);
+            if (newPos < 0)
+            {
+                std::cerr << "fioLseek error: ftell failed after fseek for fd " << ps2Fd << ": "
+                          << strerror(errno) << std::endl;
+                setReturnS32(ctx, -1);
+            }
+            else if (newPos > 0xFFFFFFFFL)
             {
                 std::cerr << "fioLseek warning: New position exceeds 32-bit for fd " << ps2Fd << std::endl;
                 setReturnS32(ctx, -1);
             }
             else
             {
-                setReturnS32(ctx, (int32_t)newPos);
+                setReturnS32(ctx, static_cast<int32_t>(newPos));
             }
         }
     }
