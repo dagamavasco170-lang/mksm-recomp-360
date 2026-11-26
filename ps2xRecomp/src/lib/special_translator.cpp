@@ -41,7 +41,9 @@ namespace ps2recomp
         case SPECIAL_JALR:
             return fmt::format("// JALR ${}, ${} - Handled by branch logic", inst.rd, inst.rs);
         case SPECIAL_SYSCALL:
-            return fmt::format("ctx->pc = 0x{:X}u;\nruntime->handleSyscall(rdram, ctx, 0x{:X}u);",
+            return fmt::format("// EE_SYSCALL_SITE: pc=0x{:X} id=0x{:X}\\nctx->pc = 0x{:X}u;\\nruntime->handleSyscall(rdram, ctx, 0x{:X}u);",
+                               inst.address,
+                               (inst.raw >> 6) & 0xFFFFFu,
                                inst.address + 4u,
                                (inst.raw >> 6) & 0xFFFFFu);
         case SPECIAL_BREAK:
