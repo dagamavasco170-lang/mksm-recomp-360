@@ -172,8 +172,10 @@ namespace ps2_syscalls
 
         if (size == 0)
         {
-            setReturnS32(ctx, 0); // A zero-byte read does not access guest memory.
-            return;
+            std::lock_guard<std::mutex> lock(g_fd_mutex);
+            const auto it = g_fileDescriptors.find(ps2Fd);
+            setReturnS32(ctx, it != g_fileDescriptors.end() && it->second ? 0 : -1);
+            return; // A zero-byte read does not access guest memory.
         }
 
         uint32_t guestOffset = 0;
@@ -262,8 +264,10 @@ namespace ps2_syscalls
 
         if (size == 0)
         {
-            setReturnS32(ctx, 0); // A zero-byte write does not access guest memory.
-            return;
+            std::lock_guard<std::mutex> lock(g_fd_mutex);
+            const auto it = g_fileDescriptors.find(ps2Fd);
+            setReturnS32(ctx, it != g_fileDescriptors.end() && it->second ? 0 : -1);
+            return; // A zero-byte write does not access guest memory.
         }
 
         uint32_t guestOffset = 0;
