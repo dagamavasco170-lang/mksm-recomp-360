@@ -24,6 +24,7 @@
 #include "ps2_simd_scalar.h"
 #include "ps2_spr_dma.h"
 #include "ps2_iop_ioman.h"
+#include "ps2_iop_ioman_trace_ring.h"
 #if defined(MKSM_HAS_GENERATED_RECOMP_PROBE)
 #include "ps2_generated_runtime_abi.h"
 #endif
@@ -323,7 +324,8 @@ bool checkIomanBridge()
     }
 
     using ps2::xbox360::iop::IomanCommand;
-    ps2::xbox360::iop::IomanDispatcher ioman{std::filesystem::path(discRoot)};
+    ps2::xbox360::iop::IomanTraceRing iomanTrace;
+    ps2::xbox360::iop::IomanDispatcher ioman{std::filesystem::path(discRoot), &iomanTrace};
 #if defined(MKSM_HAS_GENERATED_RECOMP_PROBE)
     PS2Runtime runtime{};
     runtime.attachIoman(&ioman);
@@ -371,6 +373,7 @@ bool checkIomanBridge()
                        static_cast<unsigned>(openFilesAfterClose));
         return false;
     }
+    xsdk_log_write("MKSM_IOMAN_TRACE records=%u dropped=%u", static_cast<unsigned>(iomanTrace.size()), static_cast<unsigned>(iomanTrace.dropped()));
     xsdk_log_write("MKSM_IOMAN_BRIDGE status=pass file=GAMEDATA.WAD bytes=%d reread=%d header=%02X%02X%02X%02X open_files=%u",
                    firstRead, secondRead, static_cast<unsigned>(firstBytes[0]),
                    static_cast<unsigned>(firstBytes[1]), static_cast<unsigned>(firstBytes[2]),
