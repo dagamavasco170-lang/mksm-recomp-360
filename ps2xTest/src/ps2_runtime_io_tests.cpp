@@ -597,7 +597,7 @@ void register_ps2_runtime_io_tests()
             TestContext test;
             // Use a multi-megabyte read so the competing close has a
             // meaningful window in which to collide with the stream operation.
-            std::string payload(2u * 1024u * 1024u, '\\0');
+            std::string payload(2u * 1024u * 1024u, 'A');
             for (std::size_t i = 0; i < payload.size(); ++i)
                 payload[i] = static_cast<char>('A' + (i % 26u));
             {
