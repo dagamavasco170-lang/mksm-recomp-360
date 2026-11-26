@@ -8,6 +8,8 @@ on:
       - "tools/tests/test_xbox_generated_fio_routing.py"
       - "ps2xRecomp/src/lib/function_table_emitter.cpp"
       - "port/xbox360/tests/ps2_generated_runtime_fio_dispatch_test.cpp"
+      - "port/xbox360/ps2_iop_ioman_trace_ring.h"
+      - "port/xbox360/tests/ps2_iop_ioman_trace_ring_test.cpp"
       - "port/xbox360/ps2_resource_loading_runtime.h"
       - "port/xbox360/tests/ps2_resource_loading_runtime_test.cpp"
       - "tools/afs_inventory.py"
@@ -51,6 +53,8 @@ on:
       - "port/xbox360/**"
       - "ps2xRecomp/src/lib/function_table_emitter.cpp"
       - "port/xbox360/tests/ps2_generated_runtime_fio_dispatch_test.cpp"
+      - "port/xbox360/ps2_iop_ioman_trace_ring.h"
+      - "port/xbox360/tests/ps2_iop_ioman_trace_ring_test.cpp"
       - "tools/afs_inventory.py"
       - "tools/tests/test_afs_inventory.py"
       - "tools/ee_syscall_inventory.py"
@@ -220,6 +224,7 @@ jobs:
           compile_run ps2_generated_runtime_ioman_bridge_test -Iport/xbox360/tests -Iport/xbox360 port/xbox360/tests/ps2_generated_runtime_ioman_bridge_test.cpp
           compile_run ps2_generated_runtime_ioman_ee_pointer_test -Iport/xbox360/tests -Iport/xbox360 port/xbox360/tests/ps2_generated_runtime_ioman_ee_pointer_test.cpp
           compile_run ps2_generated_runtime_fio_dispatch_test -Iport/xbox360/tests -Iport/xbox360 port/xbox360/tests/ps2_generated_runtime_fio_dispatch_test.cpp
+          compile_run ps2_iop_ioman_trace_ring_test -Iport/xbox360 port/xbox360/tests/ps2_iop_ioman_trace_ring_test.cpp
           compile_run ps2_fio_ioman_adapter_test -Iport/xbox360/tests -Iport/xbox360 port/xbox360/tests/ps2_fio_ioman_adapter_test.cpp
           compile_run ps2_ee_ioman_syscall_dispatch_test -Iport/xbox360/tests -Iport/xbox360 port/xbox360/tests/ps2_ee_ioman_syscall_dispatch_test.cpp
           compile_run ps2_guest_memory_test -Iport/xbox360 port/xbox360/tests/ps2_guest_memory_test.cpp
