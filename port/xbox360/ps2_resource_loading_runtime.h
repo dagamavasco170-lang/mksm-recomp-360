@@ -14,7 +14,7 @@ namespace ps2::xbox360::resources
 {
 // Runtime primitives only: policy inputs are metadata and never trusted to identify assets.
 enum class LoadStrategy : std::uint8_t { Cache, Stream, SeekAware, OnDemand };
-enum class ResourceState : std::uint8_t { Missing, Loading, Ready, Failed };
+enum class ResourceState : std::uint8_t { Missing, Loading, Ready, Evicted, Failed };
 struct ResourceRuntimeStats {
     std::size_t cacheBudgetBytes=0, cacheUsedBytes=0, cacheHits=0, cacheMisses=0,
                 cacheEvictions=0, loadFailures=0, streamedBytes=0;
@@ -68,7 +68,7 @@ private:
     struct CacheEntry{Blob data;std::list<ResourceId>::iterator lruIt;};
     using MapIt=std::unordered_map<ResourceId,CacheEntry>::iterator;
     void touch(MapIt it){lru_.splice(lru_.begin(),lru_,it->second.lruIt);it->second.lruIt=lru_.begin();}
-    void eraseEntry(MapIt it){used_-=it->second.data.size();lru_.erase(it->second.lruIt);cache_.erase(it);++stats_.cacheEvictions;}
+    void eraseEntry(MapIt it){const auto id=it->first;used_-=it->second.data.size();lru_.erase(it->second.lruIt);cache_.erase(it);states_[id]=ResourceState::Evicted;++stats_.cacheEvictions;}
     void evictFor(std::size_t needed){while(used_+needed>budget_&&!lru_.empty()){auto it=cache_.find(lru_.back());if(it!=cache_.end())eraseEntry(it);else lru_.pop_back();}}
     void evictToBudget(){evictFor(0);}
     std::size_t budget_=0,used_=0;ResourceRuntimeStats stats_{};
