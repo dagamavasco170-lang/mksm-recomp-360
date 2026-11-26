@@ -2,6 +2,7 @@
 
 #include "ps2_iop_retail_fileio.h"
 #include "ps2_iop_afs_stream.h"
+#include "ps2_iop_afs_catalog.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -75,6 +76,13 @@ public:
         default:
             return -ENOSYS;
         }
+    }
+
+    [[nodiscard]] std::int32_t openAfsResource(const AfsResourceCatalog &catalog,
+                                                   AfsResourceId resourceId)
+    {
+        const auto path = catalog.pathFor(resourceId);
+        return path ? afsFiles_.open(*path) : -ENOENT;
     }
 
     void reset() noexcept { files_.reset(); afsFiles_.reset(); }
