@@ -36,7 +36,7 @@ on:
       - "tools/tests/test_ioman_afs_correlate.py"
       - "tools/afs_resource_profiler.py"
       - "tools/tests/test_afs_resource_profiler.py"
-      - "docs/xbox360/AFS_RESOURCE_PROFILER.md"
+      - "docs/xbox360/AFS_RESOURCE_PROFILER.md"\n      - "tools/afs_resource_intelligence.py"\n      - "tools/tests/test_afs_resource_intelligence.py"\n      - "docs/xbox360/AFS_RESOURCE_INTELLIGENCE.md"\n      - "tools/afs_runtime_binding.py"\n      - "tools/tests/test_afs_runtime_binding.py"\n      - "docs/xbox360/AFS_RUNTIME_BINDING.md"
       - "ps2xRuntime/include/**"
       - "ps2xRuntime/src/lib/Kernel/**"
       - "ps2xTest/**"
