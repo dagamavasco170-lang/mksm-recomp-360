@@ -6,7 +6,8 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
-#include <span>\n#include <vector>
+#include <span>
+#include <vector>
 
 int main()
 {
