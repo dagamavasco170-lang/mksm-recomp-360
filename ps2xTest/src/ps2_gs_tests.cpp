@@ -1740,52 +1740,51 @@ void register_ps2_gs_tests()
                      "field presentation should still preserve different source content across field rows");
         });
 
-        tc.Run("GIF PACKED A+D writes DISPFB1 and DISPLAY1 privileged registers", [](TestCase &t)
+        tc.Run("GS privileged display registers use EE MMIO rather than GIF A+D", [](TestCase &t)
         {
-            std::vector<uint8_t> vram(PS2_GS_VRAM_SIZE, 0u);
-            GSRegisters regs{};
+            PS2Memory mem;
+            t.IsTrue(mem.initialize(), "PS2Memory initialize should succeed");
+
+            constexpr uint32_t kDispFb1 = PS2_GS_PRIV_REG_BASE + 0x0070u;
+            constexpr uint32_t kDisplay1 = PS2_GS_PRIV_REG_BASE + 0x0080u;
+            constexpr uint32_t kDispFb2 = PS2_GS_PRIV_REG_BASE + 0x0090u;
+            constexpr uint32_t kDisplay2 = PS2_GS_PRIV_REG_BASE + 0x00A0u;
+
+            constexpr uint64_t mmioDispFb1 = 0x0123456789ABCDEFull;
+            constexpr uint64_t mmioDisplay1 = 0x1111222233334444ull;
+            constexpr uint64_t mmioDispFb2 = 0x2222333344445555ull;
+            constexpr uint64_t mmioDisplay2 = 0x6666777788889999ull;
+
+            // These display registers belong to the EE-visible privileged GS
+            // interface. Program them through the emulated MMIO address space.
+            mem.write64(kDispFb1, mmioDispFb1);
+            mem.write64(kDisplay1, mmioDisplay1);
+            mem.write64(kDispFb2, mmioDispFb2);
+            mem.write64(kDisplay2, mmioDisplay2);
+
+            t.Equals(mem.read64(kDispFb1), mmioDispFb1, "EE MMIO should write DISPFB1");
+            t.Equals(mem.read64(kDisplay1), mmioDisplay1, "EE MMIO should write DISPLAY1");
+            t.Equals(mem.read64(kDispFb2), mmioDispFb2, "EE MMIO should write DISPFB2");
+            t.Equals(mem.read64(kDisplay2), mmioDisplay2, "EE MMIO should write DISPLAY2");
+
             GS gs;
-            gs.init(vram.data(), static_cast<uint32_t>(vram.size()), &regs);
+            gs.init(mem.getGSVRAM(), static_cast<uint32_t>(PS2_GS_VRAM_SIZE), &mem.gs());
 
+            // A+D is a GIF path for GS local registers, not a route to the
+            // privileged display MMIO registers at 0x12000070..0x120000A0.
             std::vector<uint8_t> packet;
-            appendU64(packet, makeGifTag(2u, GIF_FMT_PACKED, 1u, true));
+            appendU64(packet, makeGifTag(4u, GIF_FMT_PACKED, 1u, true));
             appendU64(packet, 0x0Eull); // REGS[0] = A+D
-
-            const uint64_t dispfb1 = 0x0123456789ABCDEFull;
-            const uint64_t display1 = 0x1111222233334444ull;
-            appendU64(packet, dispfb1);
-            appendU64(packet, 0x59ull); // DISPFB1
-            appendU64(packet, display1);
-            appendU64(packet, 0x5Aull); // DISPLAY1
-
+            appendGifAd(packet, 0xAAAAAAAAAAAAAAAAull, 0x59ull); // DISPFB1
+            appendGifAd(packet, 0xBBBBBBBBBBBBBBBBull, 0x5Aull); // DISPLAY1
+            appendGifAd(packet, 0xCCCCCCCCCCCCCCCCull, 0x5Bull); // DISPFB2
+            appendGifAd(packet, 0xDDDDDDDDDDDDDDDDull, 0x5Cull); // DISPLAY2
             gs.processGIFPacket(packet.data(), static_cast<uint32_t>(packet.size()));
 
-            t.Equals(regs.dispfb1, dispfb1, "A+D should write GS DISPFB1");
-            t.Equals(regs.display1, display1, "A+D should write GS DISPLAY1");
-        });
-
-        tc.Run("GIF PACKED A+D writes DISPFB2 and DISPLAY2 privileged registers", [](TestCase &t)
-        {
-            std::vector<uint8_t> vram(PS2_GS_VRAM_SIZE, 0u);
-            GSRegisters regs{};
-            GS gs;
-            gs.init(vram.data(), static_cast<uint32_t>(vram.size()), &regs);
-
-            std::vector<uint8_t> packet;
-            appendU64(packet, makeGifTag(2u, GIF_FMT_PACKED, 1u, true));
-            appendU64(packet, 0x0Eull); // REGS[0] = A+D
-
-            const uint64_t dispfb2 = 0x2222333344445555ull;
-            const uint64_t display2 = 0x6666777788889999ull;
-            appendU64(packet, dispfb2);
-            appendU64(packet, 0x5Bull); // DISPFB2
-            appendU64(packet, display2);
-            appendU64(packet, 0x5Cull); // DISPLAY2
-
-            gs.processGIFPacket(packet.data(), static_cast<uint32_t>(packet.size()));
-
-            t.Equals(regs.dispfb2, dispfb2, "A+D should write GS DISPFB2");
-            t.Equals(regs.display2, display2, "A+D should write GS DISPLAY2");
+            t.Equals(mem.read64(kDispFb1), mmioDispFb1, "GIF A+D must not overwrite privileged DISPFB1");
+            t.Equals(mem.read64(kDisplay1), mmioDisplay1, "GIF A+D must not overwrite privileged DISPLAY1");
+            t.Equals(mem.read64(kDispFb2), mmioDispFb2, "GIF A+D must not overwrite privileged DISPFB2");
+            t.Equals(mem.read64(kDisplay2), mmioDisplay2, "GIF A+D must not overwrite privileged DISPLAY2");
         });
 
         tc.Run("reserved PSM 0x3F uses null VRAM handlers", [](TestCase &t)
