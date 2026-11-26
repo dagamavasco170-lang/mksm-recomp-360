@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "ps2_runtime_asset_resolver.h"
 #include <array>
 #include <cassert>
