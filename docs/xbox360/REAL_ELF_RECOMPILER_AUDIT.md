@@ -125,3 +125,18 @@ non-overflow path. This is still generated-text validation only; it does not
 execute overflow or prove exception-state/PC behavior. Runtime exception-state
 integration, broader divide vectors, COP0 state, cycle/timing, and physical-console
 validation remain open.
+
+
+## EE exception latch and dispatch boundary
+
+The Xbox 360 generated ABI now carries a minimal EE exception record (exception
+code/fault PC, COP0 Cause/EPC/Status fields, and a pending flag). ADD and SUB
+translation passes the guest instruction PC into the runtime latch. The latch
+sets ExcCode=12, EXL, and the Cause.BD/EPC pair for delay-slot faults. The block
+dispatcher stops immediately when the pending flag is observed, so no later
+generated block runs after a latched exception.
+
+This is deliberately an exception latch/dispatch stop, not a complete EE vector
+handler: vector selection, full COP0 register semantics, ERET/return flow, nested
+exceptions, and hardware differential validation remain outstanding. The new
+host probe checks the latch fields for a delay-slot integer-overflow exception.
