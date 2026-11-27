@@ -2,6 +2,7 @@
 
 #include "ps2_generated_runtime_abi.h"
 #include "ps2_iop_ioman_trace_ring.h"
+#include "ps2_recompiled_block_dispatcher.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -75,6 +76,22 @@ public:
         return GeneratedEntryStatus::Invoked;
     }
 
+    [[nodiscard]] bool registerGeneratedBlocks(
+        std::span<const PS2GeneratedBlockEntry> entries)
+    {
+        return blockDispatcher_.load(entries);
+    }
+
+    [[nodiscard]] BlockDispatchResult runGeneratedBlocks(std::size_t maxBlocks)
+    {
+        return blockDispatcher_.run(rdram_.data(), context_, &runtime_, maxBlocks);
+    }
+
+    [[nodiscard]] RecompiledBlockDispatcher &blockDispatcher() noexcept
+    {
+        return blockDispatcher_;
+    }
+
     [[nodiscard]] std::span<std::uint8_t> eeRdram() noexcept { return rdram_; }
     [[nodiscard]] std::span<const std::uint8_t> eeRdram() const noexcept { return rdram_; }
     [[nodiscard]] R5900Context &context() noexcept { return context_; }
@@ -90,6 +107,7 @@ public:
         context_ = {};
         std::fill(rdram_.begin(), rdram_.end(), std::uint8_t{0});
         trace_.clear();
+        blockDispatcher_.clear();
     }
 
 private:
@@ -100,5 +118,6 @@ private:
     iop::IomanDispatcher ioman_;
     PS2Runtime runtime_{};
     R5900Context context_{};
+    RecompiledBlockDispatcher blockDispatcher_{};
 };
 } // namespace ps2::xbox360
