@@ -513,7 +513,7 @@ int main(int argc, char **argv)
 
     std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+15+16+57+14 entry=00100000/00100100/00100200/00100300/00100600 symbols="
               << entryName << "," << scratchpadEntryName << "," << mmiEntryName
-              << "," << sprDmaEntryName
+              << "," << sprDmaEntryName << "," << arithmeticEntryName
               << " output=" << generatedCpp.string() << '\n';
     return 0;
 }
