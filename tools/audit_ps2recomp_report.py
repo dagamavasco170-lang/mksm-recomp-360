@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Correlate a PS2Recomp text report with the real-ELF function inventory.
+"""Correlate a structured PS2Recomp JSON report (or legacy text log) with an ELF inventory.
 
-This is a diagnostic post-processor: it does not infer decoder coverage from
-opcode histograms and never promotes a function to runtime-ready status.
+Decoded functions are not automatically runtime-ready: code generation,
+semantic correctness, and target execution remain separate validation gates.
 """
 from __future__ import annotations
 
@@ -84,7 +84,30 @@ def main() -> int:
     report_path = args.report.expanduser().resolve(strict=True)
     inventory_path = args.functions.expanduser().resolve(strict=True)
     report_text = report_path.read_text(encoding="utf-8", errors="replace")
-    counters, events = parse_report(report_text)
+    structured = None
+    try:
+        candidate = json.loads(report_text)
+        if isinstance(candidate, dict) and candidate.get("schema_version") == 1 and isinstance(candidate.get("functions"), list):
+            structured = candidate
+    except json.JSONDecodeError:
+        pass
+
+    if structured is not None:
+        counters = structured.get("counters", {})
+        events = [{
+            "severity": event.get("severity", "info"),
+            "category": event.get("category", "unknown"),
+            "function": event.get("function", ""),
+            "address": event.get("address"),
+            "raw_instruction": None,
+            "message": event.get("message", ""),
+            "source_line": "",
+        } for event in structured.get("events", [])]
+        function_results = {int(item["start"]): item for item in structured["functions"] if "start" in item}
+    else:
+        counters, events = parse_report(report_text)
+        function_results = {}
+
     inventory = load_inventory(inventory_path)
 
     by_name = defaultdict(list)
@@ -109,12 +132,26 @@ def main() -> int:
         errors = sum(e["severity"] == "error" for e in row_events)
         warnings = sum(e["severity"] == "warning" for e in row_events)
         categories = sorted({e["category"] for e in row_events})
+        result = function_results.get(row.get("_address"), {})
+        source_status = result.get("status", "")
         if row.get("triage") != "candidate":
             disposition = "elf-triage-blocked"
         elif errors:
             disposition = "translation-error-review"
         elif warnings:
             disposition = "warning-review"
+        elif source_status == "decode-failed":
+            disposition = "decode-failed"
+        elif source_status == "decoded":
+            disposition = "decoded-awaiting-codegen-validation"
+        elif source_status == "decoded-entrypoint":
+            disposition = "decoded-entrypoint-awaiting-validation"
+        elif source_status == "stubbed":
+            disposition = "stubbed-not-guest-code"
+        elif source_status == "skipped":
+            disposition = "skipped-not-generated-guest-code"
+        elif source_status:
+            disposition = source_status
         else:
             disposition = "no-reported-event-unverified"
         audited.append({
@@ -122,6 +159,7 @@ def main() -> int:
             "size": row.get("size", ""),
             "name": row.get("name", ""),
             "elf_triage": row.get("triage", ""),
+            "recompiler_status": source_status,
             "disposition": disposition,
             "error_events": errors,
             "warning_events": warnings,
@@ -137,7 +175,9 @@ def main() -> int:
         "schema": 1,
         "report": str(report_path),
         "inventory": str(inventory_path),
+        "report_format": "structured-json" if structured is not None else "legacy-text",
         "counters": counters,
+        "function_result_count": len(function_results),
         "event_count": len(events),
         "event_severity_counts": dict(Counter(e["severity"] for e in events)),
         "event_category_counts": dict(Counter(e["category"] for e in events)),
@@ -148,13 +188,13 @@ def main() -> int:
         "events": events,
         "limitations": [
             "No event for a function is not proof that it translated correctly.",
-            "The text report does not expose a complete per-function success table.",
-            "Event-to-function correlation uses exact symbol names; unmatched events remain in unbound_events.",
+            "A decoded status means instruction decoding completed; it does not prove generated C++ correctness or target execution.",
+            "Legacy text logs are correlated by exact function name; structured reports are correlated by guest start address.",
             "No function is marked runtime-ready by this tool; generated-code execution and EE semantic validation remain separate gates."
         ]
     }
     json_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
-    fields = ["address", "size", "name", "elf_triage", "disposition",
+    fields = ["address", "size", "name", "elf_triage", "recompiler_status", "disposition",
               "error_events", "warning_events", "event_categories", "event_messages"]
     with csv_path.open("w", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
@@ -165,7 +205,7 @@ def main() -> int:
     print("dispositions=" + json.dumps(summary["function_disposition_counts"], sort_keys=True))
     print(f"json={json_path}")
     print(f"csv={csv_path}")
-    print("NOTE: no-event functions remain unverified; this is not a decoder-coverage or boot verdict.")
+    print("NOTE: decoded is not runtime-ready; codegen, EE semantics, and target boot remain separate gates.")
     return 0
 
 
