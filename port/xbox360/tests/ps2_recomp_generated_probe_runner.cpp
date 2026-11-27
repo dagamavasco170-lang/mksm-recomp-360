@@ -188,7 +188,6 @@ int main()
     SET_GPR_U32(arithmeticCtx, 24, 0xFFFFFFFFu); // -1
     SET_GPR_U32(arithmeticCtx, 25, 0xFFFFFFF9u); // -7
     SET_GPR_U32(arithmeticCtx, 26, 3u);
-    SET_GPR_U32(arithmeticCtx, 13, 0xFFFFFFFFu);
     SET_GPR_U32(arithmeticCtx, 14, 3u);
     MKSM_RECOMP_GENERATED_ARITHMETIC_ENTRY(rdram.data(), arithmeticCtx, nullptr);
     const bool arithmeticFailed = arithmeticContext.pc != arithmeticReturnPc ||
