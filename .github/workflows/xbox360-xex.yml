@@ -89,7 +89,7 @@ jobs:
           generated_header = adapter.read_text()
           if 'g_ps2RecompiledBlockEntries' not in source:
               raise SystemExit('Emitter did not produce the sparse generated-block table')
-          if not re.search(r'g_ps2RecompiledBlockEntryCount\\s*=\\s*[1-9][0-9]*u', source):
+          if not re.search(r'g_ps2RecompiledBlockEntryCount\s*=\s*[1-9][0-9]*u', source):
               raise SystemExit('Sparse generated-block table is empty or has no count symbol')
           for macro in ('MKSM_RECOMP_GENERATED_PROBE_ENTRY',
                         'MKSM_RECOMP_GENERATED_SCRATCHPAD_ENTRY',
