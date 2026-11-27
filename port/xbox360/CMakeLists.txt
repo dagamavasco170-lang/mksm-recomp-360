@@ -29,7 +29,8 @@ set(MKSM_XBOX360_GENERATED_DIR "" CACHE PATH
 if(MKSM_XBOX360_GENERATED_DIR)
     foreach(required_file IN ITEMS
             "ps2_recompiled_functions.cpp"
-            "ps2_recompiled_functions.h")
+            "ps2_recompiled_functions.h"
+            "mksm_generated_probe_entry.h")
         if(NOT EXISTS "${MKSM_XBOX360_GENERATED_DIR}/${required_file}")
             message(FATAL_ERROR
                 "Missing host-generated file: ${MKSM_XBOX360_GENERATED_DIR}/${required_file}")
