@@ -132,6 +132,36 @@ int main()
     if (!supportedOk)
         return 1;
 
+    // Overflow codegen must signal before the destination write path; the
+    // generated else branch is the only place the destination is committed.
+    const auto addOverflowInst = decoder.decodeInstruction(
+        0x00100000u, encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, SPECIAL_ADD), true);
+    const auto addOverflowCode = generator.translateInstruction(addOverflowInst);
+    const auto addSignal = addOverflowCode.find("SignalException(ctx, EXCEPTION_INTEGER_OVERFLOW)");
+    const auto addCommit = addOverflowCode.find("SET_GPR_S32(ctx, 3");
+    if (addSignal == std::string::npos || addCommit == std::string::npos ||
+        addSignal >= addCommit || addOverflowCode.find("else") == std::string::npos)
+    {
+        std::cerr << "R5900_OVERFLOW_FAIL ADD overflow guard/commit ordering: "
+                  << addOverflowCode << '\\n';
+        return 1;
+    }
+
+    const auto subOverflowInst = decoder.decodeInstruction(
+        0x00100000u, encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, SPECIAL_SUB), true);
+    const auto subOverflowCode = generator.translateInstruction(subOverflowInst);
+    const auto subSignal = subOverflowCode.find("SignalException(ctx, EXCEPTION_INTEGER_OVERFLOW)");
+    const auto subCommit = subOverflowCode.find("SET_GPR_S32(ctx, 3");
+    if (subSignal == std::string::npos || subCommit == std::string::npos ||
+        subSignal >= subCommit || subOverflowCode.find("SUB32_OV") == std::string::npos ||
+        subOverflowCode.find("else") == std::string::npos)
+    {
+        std::cerr << "R5900_OVERFLOW_FAIL SUB overflow guard/commit ordering: "
+                  << subOverflowCode << '\\n';
+        return 1;
+    }
+    std::cout << "R5900_OVERFLOW_EMISSION_PASS add=sub_guarded sub=sub_guarded\\n";
+
     std::size_t conservativeFallbacks = 0;
     auto checkUnsupported = [&](const char *name, uint32_t raw)
     {
