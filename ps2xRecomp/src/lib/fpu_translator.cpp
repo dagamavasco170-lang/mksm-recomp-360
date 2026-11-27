@@ -34,13 +34,14 @@ namespace ps2recomp
                 return fmt::format("SET_GPR_U32(ctx, {}, ctx->fcr31);", ft); // FCR31 contains status/control
             if (fs == 0)
                 return fmt::format("SET_GPR_U32(ctx, {}, 0x00000000);", ft); // FCR0 is the FPU implementation register
-            return fmt::format("SET_GPR_U32(ctx, {}, 0); // Unimplemented FCR{}", ft, fs);
+            return m_codeGenerator.emitUnhandledInstruction(inst, fmt::format("Unimplemented CFC1 control register: {}", fs));
         case COP1_CT:
             if (fs == 31)
                 return fmt::format("ctx->fcr31 = GPR_U32(ctx, {}) & 0x0183FFFF;", ft);
-            else
-                return fmt::format("// CTC1 to FCR{} ignored", fs);
-            return "";
+            if (fs == 0)
+                return "// CTC1 write to read-only FCR0 ignored";
+            return m_codeGenerator.emitUnhandledInstruction(
+                inst, fmt::format("Unimplemented CTC1 control register: {}", fs));
         case COP1_BC:
             return "// FPU branch instruction - handled elsewhere";
         case COP1_S:
