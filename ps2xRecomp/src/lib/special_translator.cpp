@@ -98,7 +98,7 @@ namespace ps2recomp
                 "        SET_GPR_S32(ctx, {}, (int32_t)result); "
                 "    }} "
                 "}}",
-                inst.rs, inst.rt, inst.rd, inst.address);
+                inst.rs, inst.rt, inst.address, inst.rd);
         case SPECIAL_ADDU:
             return fmt::format("SET_GPR_S32(ctx, {}, (int32_t)ADD32(GPR_U32(ctx, {}), GPR_U32(ctx, {})));", inst.rd, inst.rs, inst.rt);
         case SPECIAL_SUB:
@@ -107,7 +107,7 @@ namespace ps2recomp
                 "SUB32_OV(GPR_U32(ctx, {}), GPR_U32(ctx, {}), tmp, ov); "
                 "if (ov) runtime->SignalException(ctx, Ps2EeExceptionCode::IntegerOverflow, 0x{:X}u); "
                 "else SET_GPR_S32(ctx, {}, (int32_t)tmp); }}",
-                inst.rs, inst.rt, inst.rd, inst.address);
+                inst.rs, inst.rt, inst.address, inst.rd);
         case SPECIAL_SUBU:
             return fmt::format("SET_GPR_S32(ctx, {}, (int32_t)SUB32(GPR_U32(ctx, {}), GPR_U32(ctx, {})));", inst.rd, inst.rs, inst.rt);
         case SPECIAL_AND:
@@ -137,7 +137,7 @@ namespace ps2recomp
                 "int64_t r = a + b; "
                 "if (((a ^ b) >= 0) && ((a ^ r) < 0)) runtime->SignalException(ctx, Ps2EeExceptionCode::IntegerOverflow, 0x{:X}u); "
                 "else SET_GPR_S64(ctx, {}, r); }}",
-                inst.rs, inst.rt, inst.rd, inst.address);
+                inst.rs, inst.rt, inst.address, inst.rd);
         case SPECIAL_DADDU:
             return fmt::format(
                 "SET_GPR_U64(ctx, {}, (uint64_t)GPR_U64(ctx, {}) + (uint64_t)GPR_U64(ctx, {}));",
@@ -149,7 +149,7 @@ namespace ps2recomp
                 "int64_t r = a - b; "
                 "if (((a ^ b) < 0) && ((a ^ r) < 0)) runtime->SignalException(ctx, Ps2EeExceptionCode::IntegerOverflow, 0x{:X}u); "
                 "else SET_GPR_S64(ctx, {}, r); }}",
-                inst.rs, inst.rt, inst.rd, inst.address);
+                inst.rs, inst.rt, inst.address, inst.rd);
         case SPECIAL_DSUBU:
             return fmt::format("SET_GPR_U64(ctx, {}, GPR_U64(ctx, {}) - GPR_U64(ctx, {}));", inst.rd, inst.rs, inst.rt);
         case SPECIAL_DSLL:
