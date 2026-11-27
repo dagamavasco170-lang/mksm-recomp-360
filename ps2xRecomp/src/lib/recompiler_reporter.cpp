@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iomanip>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 
@@ -28,6 +29,32 @@ namespace ps2recomp
             std::ostringstream ss;
             ss << "0x" << std::hex << address;
             return ss.str();
+        }
+
+        std::string jsonEscape(const std::string &value)
+        {
+            std::ostringstream out;
+            for (unsigned char c : value)
+            {
+                switch (c)
+                {
+                case '"': out << "\\\""; break;
+                case '\\': out << "\\\\"; break;
+                case '\b': out << "\\b"; break;
+                case '\f': out << "\\f"; break;
+                case '\n': out << "\\n"; break;
+                case '\r': out << "\\r"; break;
+                case '\t': out << "\\t"; break;
+                default:
+                    if (c < 0x20)
+                    {
+                        const char *digits = "0123456789abcdef";
+                        out << "\\u00" << digits[(c >> 4) & 0xF] << digits[c & 0xF];
+                    }
+                    else out << static_cast<char>(c);
+                }
+            }
+            return out.str();
         }
     }
 
@@ -75,6 +102,66 @@ namespace ps2recomp
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         ++m_counters.functionsProcessed;
+    }
+
+    void RecompilerReporter::recordFunctionResult(const std::string &name, uint32_t start, uint32_t end,
+                                                  const std::string &status, const std::string &reason)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = std::find_if(m_functionResults.begin(), m_functionResults.end(),
+                               [start](const FunctionResult &result) { return result.start == start; });
+        FunctionResult result{name, start, end, status, reason};
+        if (it == m_functionResults.end()) m_functionResults.push_back(std::move(result));
+        else *it = std::move(result);
+    }
+
+    bool RecompilerReporter::writeJson(const std::string &path) const
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        std::ofstream out(path, std::ios::binary | std::ios::trunc);
+        if (!out) return false;
+        out << "{\n  \"schema_version\": 1,\n  \"counters\": {\n";
+        out << "    \"functions_discovered\": " << m_counters.functionsDiscovered << ",\n";
+        out << "    \"symbols_discovered\": " << m_counters.symbolsDiscovered << ",\n";
+        out << "    \"sections_discovered\": " << m_counters.sectionsDiscovered << ",\n";
+        out << "    \"relocations_discovered\": " << m_counters.relocationsDiscovered << ",\n";
+        out << "    \"functions_processed\": " << m_counters.functionsProcessed << ",\n";
+        out << "    \"functions_recompiled\": " << m_counters.functionsRecompiled << ",\n";
+        out << "    \"functions_stubbed\": " << m_counters.functionsStubbed << ",\n";
+        out << "    \"functions_skipped\": " << m_counters.functionsSkipped << ",\n";
+        out << "    \"decode_failures\": " << m_counters.decodeFailures << ",\n";
+        out << "    \"additional_entrypoints\": " << m_counters.additionalEntryPoints << ",\n";
+        out << "    \"generated_functions\": " << m_counters.generatedFunctions << ",\n";
+        out << "    \"unhandled_instructions\": " << m_counters.unhandledInstructions << ",\n";
+        out << "    \"indirect_fallback_promotions\": " << m_counters.indirectFallbackPromotions << ",\n";
+        out << "    \"indirect_fallback_entries\": " << m_counters.indirectFallbackEntries << ",\n";
+        out << "    \"correctness_critical_guest_fallbacks\": " << m_counters.correctnessCriticalGuestFallbacks << ",\n";
+        out << "    \"correctness_critical_failures\": " << m_counters.correctnessCriticalFailures << "\n  },\n";
+        out << "  \"functions\": [";
+        for (size_t i = 0; i < m_functionResults.size(); ++i)
+        {
+            const auto &f = m_functionResults[i];
+            out << (i ? ",\n" : "\n") << "    {\"name\": \"" << jsonEscape(f.name)
+                << "\", \"start\": " << f.start << ", \"start_hex\": \"" << hexAddress(f.start)
+                << "\", \"end\": " << f.end << ", \"end_hex\": \"" << hexAddress(f.end)
+                << "\", \"status\": \"" << jsonEscape(f.status)
+                << "\", \"reason\": \"" << jsonEscape(f.reason) << "\"}";
+        }
+        if (!m_functionResults.empty()) out << "\n  ";
+        out << "],\n  \"events\": [";
+        for (size_t i = 0; i < m_events.size(); ++i)
+        {
+            const auto &e = m_events[i];
+            out << (i ? ",\n" : "\n") << "    {\"severity\": \"" << severityName(e.severity)
+                << "\", \"category\": \"" << jsonEscape(e.category)
+                << "\", \"function\": \"" << jsonEscape(e.functionName)
+                << "\", \"has_address\": " << (e.hasAddress ? "true" : "false")
+                << ", \"address\": " << (e.hasAddress ? std::to_string(e.address) : "null")
+                << ", \"message\": \"" << jsonEscape(e.message) << "\"}";
+        }
+        if (!m_events.empty()) out << "\n  ";
+        out << "]\n}\n";
+        return static_cast<bool>(out);
     }
 
     void RecompilerReporter::recordFunctionRecompiled()
