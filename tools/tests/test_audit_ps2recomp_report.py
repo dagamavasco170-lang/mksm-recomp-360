@@ -112,6 +112,49 @@ class AuditReportTests(unittest.TestCase):
         self.assertEqual(rows[0]["disposition"], "elf-triage-blocked")
         self.assertEqual(rows[0]["error_events"], "1")
 
+    def test_supported_function_statuses_remain_conservative(self):
+        report = {
+            "schema_version": 1, "counters": {},
+            "functions": [
+                {"start": 0x8000, "status": "decode-failed"},
+                {"start": 0x8100, "status": "decoded-entrypoint"},
+                {"start": 0x8200, "status": "stubbed"},
+                {"start": 0x8300, "status": "skipped"},
+            ],
+            "events": [],
+        }
+        inventory = [
+            {"address": "0x8000", "size": "4", "name": "failed", "triage": "candidate"},
+            {"address": "0x8100", "size": "4", "name": "entry", "triage": "candidate"},
+            {"address": "0x8200", "size": "4", "name": "stub", "triage": "candidate"},
+            {"address": "0x8300", "size": "4", "name": "skip", "triage": "candidate"},
+        ]
+        rows, _ = self.run_audit(report, inventory)
+        self.assertEqual(
+            [row["disposition"] for row in rows],
+            [
+                "decode-failed",
+                "decoded-entrypoint-awaiting-validation",
+                "stubbed-not-guest-code",
+                "skipped-not-generated-guest-code",
+            ],
+        )
+
+    def test_structured_duplicate_names_do_not_cross_correlate(self):
+        report = {
+            "schema_version": 1, "counters": {}, "functions": [],
+            "events": [{"severity": "error", "category": "decode",
+                        "function": "shared_fn", "address": 0x1000,
+                        "message": "only first entry failed"}],
+        }
+        inventory = [
+            {"address": "0x1000", "size": "4", "name": "shared_fn", "triage": "candidate"},
+            {"address": "0x2000", "size": "4", "name": "shared_fn", "triage": "candidate"},
+        ]
+        rows, _ = self.run_audit(report, inventory)
+        self.assertEqual(rows[0]["disposition"], "translation-error-review")
+        self.assertEqual(rows[1]["disposition"], "no-reported-event-unverified")
+
     def test_legacy_empty_report_is_not_treated_as_success(self):
         rows, summary = self.run_audit("========== PS2Recomp report ==========\n", [
             {"address": "0x7000", "size": "4", "name": "unseen_fn", "triage": "candidate"}
