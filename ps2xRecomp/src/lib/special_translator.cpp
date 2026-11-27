@@ -93,12 +93,12 @@ namespace ps2recomp
                 "    int32_t rt_val = GPR_S32(ctx, {}); "
                 "    int64_t result = (int64_t)rs_val + (int64_t)rt_val; "
                 "    if (result > INT32_MAX || result < INT32_MIN) {{ "
-                "        runtime->SignalException(ctx, EXCEPTION_INTEGER_OVERFLOW); "
+                "        runtime->SignalException(ctx, Ps2EeExceptionCode::IntegerOverflow, 0x{:X}u); "
                 "    }} else {{ "
                 "        SET_GPR_S32(ctx, {}, (int32_t)result); "
                 "    }} "
                 "}}",
-                inst.rs, inst.rt, inst.rd);
+                inst.rs, inst.rt, inst.rd, inst.address);
         case SPECIAL_ADDU:
             return fmt::format("SET_GPR_S32(ctx, {}, (int32_t)ADD32(GPR_U32(ctx, {}), GPR_U32(ctx, {})));", inst.rd, inst.rs, inst.rt);
         case SPECIAL_SUB:
