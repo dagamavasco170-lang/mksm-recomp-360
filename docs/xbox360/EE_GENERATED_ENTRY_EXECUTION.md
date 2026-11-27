@@ -56,3 +56,26 @@ the retail title's ELF was recompiled or that the game's real entry point,
 syscalls, assets, GPU path, or full EE state are ready. A title execution
 requires a verified title ELF, entry-point metadata, and a generated map
 covering that ELF.
+
+
+## Reproducible host-to-XEX pipeline
+
+The `xbox360-xex.yml` workflow is the canonical end-to-end pipeline for the
+synthetic generated-code path:
+
+1. Build the pinned xSDK toolchain and host PS2Recomp fixture generator.
+2. Generate the synthetic MIPS ELF translation and run both desktop and
+   Xenon-memory-ABI host probes.
+3. Validate that the generated C++/headers exist, the sparse block table has a
+   nonzero entry count, and all four generated probe adapter macros exist.
+4. Configure and build the Xbox 360 smoke XEX with the generated directory
+   passed through `MKSM_XBOX360_GENERATED_DIR`.
+5. Build the headless diagnostics XEX, launch it in Xenia Canary, and require
+   the synthetic dispatcher marker to report one block from `00100000` to
+   `CAFE1234` with zero failures.
+
+The XEX and Xenia logs are uploaded as workflow artifacts. The generated ELF
+and all probe code are synthetic fixtures, not proprietary game assets and not
+a recompilation of the retail title. A successful workflow validates the
+pipeline and ABI smoke only; it does not establish retail game bootability or
+physical-console compatibility.
