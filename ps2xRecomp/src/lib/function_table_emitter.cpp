@@ -179,15 +179,31 @@ namespace ps2recomp
         ss << "extern const uint32_t g_ps2RecompiledFunctionTableBase = 0x" << std::hex << tableBase << "u;\n";
         ss << "extern const uint32_t g_ps2RecompiledFunctionTableEnd = 0x" << std::hex << tableEnd << "u;\n";
         ss << "extern const uint32_t g_ps2RecompiledFunctionTableSlotCount = " << std::dec << slotCount << "u;\n";
-        ss << "PS2Runtime::RecompiledFunction g_ps2RecompiledFunctionTable[" << std::dec << (slotCount == 0u ? 1u : slotCount) << "u] = {};\n\n";
+        ss << "PS2Runtime::RecompiledFunction g_ps2RecompiledFunctionTable[" << std::dec << (slotCount == 0u ? 1u : slotCount) << "u] = {};\n";
+        ss << "extern const uint32_t g_ps2RecompiledBlockEntryCount = " << entries.size() << "u;\n";
+        ss << "PS2GeneratedBlockEntry g_ps2RecompiledBlockEntries[" << (entries.empty() ? 1u : entries.size()) << "u] = {};\n\n";
 
         ss << "namespace {\n";
         ss << "struct GeneratedFunctionTableInitializer {\n";
         ss << "    GeneratedFunctionTableInitializer() {\n";
+        ss << "        std::size_t sparseIndex = 0u;\\n";
         for (const auto &[address, name] : entries)
         {
             const uint32_t slot = (address - tableBase) >> 2;
             const std::string xboxBridge = xboxFioBridgeTarget(name);
+            if (!xboxBridge.empty())
+            {
+                ss << "#ifdef PS2X_GENERATED_RUNTIME_ABI\\n";
+                ss << "        g_ps2RecompiledBlockEntries[" << sparseIndex << "] = {0x" << std::hex << address << "u, " << xboxBridge << "};\\n";
+                ss << "#else\\n";
+                ss << "        g_ps2RecompiledBlockEntries[" << std::dec << sparseIndex << "] = {0x" << std::hex << address << "u, " << name << "};\\n";
+                ss << "#endif\\n";
+            }
+            else
+            {
+                ss << "        g_ps2RecompiledBlockEntries[" << std::dec << sparseIndex << "] = {0x" << std::hex << address << "u, " << name << "};\\n";
+            }
+            ++sparseIndex;
             if (!xboxBridge.empty())
             {
                 ss << "#ifdef PS2X_GENERATED_RUNTIME_ABI\n";
