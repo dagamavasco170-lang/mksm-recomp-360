@@ -5,6 +5,7 @@
 #include "ps2recomp/types.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <sstream>
 #include <string_view>
