@@ -1,37 +1,39 @@
-# Real ELF → PS2Recomp diagnostic correlation
+# Real ELF → PS2Recomp structured audit
 
-After running `tools/prepare_real_ps2_elf.py`, run the recompiler with its
-locally generated TOML and capture the complete text report:
+The recompiler now emits ps2_recomp_report.json directly into its configured
+output directory after successful code generation. The report contains:
 
-```powershell
-.\build\path\to\ps2_recomp.exe build\real-elf\recompile.real-elf.toml *> build\real-elf\ps2_recomp.log
-```
+- Aggregate counters from the existing reporter.
+- Per-function guest start/end addresses, symbol names, processing status, and reason.
+- Structured diagnostic events with severity, category, guest address, function, and message.
 
-The executable path depends on the local CMake generator/build configuration.
-Then correlate the report with the inventory:
+Run the ELF preflight first:
 
-```powershell
-py -3 tools/audit_ps2recomp_report.py build\real-elf\ps2_recomp.log --functions build\real-elf\function_inventory.csv --out-dir build\real-elf\audit
-```
+    py -3 tools/prepare_real_ps2_elf.py "D:\path\to\real.elf" --out-dir build/real-elf
 
-Outputs:
+Run ps2_recomp with the generated TOML. Its configured output directory
+(default from this intake flow: build/real-elf/generated) will contain
+ps2_recomp_report.json.
 
-- `recompiler_audit.json`: counters, all parsed events, severity/category counts,
-  and events that could not be tied to an ELF symbol.
-- `function_audit.csv`: ELF triage plus warning/error events grouped by exact
-  function symbol name.
+Then correlate by guest function start address:
 
-Disposition meanings:
+    py -3 tools/audit_ps2recomp_report.py build/real-elf/generated/ps2_recomp_report.json --functions build/real-elf/function_inventory.csv --out-dir build/real-elf/audit
 
-- `elf-triage-blocked`: the ELF preflight did not classify the symbol as a
-  complete, aligned, file-backed executable candidate.
-- `translation-error-review`: one or more error events were correlated.
-- `warning-review`: warnings were correlated and no errors were found.
-- `no-reported-event-unverified`: no event was correlated. This is explicitly
-  **not** evidence of successful translation.
+The audit writes recompiler_audit.json and function_audit.csv. It also
+continues to accept a legacy text log for backwards compatibility, but the
+structured report is authoritative because it joins functions by guest start
+address rather than relying on symbol-name text parsing.
 
-The current text reporter does not expose a complete per-function success
-manifest, so the tool preserves unmatched events and does not infer a
-function's success from silence. A later stage must add structured reporting
-at the recompiler's function-processing boundary and separately validate
-generated blocks on the host/Xenia and physical Xbox 360.
+Status interpretation:
+
+- decoded-awaiting-codegen-validation: instruction decoding completed.
+  This is not proof that generated C++ compiles or is semantically correct.
+- decode-failed: no usable decode result was produced for the function.
+- stubbed-not-guest-code: a configured/runtime stub will be emitted.
+- skipped-not-generated-guest-code: configured skip path.
+- translation-error-review / warning-review: correlated diagnostics require review.
+- elf-triage-blocked: the ELF inventory did not classify the symbol as a
+  complete aligned executable candidate.
+
+No status means runtime-ready. Generated-code compilation, host/Xenia execution,
+EE semantic validation, and physical Xbox 360 testing remain independent gates.
