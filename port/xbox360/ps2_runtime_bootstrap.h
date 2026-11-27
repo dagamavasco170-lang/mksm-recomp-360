@@ -82,6 +82,14 @@ public:
         return blockDispatcher_.load(entries);
     }
 
+    // Convenience overload for the sparse map emitted into the generated
+    // translation unit when PS2X_GENERATED_RUNTIME_ABI is enabled.
+    [[nodiscard]] bool registerGeneratedBlocks()
+    {
+        return blockDispatcher_.load(std::span<const PS2GeneratedBlockEntry>(
+            g_ps2RecompiledBlockEntries, g_ps2RecompiledBlockEntryCount));
+    }
+
     [[nodiscard]] BlockDispatchResult runGeneratedBlocks(std::size_t maxBlocks)
     {
         return blockDispatcher_.run(rdram_.data(), context_, &runtime_, maxBlocks);
