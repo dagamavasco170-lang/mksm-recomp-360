@@ -35,3 +35,23 @@ The map is only as complete as the generated function list supplied to the emitt
 
 
 At runtime, after the generated translation unit is linked, call the no-argument `PS2RuntimeBootstrap::registerGeneratedBlocks()` overload to load the emitter-produced sparse table. The span-taking overload remains available for tests and externally supplied verified maps.
+
+
+## Xbox smoke integration: bounded generated-code execution
+
+When `MKSM_XBOX360_GENERATED_DIR` is supplied, the Xbox smoke target compiles
+the generated translation unit with `PS2X_GENERATED_RUNTIME_ABI`. Its startup
+checks now construct `PS2RuntimeBootstrap`, load the emitter-produced sparse
+PC map, seed the documented synthetic fixture registers, and execute the
+fixture entry at `0x00100000` with a four-block budget. The expected exit is
+the fixture's sentinel return PC `0xCAFE1234`, reported as
+`UnknownProgramCounter` after exactly one executed function; that is the
+intentional return boundary, not a runtime failure. The log marker is
+`MKSM_RECOMP_BLOCK_DISPATCH` and identifies the run as synthetic.
+
+This proves the generated C++ function can be reached through the actual
+emitted PC map and invoked by the Xbox runtime dispatcher. It does not prove
+the retail title's ELF was recompiled or that the game's real entry point,
+syscalls, assets, GPU path, or full EE state are ready. A title execution
+requires a verified title ELF, entry-point metadata, and a generated map
+covering that ELF.
