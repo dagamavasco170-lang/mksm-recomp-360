@@ -120,8 +120,8 @@ int main()
         checkSupported("PSLLW", encodeR(OPCODE_MMI, 0, 2, 3, 5, MMI_PSLLW), "_mm_slli_epi32") &&
         checkSupported("CFC2_VPU_STAT", cfc2Status, "ctx->vu0_vpu_stat") &&
         checkSupported("VU_VSUB", vsub, "ps2VuSub(ctx") &&
-        checkSupported("ADD_OVERFLOW_GUARD", encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, SPECIAL_ADD), "EXCEPTION_INTEGER_OVERFLOW") &&
-        checkSupported("SUB_OVERFLOW_GUARD", encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, SPECIAL_SUB), "EXCEPTION_INTEGER_OVERFLOW") &&
+        checkSupported("ADD_OVERFLOW_GUARD", encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, SPECIAL_ADD), "Ps2EeExceptionCode::IntegerOverflow") &&
+        checkSupported("SUB_OVERFLOW_GUARD", encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, SPECIAL_SUB), "Ps2EeExceptionCode::IntegerOverflow") &&
         checkSupported("MULT_SIGNED_HILO", encodeR(OPCODE_SPECIAL, 1, 2, 0, 0, SPECIAL_MULT), "ctx->lo") &&
         checkSupported("MULT_UNSIGNED_HILO", encodeR(OPCODE_SPECIAL, 1, 2, 0, 0, SPECIAL_MULTU), "ctx->hi") &&
         checkSupported("DIV_SIGNED_EDGE_GUARDS", encodeR(OPCODE_SPECIAL, 1, 2, 0, 0, SPECIAL_DIV), "divisor == -1 && dividend == INT32_MIN") &&
@@ -137,7 +137,7 @@ int main()
     const auto addOverflowInst = decoder.decodeInstruction(
         0x00100000u, encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, SPECIAL_ADD), true);
     const auto addOverflowCode = generator.translateInstruction(addOverflowInst);
-    const auto addSignal = addOverflowCode.find("SignalException(ctx, EXCEPTION_INTEGER_OVERFLOW)");
+    const auto addSignal = addOverflowCode.find("SignalException(ctx, Ps2EeExceptionCode::IntegerOverflow)");
     const auto addCommit = addOverflowCode.find("SET_GPR_S32(ctx, 3");
     if (addSignal == std::string::npos || addCommit == std::string::npos ||
         addSignal >= addCommit || addOverflowCode.find("else") == std::string::npos)
@@ -150,7 +150,7 @@ int main()
     const auto subOverflowInst = decoder.decodeInstruction(
         0x00100000u, encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, SPECIAL_SUB), true);
     const auto subOverflowCode = generator.translateInstruction(subOverflowInst);
-    const auto subSignal = subOverflowCode.find("SignalException(ctx, EXCEPTION_INTEGER_OVERFLOW)");
+    const auto subSignal = subOverflowCode.find("SignalException(ctx, Ps2EeExceptionCode::IntegerOverflow)");
     const auto subCommit = subOverflowCode.find("SET_GPR_S32(ctx, 3");
     if (subSignal == std::string::npos || subCommit == std::string::npos ||
         subSignal >= subCommit || subOverflowCode.find("SUB32_OV") == std::string::npos ||
