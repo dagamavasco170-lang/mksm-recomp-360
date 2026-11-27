@@ -23,3 +23,12 @@ The regression fixture checks the generated-entry call contract, guest memory
 ownership, PC/GPR mutation, context-based syscall argument/return registers,
 and the existing file-I/O path. The test source has been committed but was not
 compiled or executed in this editing environment.
+
+
+## PC-to-generated-block dispatch
+
+The host function-table emitter now emits a sparse `g_ps2RecompiledBlockEntries` map alongside the legacy dense table. Each row contains a guest EE entry/resume PC selected by the existing function discovery logic and its generated function pointer. Xbox FileIO entries resolve to the same Xbox IOMAN bridge as the dense table.
+
+`RecompiledBlockDispatcher` loads that sparse map and resolves `R5900Context::pc` to one generated function. It executes sequential blocks until the PC is unmapped, a block makes no PC progress, or the caller-supplied block budget is exhausted. The budget is mandatory; no unbounded guest loop is possible through this API. Unknown PCs are reported rather than guessed from address ranges.
+
+The map is only as complete as the generated function list supplied to the emitter. This does not establish that all title code is recompiled, nor does it add EE exceptions, interrupts, COP0, VU/GS scheduling, or cycle accuracy. Tests use synthetic fixture PCs to verify dispatch mechanics, not game execution.
