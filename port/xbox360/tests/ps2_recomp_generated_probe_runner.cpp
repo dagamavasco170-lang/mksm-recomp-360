@@ -25,10 +25,10 @@ int main()
         ((exceptionContext.cop0_cause >> 2u) & 0x1Fu) != 12u ||
         (exceptionContext.cop0_status & 2u) == 0u)
     {
-        std::printf("MKSM_RECOMP_EXCEPTION_TRACE FAIL\\n");
+        std::printf("MKSM_RECOMP_EXCEPTION_TRACE FAIL\n");
         return 1;
     }
-    std::printf("MKSM_RECOMP_EXCEPTION_TRACE PASS epc=%08X cause=%08X\\n",
+    std::printf("MKSM_RECOMP_EXCEPTION_TRACE PASS epc=%08X cause=%08X\n",
         static_cast<unsigned>(exceptionContext.cop0_epc),
         static_cast<unsigned>(exceptionContext.cop0_cause));
     constexpr std::uint32_t returnPc = 0xCAFE1234u;
