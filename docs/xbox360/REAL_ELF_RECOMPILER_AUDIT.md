@@ -92,3 +92,21 @@ This is an instruction-emission coverage gate, not a proof of cycle accuracy or
 full EE semantics. Unsupported instructions remain explicit blockers in the
 recompiler report; they must be implemented and tested before the related game
 functions can be considered runtime-ready.
+## Generated-code semantic execution gate
+
+The native host CI now executes the PS2Recomp-generated synthetic EE function,
+not just builds it. This probe checks emitted code against explicit expected
+state for integer arithmetic, branch/delay-slot behavior, register values,
+loads/stores, byte/halfword access, sign extension, RDRAM wrap, unaligned
+LQ/SQ, LWL/LWR/SWL/SWR at all four byte offsets, and the generated MMI
+HI/LO lane probe. The probe returns nonzero on any mismatch. The Xenia guest
+smoke additionally requires the generated MMI trace marker to report zero
+failures, so a missing or failing MMI trace cannot be hidden behind the overall
+smoke marker.
+
+
+This is a focused synthetic semantic gate; it is not a differential run against
+hardware or a complete EE instruction suite. Overflow/trap, COP0 exception,
+cycle/timing, and physical-console behavior remain uncovered until dedicated
+reference vectors and implementations are added.
+
