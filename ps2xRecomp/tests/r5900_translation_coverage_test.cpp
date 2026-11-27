@@ -143,7 +143,7 @@ int main()
         addSignal >= addCommit || addOverflowCode.find("else") == std::string::npos)
     {
         std::cerr << "R5900_OVERFLOW_FAIL ADD overflow guard/commit ordering: "
-                  << addOverflowCode << '\\n';
+                  << addOverflowCode << '\n';
         return 1;
     }
 
@@ -157,10 +157,10 @@ int main()
         subOverflowCode.find("else") == std::string::npos)
     {
         std::cerr << "R5900_OVERFLOW_FAIL SUB overflow guard/commit ordering: "
-                  << subOverflowCode << '\\n';
+                  << subOverflowCode << '\n';
         return 1;
     }
-    std::cout << "R5900_OVERFLOW_EMISSION_PASS add=sub_guarded sub=sub_guarded\\n";
+    std::cout << "R5900_OVERFLOW_EMISSION_PASS add=sub_guarded sub=sub_guarded\n";
 
     std::size_t conservativeFallbacks = 0;
     auto checkUnsupported = [&](const char *name, uint32_t raw)
