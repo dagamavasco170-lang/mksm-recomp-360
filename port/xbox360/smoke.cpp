@@ -28,12 +28,67 @@
 #include "ps2_iop_ioman_trace_ring.h"
 #if defined(MKSM_HAS_GENERATED_RECOMP_PROBE)
 #include "ps2_generated_runtime_abi.h"
+#include "ps2_runtime_bootstrap.h"
 #endif
 #include "runtime/ps2_pad.h"
 
 #if defined(MKSM_HAS_GENERATED_RECOMP_PROBE)
 bool checkGeneratedRecompProbe();
 #endif
+
+#if defined(MKSM_HAS_GENERATED_RECOMP_PROBE)
+namespace
+{
+bool checkGeneratedBlockDispatch()
+{
+    using namespace ps2::xbox360;
+    constexpr std::uint32_t entryPc = 0x00100000u; // synthetic fixture entry
+    constexpr std::uint32_t returnPc = 0xCAFE1234u;
+
+    PS2RuntimeBootstrap bootstrap(std::filesystem::path{});
+    if (!bootstrap.registerGeneratedBlocks() ||
+        bootstrap.blockDispatcher().size() == 0u)
+    {
+        xsdk_log_write("MKSM_RECOMP_BLOCK_MAP_FAIL count=%u",
+                       static_cast<unsigned>(g_ps2RecompiledBlockEntryCount));
+        return false;
+    }
+
+    auto &ctx = bootstrap.context();
+    ctx.pc = entryPc;
+    ctx.r[31].low64 = returnPc;
+    ctx.r[8].low64 = 0x01FFFFF8u;
+    ctx.r[20].low64 = 0x20000000u;
+    ctx.r[9].low64 = 0xA1B2C3D4u;
+    ctx.r[14].low64 = 0x0123456789ABCDEFull;
+    ctx.r[16].low64 = 0x5Au;
+    ctx.r[18].low64 = 0xBEEFu;
+
+    const auto result = bootstrap.runGeneratedBlocks(4u);
+    const bool passed =
+        result.status == BlockDispatchStatus::UnknownProgramCounter &&
+        result.executedBlocks == 1u &&
+        result.lastPc == returnPc &&
+        static_cast<std::uint32_t>(ctx.r[1].low64) == 0x12345678u &&
+        static_cast<std::uint32_t>(ctx.r[2].low64) == 0x12345677u &&
+        static_cast<std::uint32_t>(ctx.r[3].low64) == 0x12345688u &&
+        static_cast<std::uint32_t>(ctx.r[6].low64) == 9u &&
+        static_cast<std::uint32_t>(ctx.r[7].low64) == 12u;
+
+    xsdk_log_write(
+        "MKSM_RECOMP_BLOCK_DISPATCH status=%u blocks=%u entry=%08X exit=%08X "
+        "map_count=%u failures=%08X fixture=synthetic",
+        static_cast<unsigned>(result.status),
+        static_cast<unsigned>(result.executedBlocks),
+        static_cast<unsigned>(entryPc),
+        static_cast<unsigned>(result.lastPc),
+        static_cast<unsigned>(g_ps2RecompiledBlockEntryCount),
+        passed ? 0u : 1u);
+    return passed;
+}
+} // namespace
+#endif
+
 
 static_assert(sizeof(void *) == 4u, "Xbox 360 target must use a 32-bit pointer ABI");
 static_assert(std::endian::native == std::endian::big,
@@ -571,6 +626,11 @@ int main()
     {
         xsdk_log_write("MKSM smoke: PS2Recomp-generated Xenon probe failed");
         return 6;
+    }
+    if (!checkGeneratedBlockDispatch())
+    {
+        xsdk_log_write("MKSM smoke: generated block dispatcher integration failed");
+        return 11;
     }
 #endif
 
