@@ -198,7 +198,7 @@ int main()
         GPR_U64(arithmeticCtx, 16) != 0u;
     std::printf("MKSM_RECOMP_ARITHMETIC_TRACE failures=%08X pc=%08X "
                 "mult=%016llX/%016llX multu=%016llX/%016llX "
-                "div=%016llX/%016llX divu=%016llX/%016llX\\n",
+                "div=%016llX/%016llX divu=%016llX/%016llX\n",
                 static_cast<unsigned>(arithmeticFailed ? 1u : 0u),
                 static_cast<unsigned>(arithmeticContext.pc),
                 static_cast<unsigned long long>(GPR_U64(arithmeticCtx, 3)),
