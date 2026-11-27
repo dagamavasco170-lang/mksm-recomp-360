@@ -30,6 +30,15 @@ namespace ps2recomp
             bool hasAddress = false;
         };
 
+        struct FunctionResult
+        {
+            std::string name;
+            uint32_t start = 0;
+            uint32_t end = 0;
+            std::string status;
+            std::string reason;
+        };
+
         struct Counters
         {
             size_t functionsDiscovered = 0;
@@ -59,6 +68,9 @@ namespace ps2recomp
 
         void recordDiscovered(size_t functions, size_t symbols, size_t sections, size_t relocations);
         void recordFunctionProcessed();
+        void recordFunctionResult(const std::string &name, uint32_t start, uint32_t end,
+                                  const std::string &status, const std::string &reason = {});
+        bool writeJson(const std::string &path) const;
         void recordFunctionRecompiled();
         void recordFunctionStubbed();
         void recordFunctionSkipped();
@@ -91,6 +103,7 @@ namespace ps2recomp
         mutable std::mutex m_mutex;
         Counters m_counters;
         std::vector<Event> m_events;
+        std::vector<FunctionResult> m_functionResults;
     };
 }
 
