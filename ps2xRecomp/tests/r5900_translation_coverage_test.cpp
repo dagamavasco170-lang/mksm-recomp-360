@@ -150,8 +150,8 @@ int main()
                          encodeI(OPCODE_LWC2, 1, 2, 0)) &&
         checkUnsupported("SWC2_UNIMPLEMENTED",
                          encodeI(OPCODE_SWC2, 1, 2, 0)) &&
-        checkUnsupported("COP3_UNIMPLEMENTED",
-                         encodeI(OPCODE_COP3, 0, 0, 0));
+        checkUnsupported("COP0_CO_UNIMPLEMENTED",
+                         encodeCopRegister(OPCODE_COP0, COP0_CO, 0, 0) | 0x3Fu);
 
     if (!unsupportedOk)
         return 1;
