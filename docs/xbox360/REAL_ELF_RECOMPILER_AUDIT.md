@@ -77,8 +77,8 @@ The host CTest target `r5900_translation_coverage` drives decoded R5900 words
 through the production `R5900Decoder` and `CodeGenerator::translateInstruction`.
 It checks representative EE integer, quadword-memory, COP0, FPU, MMI, and VU
 translations against expected emitted C++ fragments. It also asserts that
-currently unsupported COP0/FPU/VU control-register accesses, LWC2/SWC2, and
-unsupported COP0 CO operations are surfaced through the unhandled-instruction diagnostic
+unsupported primary opcodes and SPECIAL, REGIMM, MMI, FPU, COP0, and VU decode
+paths are surfaced through the unhandled-instruction diagnostic
 instead of being emitted as fake zero values or silent no-ops.
 
 Run it with:
