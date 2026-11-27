@@ -290,7 +290,7 @@ inline std::uint32_t ps2XboxFioArg(const R5900Context *ctx, std::uint32_t reg) n
 inline void ps2XboxFioReturn(R5900Context *ctx, std::int32_t value) noexcept
 {
     if (ctx != nullptr)
-        ctx->r[2].low64 = static_cast<std::uint64_t>(static_cast<std int64_t>(value));
+        ctx->r[2].low64 = static_cast<std::uint64_t>(static_cast<std::int64_t>(value));
 }
 inline std::span<std::uint8_t> ps2XboxFioRam(std::uint8_t *rdram) noexcept
 {
