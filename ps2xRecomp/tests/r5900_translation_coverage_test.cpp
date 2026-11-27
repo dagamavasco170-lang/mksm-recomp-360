@@ -119,7 +119,15 @@ int main()
         checkSupported("ADD_S", addSingle, "FPU_ADD_S") &&
         checkSupported("PSLLW", encodeR(OPCODE_MMI, 0, 2, 3, 5, MMI_PSLLW), "_mm_slli_epi32") &&
         checkSupported("CFC2_VPU_STAT", cfc2Status, "ctx->vu0_vpu_stat") &&
-        checkSupported("VU_VSUB", vsub, "ps2VuSub(ctx");
+        checkSupported("VU_VSUB", vsub, "ps2VuSub(ctx") &&
+        checkSupported("ADD_OVERFLOW_GUARD", encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, SPECIAL_ADD), "EXCEPTION_INTEGER_OVERFLOW") &&
+        checkSupported("SUB_OVERFLOW_GUARD", encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, SPECIAL_SUB), "EXCEPTION_INTEGER_OVERFLOW") &&
+        checkSupported("MULT_SIGNED_HILO", encodeR(OPCODE_SPECIAL, 1, 2, 0, 0, SPECIAL_MULT), "ctx->lo") &&
+        checkSupported("MULT_UNSIGNED_HILO", encodeR(OPCODE_SPECIAL, 1, 2, 0, 0, SPECIAL_MULTU), "ctx->hi") &&
+        checkSupported("DIV_SIGNED_EDGE_GUARDS", encodeR(OPCODE_SPECIAL, 1, 2, 0, 0, SPECIAL_DIV), "divisor == -1 && dividend == INT32_MIN") &&
+        checkSupported("DIV_UNSIGNED_ZERO_GUARD", encodeR(OPCODE_SPECIAL, 1, 2, 0, 0, SPECIAL_DIVU), "divisor != 0") &&
+        checkSupported("MFHI", encodeR(OPCODE_SPECIAL, 0, 0, 3, 0, SPECIAL_MFHI), "ctx->hi") &&
+        checkSupported("MFLO", encodeR(OPCODE_SPECIAL, 0, 0, 3, 0, SPECIAL_MFLO), "ctx->lo");
 
     if (!supportedOk)
         return 1;
