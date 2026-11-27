@@ -10,6 +10,12 @@ namespace
 {
 bool g_entrySawExpectedRuntime = false;
 
+void blockA(std::uint8_t *, R5900Context *context, PS2Runtime *) { context->pc = 0x00100004u; }
+void blockB(std::uint8_t *, R5900Context *context, PS2Runtime *) { context->pc = 0x00100008u; }
+void blockNoProgress(std::uint8_t *, R5900Context *, PS2Runtime *) {}
+void blockLoopA(std::uint8_t *, R5900Context *context, PS2Runtime *) { context->pc = 0x00200004u; }
+void blockLoopB(std::uint8_t *, R5900Context *context, PS2Runtime *) { context->pc = 0x00200000u; }
+
 void generatedFixture(std::uint8_t *rdram, R5900Context *context, PS2Runtime *runtime)
 {
     g_entrySawExpectedRuntime = rdram != nullptr && context != nullptr && runtime != nullptr;
@@ -84,6 +90,38 @@ int main()
     assert(bootstrap.eeRdram()[0x180u] == 0xA5u);
     assert(bootstrap.context().pc == 0x00102030u);
     assert(bootstrap.context().r[2].low64 == 0x1234u);
+
+    const std::array<PS2GeneratedBlockEntry, 2> generatedMap{{
+        {0x00100000u, &blockA}, {0x00100004u, &blockB},
+    }};
+    assert(bootstrap.registerGeneratedBlocks(generatedMap));
+    assert(bootstrap.blockDispatcher().size() == 2u);
+    bootstrap.context().pc = 0x00100000u;
+    auto dispatch = bootstrap.runGeneratedBlocks(8u);
+    assert(dispatch.status == BlockDispatchStatus::UnknownProgramCounter);
+    assert(dispatch.executedBlocks == 2u && dispatch.lastPc == 0x00100008u);
+
+    const std::array<PS2GeneratedBlockEntry, 2> loopMap{{
+        {0x00200000u, &blockLoopA}, {0x00200004u, &blockLoopB},
+    }};
+    assert(bootstrap.registerGeneratedBlocks(loopMap));
+    bootstrap.context().pc = 0x00200000u;
+    dispatch = bootstrap.runGeneratedBlocks(3u);
+    assert(dispatch.status == BlockDispatchStatus::BudgetExhausted);
+    assert(dispatch.executedBlocks == 3u);
+
+    const std::array<PS2GeneratedBlockEntry, 1> noProgressMap{{
+        {0x00300000u, &blockNoProgress},
+    }};
+    assert(bootstrap.registerGeneratedBlocks(noProgressMap));
+    bootstrap.context().pc = 0x00300000u;
+    dispatch = bootstrap.runGeneratedBlocks(5u);
+    assert(dispatch.status == BlockDispatchStatus::NoProgress);
+    assert(dispatch.executedBlocks == 1u);
+    assert(!bootstrap.blockDispatcher().bind(0x00300002u, &blockNoProgress));
+    assert(!bootstrap.blockDispatcher().bind(0x00300004u, nullptr));
+    bootstrap.reset();
+    assert(bootstrap.blockDispatcher().size() == 0u);
 
     assert(bootstrap.dispatchEeIomanSyscall(0x99u, 0u, 0u, 0u) == -ENOSYS);
     bootstrap.reset();
