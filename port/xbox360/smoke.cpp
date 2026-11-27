@@ -92,7 +92,7 @@ bool checkGeneratedBlockDispatch()
         static_cast<unsigned>(entryPc),
         static_cast<unsigned>(result.lastPc),
         static_cast<unsigned>(g_ps2RecompiledBlockEntryCount),
-        passed ? 0u : 1u);
+        (passed && memoryPassed) ? 0u : 1u);
     return passed && memoryPassed;
 }
 } // namespace
