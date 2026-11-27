@@ -50,13 +50,11 @@ def parse_report(text: str):
         severity, category, function, address, message = match.groups()
         raw = RAW_RE.search(message)
         events.append({
-            "severity": severity,
-            "category": category,
+            "severity": severity, "category": category,
             "function": (function or "").strip(),
             "address": int(address, 16) if address else None,
             "raw_instruction": int(raw.group(1), 16) if raw else None,
-            "message": message.strip(),
-            "source_line": line.strip(),
+            "message": message.strip(), "source_line": line.strip(),
         })
     return counters, events
 
@@ -65,9 +63,8 @@ def load_inventory(path: Path):
     with path.open(newline="", encoding="utf-8-sig") as stream:
         rows = list(csv.DictReader(stream))
     for row in rows:
-        value = row.get("address", "")
         try:
-            row["_address"] = int(value, 0)
+            row["_address"] = int(row.get("address", ""), 0)
         except ValueError:
             row["_address"] = None
     return rows
@@ -75,7 +72,7 @@ def load_inventory(path: Path):
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("report", type=Path, help="stdout/stderr capture from ps2_recomp")
+    ap.add_argument("report", type=Path, help="structured JSON report or legacy stdout/stderr capture")
     ap.add_argument("--functions", type=Path, required=True,
                     help="function_inventory.csv from prepare_real_ps2_elf.py")
     ap.add_argument("--out-dir", type=Path, default=Path("build/real-elf/audit"))
@@ -109,17 +106,24 @@ def main() -> int:
         function_results = {}
 
     inventory = load_inventory(inventory_path)
-
     by_name = defaultdict(list)
+    by_address = defaultdict(list)
     for row in inventory:
         if row.get("name"):
             by_name[row["name"]].append(row)
+        if row.get("_address") is not None:
+            by_address[row["_address"]].append(row)
 
     function_events = defaultdict(list)
     unbound_events = []
     for event in events:
-        name = event["function"]
-        matches = by_name.get(name, []) if name else []
+        address = event.get("address")
+        if structured is not None and address is not None:
+            # Guest addresses are authoritative; symbol names may differ or collide.
+            matches = by_address.get(int(address), [])
+        else:
+            name = event["function"]
+            matches = by_name.get(name, []) if name else []
         if matches:
             for row in matches:
                 function_events[row["address"]].append(event)
@@ -155,14 +159,10 @@ def main() -> int:
         else:
             disposition = "no-reported-event-unverified"
         audited.append({
-            "address": row.get("address", ""),
-            "size": row.get("size", ""),
-            "name": row.get("name", ""),
-            "elf_triage": row.get("triage", ""),
-            "recompiler_status": source_status,
-            "disposition": disposition,
-            "error_events": errors,
-            "warning_events": warnings,
+            "address": row.get("address", ""), "size": row.get("size", ""),
+            "name": row.get("name", ""), "elf_triage": row.get("triage", ""),
+            "recompiler_status": source_status, "disposition": disposition,
+            "error_events": errors, "warning_events": warnings,
             "event_categories": ";".join(categories),
             "event_messages": " | ".join(e["message"] for e in row_events),
         })
@@ -172,19 +172,15 @@ def main() -> int:
     json_path = out_dir / "recompiler_audit.json"
     csv_path = out_dir / "function_audit.csv"
     summary = {
-        "schema": 1,
-        "report": str(report_path),
-        "inventory": str(inventory_path),
+        "schema": 1, "report": str(report_path), "inventory": str(inventory_path),
         "report_format": "structured-json" if structured is not None else "legacy-text",
-        "counters": counters,
-        "function_result_count": len(function_results),
+        "counters": counters, "function_result_count": len(function_results),
         "event_count": len(events),
         "event_severity_counts": dict(Counter(e["severity"] for e in events)),
         "event_category_counts": dict(Counter(e["category"] for e in events)),
         "inventory_count": len(inventory),
         "function_disposition_counts": dict(Counter(r["disposition"] for r in audited)),
-        "unbound_event_count": len(unbound_events),
-        "unbound_events": unbound_events,
+        "unbound_event_count": len(unbound_events), "unbound_events": unbound_events,
         "events": events,
         "limitations": [
             "No event for a function is not proof that it translated correctly.",
