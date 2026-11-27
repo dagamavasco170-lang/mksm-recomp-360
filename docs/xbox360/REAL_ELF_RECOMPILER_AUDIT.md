@@ -109,4 +109,13 @@ This is a focused synthetic semantic gate; it is not a differential run against
 hardware or a complete EE instruction suite. Overflow/trap, COP0 exception,
 cycle/timing, and physical-console behavior remain uncovered until dedicated
 reference vectors and implementations are added.
+## Arithmetic and HI/LO translation guard coverage
 
+The R5900 translation-coverage test now explicitly checks that ADD/SUB emit
+integer-overflow exception guards, MULT/MULTU route their results into HI/LO,
+DIV contains the signed zero-divisor and INT32_MIN/-1 guards, DIVU contains a
+zero-divisor guard, and MFHI/MFLO read the expected context fields. These are
+emission-level regression checks only: they do not execute these generated
+arithmetic snippets against independent reference vectors. A dedicated generated
+arithmetic execution probe remains a follow-up before treating this area as
+semantically validated.
