@@ -78,6 +78,10 @@ jobs:
         run: |
           ctest --test-dir build/xbox360-codegen --output-on-failure -R 'ps2recomp_reporter_json_write|r5900_translation_coverage'
           python3 -m unittest discover -s tools/tests -p "test_audit_ps2recomp_report.py" -v
+      - name: Execute generated EE semantic probes on host reference runtime
+        run: |
+          build/xbox360-codegen/ps2xRecomp/mksm_xbox360_codegen_probe
+          build/xbox360-codegen/ps2xRecomp/mksm_xbox360_codegen_memory_probe
       - name: Execute generated EE function with Xenon memory ABI on host
         run: build/xbox360-codegen/ps2xRecomp/mksm_xbox360_codegen_memory_probe
       - name: Validate generated artifacts and sparse PC map
@@ -252,6 +256,7 @@ jobs:
                 'MKSM_RECOMP_XENON_TRACE failures=00000000',
                 'MKSM_RECOMP_LQ_SQ_TRACE failures=00000000',
                 'MKSM_RECOMP_UNALIGNED_MERGE_TRACE failures=00000000',
+                'MKSM_RECOMP_MMI_TRACE failures=00000000',
                 'MKSM_RECOMP_BLOCK_DISPATCH status=1 blocks=1 entry=00100000 exit=CAFE1234 map_count=',
                 'fixture=synthetic',
                 'MKSM_SPR_DMA_TRACE failures=00000000',
