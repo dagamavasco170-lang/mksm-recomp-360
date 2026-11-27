@@ -49,8 +49,9 @@ the fixture's sentinel return PC `0xCAFE1234`, reported as
 intentional return boundary, not a runtime failure. The log marker is
 `MKSM_RECOMP_BLOCK_DISPATCH` and identifies the run as synthetic.
 
-This proves the generated C++ function can be reached through the actual
-emitted PC map and invoked by the Xbox runtime dispatcher. It does not prove
+When the smoke target is successfully built and run, this check will demonstrate
+that the generated C++ function can be reached through the emitted PC map and
+invoked by the Xbox runtime dispatcher. The source change alone does not prove
 the retail title's ELF was recompiled or that the game's real entry point,
 syscalls, assets, GPU path, or full EE state are ready. A title execution
 requires a verified title ELF, entry-point metadata, and a generated map
