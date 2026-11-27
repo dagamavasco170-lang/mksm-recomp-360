@@ -51,3 +51,22 @@ Run the structured-address and legacy-log correlation tests:
 ```powershell
 py -3 -m unittest tools.tests.test_audit_ps2recomp_report -v
 ```
+
+## Host regression checks
+
+The reporter JSON writer has a focused C++ test target. Configure the host
+build with PS2Recomp enabled, build the test, then run it through CTest:
+
+```powershell
+cmake -S . -B build/host -DPS2X_BUILD_RUNTIME=OFF -DPS2X_BUILD_ANALYZER=OFF -DPS2X_BUILD_TEST=OFF -DPS2X_BUILD_STUDIO=OFF
+cmake --build build/host --target ps2recomp_reporter_json_test
+ctest --test-dir build/host --output-on-failure -R ps2recomp_reporter_json_write
+```
+
+The audit parser regression suite exercises structured-address correlation,
+legacy logs, unknown addresses, duplicate symbol names, ELF triage precedence,
+and conservative function dispositions:
+
+```powershell
+py -3 -m unittest discover -s tools/tests -p "test_audit_ps2recomp_report.py" -v
+```
