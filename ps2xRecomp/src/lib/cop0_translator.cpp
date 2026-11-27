@@ -72,7 +72,7 @@ namespace ps2recomp
             case COP0_REG_ERROREPC:
                 return fmt::format("SET_GPR_S32(ctx, {}, (int32_t)ctx->cop0_errorepc);", rt);
             default:
-                return fmt::format("SET_GPR_S32(ctx, {}, 0);  // Unimplemented COP0 register {}", rt, rd);
+                return m_codeGenerator.emitUnhandledInstruction(inst, fmt::format("Unimplemented MFC0 register: {}", rd));
             }
         case COP0_MT:
             switch (rd)
@@ -122,7 +122,7 @@ namespace ps2recomp
             case COP0_REG_ERROREPC:
                 return fmt::format("ctx->cop0_errorepc = GPR_U32(ctx, {});", rt);
             default:
-                return fmt::format("// Unimplemented MTC0 to COP0 {}", rd);
+                return m_codeGenerator.emitUnhandledInstruction(inst, fmt::format("Unimplemented MTC0 register: {}", rd));
             }
         case COP0_BC:
             return fmt::format("// BC0 (Condition: 0x{:X}) - Handled by branch logic", rt);
