@@ -188,7 +188,7 @@ namespace ps2recomp
         ss << "namespace {\n";
         ss << "struct GeneratedFunctionTableInitializer {\n";
         ss << "    GeneratedFunctionTableInitializer() {\n";
-        ss << "#ifdef PS2X_GENERATED_RUNTIME_ABI\\n";
+        ss << "#ifdef PS2X_GENERATED_RUNTIME_ABI\n";
         ss << "        std::size_t sparseIndex = 0u;\\n";
         ss << "#endif\\n";
         for (const auto &[address, name] : entries)
