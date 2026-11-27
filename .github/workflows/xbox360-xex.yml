@@ -6,6 +6,8 @@ on:
     paths:
       - "port/xbox360/**"
       - "ps2xRecomp/**"
+      - "tools/**"
+      - "CMakeLists.txt"
       - "ps2xRuntime/include/**"
       - "ps2xRuntime/src/lib/Kernel/**"
       - ".github/workflows/xbox360-xex.yml"
@@ -14,6 +16,8 @@ on:
     paths:
       - "port/xbox360/**"
       - "ps2xRecomp/**"
+      - "tools/**"
+      - "CMakeLists.txt"
       - "ps2xRuntime/include/**"
       - "ps2xRuntime/src/lib/Kernel/**"
       - ".github/workflows/xbox360-xex.yml"
@@ -69,7 +73,11 @@ jobs:
             -DPS2X_BUILD_STUDIO=OFF \
             -DPS2X_BUILD_XBOX360_CODEGEN_PROBE=ON
       - name: Generate and execute desktop reference function
-        run: cmake --build build/xbox360-codegen --target mksm_xbox360_codegen_probe mksm_xbox360_codegen_memory_probe --parallel 2
+        run: cmake --build build/xbox360-codegen --target ps2recomp_reporter_json_test mksm_xbox360_codegen_probe mksm_xbox360_codegen_memory_probe --parallel 2
+      - name: Run recompiler report and audit regression tests
+        run: |
+          ctest --test-dir build/xbox360-codegen --output-on-failure -R ps2recomp_reporter_json_write
+          python3 -m unittest discover -s tools/tests -p "test_audit_ps2recomp_report.py" -v
       - name: Execute generated EE function with Xenon memory ABI on host
         run: build/xbox360-codegen/ps2xRecomp/mksm_xbox360_codegen_memory_probe
       - name: Validate generated artifacts and sparse PC map
