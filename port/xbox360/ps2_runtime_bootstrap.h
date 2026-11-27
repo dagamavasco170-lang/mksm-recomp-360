@@ -3,6 +3,7 @@
 #include "ps2_generated_runtime_abi.h"
 #include "ps2_iop_ioman_trace_ring.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
 #include <span>
