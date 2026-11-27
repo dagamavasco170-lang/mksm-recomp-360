@@ -167,7 +167,7 @@ int main()
     if (addFaultPc == std::string::npos || addDestination == std::string::npos)
     {
         std::cerr << "R5900_OVERFLOW_FAIL ADD fault PC/destination arguments: "
-                  << addOverflowCode << '\\n';
+                  << addOverflowCode << '\n';
         return 1;
     }
     const auto daddInst = decoder.decodeInstruction(
@@ -177,7 +177,7 @@ int main()
         daddCode.find("SET_GPR_S64(ctx, 3") == std::string::npos)
     {
         std::cerr << "R5900_OVERFLOW_FAIL DADD fault PC/destination arguments: "
-                  << daddCode << '\\n';
+                  << daddCode << '\n';
         return 1;
     }
     const auto dsubInst = decoder.decodeInstruction(
@@ -187,7 +187,7 @@ int main()
         dsubCode.find("SET_GPR_S64(ctx, 3") == std::string::npos)
     {
         std::cerr << "R5900_OVERFLOW_FAIL DSUB fault PC/destination arguments: "
-                  << dsubCode << '\\n';
+                  << dsubCode << '\n';
         return 1;
     }
     std::cout << "R5900_OVERFLOW_EMISSION_PASS add=sub_guarded sub=sub_guarded\n";
