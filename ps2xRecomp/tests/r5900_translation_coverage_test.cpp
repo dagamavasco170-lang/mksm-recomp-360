@@ -24,6 +24,11 @@ namespace
                (sa << 6) | (function & 0x3Fu);
     }
 
+    uint32_t encodeCopRegister(uint32_t opcode, uint32_t format, uint32_t rt, uint32_t rd)
+    {
+        return (opcode << 26) | (format << 21) | (rt << 16) | (rd << 11);
+    }
+
     bool expectSupported(CodeGenerator &generator, R5900Decoder &decoder,
                          RecompilerReporter &reporter, const char *name,
                          uint32_t raw, const char *expected)
@@ -93,14 +98,14 @@ int main()
     };
 
     const uint32_t mfc0Status =
-        encodeI(OPCODE_COP0, COP0_MF, 4, COP0_REG_STATUS);
+        encodeCopRegister(OPCODE_COP0, COP0_MF, 4, COP0_REG_STATUS);
     const uint32_t mtc0Status =
-        encodeI(OPCODE_COP0, COP0_MT, 4, COP0_REG_STATUS);
+        encodeCopRegister(OPCODE_COP0, COP0_MT, 4, COP0_REG_STATUS);
     const uint32_t addSingle =
         (OPCODE_COP1 << 26) | (COP1_S << 21) | (2u << 16) |
         (1u << 11) | (3u << 6) | COP1_S_ADD;
     const uint32_t cfc2Status =
-        encodeI(OPCODE_COP2, COP2_CFC2, 4, VU0_CR_VPU_STAT);
+        encodeCopRegister(OPCODE_COP2, COP2_CFC2, 4, VU0_CR_VPU_STAT);
     const uint32_t vsub =
         0x4A000000u | (2u << 16) | (1u << 11) | (7u << 6) | VU0_S1_VSUB;
 
@@ -129,17 +134,17 @@ int main()
 
     const bool unsupportedOk =
         checkUnsupported("MFC0_UNIMPLEMENTED_REGISTER",
-                         encodeI(OPCODE_COP0, COP0_MF, 4, 7)) &&
+                         encodeCopRegister(OPCODE_COP0, COP0_MF, 4, 7)) &&
         checkUnsupported("MTC0_UNIMPLEMENTED_REGISTER",
-                         encodeI(OPCODE_COP0, COP0_MT, 4, 7)) &&
+                         encodeCopRegister(OPCODE_COP0, COP0_MT, 4, 7)) &&
         checkUnsupported("CFC1_UNIMPLEMENTED_FCR",
-                         encodeI(OPCODE_COP1, COP1_CF, 4, 5)) &&
+                         encodeCopRegister(OPCODE_COP1, COP1_CF, 4, 5)) &&
         checkUnsupported("CTC1_UNIMPLEMENTED_FCR",
-                         encodeI(OPCODE_COP1, COP1_CT, 4, 5)) &&
+                         encodeCopRegister(OPCODE_COP1, COP1_CT, 4, 5)) &&
         checkUnsupported("CFC2_UNIMPLEMENTED_CONTROL",
-                         encodeI(OPCODE_COP2, COP2_CFC2, 4, 19)) &&
+                         encodeCopRegister(OPCODE_COP2, COP2_CFC2, 4, 19)) &&
         checkUnsupported("CTC2_UNIMPLEMENTED_CONTROL",
-                         encodeI(OPCODE_COP2, COP2_CTC2, 4, 19)) &&
+                         encodeCopRegister(OPCODE_COP2, COP2_CTC2, 4, 19)) &&
         checkUnsupported("LWC2_UNIMPLEMENTED",
                          encodeI(OPCODE_LWC2, 1, 2, 0)) &&
         checkUnsupported("SWC2_UNIMPLEMENTED",
