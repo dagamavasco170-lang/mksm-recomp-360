@@ -59,12 +59,66 @@ class AuditReportTests(unittest.TestCase):
         ])
         self.assertEqual(rows[0]["disposition"], "decoded-awaiting-codegen-validation")
 
-    def test_legacy_text_report_still_correlates_by_name(self):
-        rows, summary = self.run_audit("========== PS2Recomp report ==========\n", [
+    def test_legacy_event_correlates_by_name_and_address(self):
+        legacy = (
+            "========== PS2Recomp report ==========\n"
+            "  [warning] decode function=legacy_fn addr=0x3000 - unsupported guest operation\n"
+        )
+        rows, summary = self.run_audit(legacy, [
             {"address": "0x3000", "size": "4", "name": "legacy_fn", "triage": "candidate"}
+        ])
+        self.assertEqual(rows[0]["disposition"], "warning-review")
+        self.assertEqual(rows[0]["warning_events"], "1")
+        self.assertEqual(summary["report_format"], "legacy-text")
+        self.assertEqual(summary["unbound_event_count"], 0)
+
+    def test_structured_event_without_address_falls_back_to_exact_name(self):
+        report = {
+            "schema_version": 1, "counters": {}, "functions": [],
+            "events": [{"severity": "warning", "category": "control-flow",
+                        "function": "named_fn", "address": None, "message": "manual review"}],
+        }
+        rows, summary = self.run_audit(report, [
+            {"address": "0x4000", "size": "8", "name": "named_fn", "triage": "candidate"}
+        ])
+        self.assertEqual(rows[0]["disposition"], "warning-review")
+        self.assertEqual(rows[0]["warning_events"], "1")
+        self.assertEqual(summary["unbound_event_count"], 0)
+
+    def test_unknown_structured_address_is_preserved_as_unbound(self):
+        report = {
+            "schema_version": 1, "counters": {}, "functions": [],
+            "events": [{"severity": "error", "category": "decode",
+                        "function": "not_in_inventory", "address": 0xDEADBEEF,
+                        "message": "address not found"}],
+        }
+        rows, summary = self.run_audit(report, [
+            {"address": "0x5000", "size": "4", "name": "other_fn", "triage": "candidate"}
+        ])
+        self.assertEqual(rows[0]["disposition"], "no-reported-event-unverified")
+        self.assertEqual(summary["unbound_event_count"], 1)
+        self.assertEqual(summary["unbound_events"][0]["address"], 0xDEADBEEF)
+
+    def test_elf_triage_blocked_takes_precedence_over_translation_error(self):
+        report = {
+            "schema_version": 1, "counters": {}, "functions": [],
+            "events": [{"severity": "error", "category": "decode",
+                        "function": "bad_symbol", "address": 0x6000,
+                        "message": "bad decode"}],
+        }
+        rows, _ = self.run_audit(report, [
+            {"address": "0x6000", "size": "0", "name": "bad_symbol", "triage": "needs-boundary"}
+        ])
+        self.assertEqual(rows[0]["disposition"], "elf-triage-blocked")
+        self.assertEqual(rows[0]["error_events"], "1")
+
+    def test_legacy_empty_report_is_not_treated_as_success(self):
+        rows, summary = self.run_audit("========== PS2Recomp report ==========\n", [
+            {"address": "0x7000", "size": "4", "name": "unseen_fn", "triage": "candidate"}
         ])
         self.assertEqual(rows[0]["disposition"], "no-reported-event-unverified")
         self.assertEqual(summary["report_format"], "legacy-text")
+        self.assertEqual(summary["event_count"], 0)
 
 
 if __name__ == "__main__":
