@@ -5,7 +5,19 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
-#include <vector>
+
+namespace
+{
+bool g_entrySawExpectedRuntime = false;
+
+void generatedFixture(std::uint8_t *rdram, R5900Context *context, PS2Runtime *runtime)
+{
+    g_entrySawExpectedRuntime = rdram != nullptr && context != nullptr && runtime != nullptr;
+    rdram[0x180u] = 0xA5u;
+    context->pc = 0x00102030u;
+    context->r[2].low64 = 0x1234u;
+}
+}
 
 int main()
 {
@@ -33,29 +45,50 @@ int main()
     assert(bootstrap.bindIomanSyscall(kClose, IomanCommand::Close));
     assert(!bootstrap.bindIomanSyscall(kOpen, IomanCommand::Read));
 
-    std::vector<std::uint8_t> rdram(rdram_address::kRdramSize);
+    auto ram = bootstrap.eeRdram();
     constexpr std::uint32_t pathAddress = 0x20000020u;
     constexpr std::uint32_t bufferAddress = 0x20000100u;
     constexpr char path[] = "boot.bin";
     for (std::size_t i = 0; i < sizeof(path); ++i)
-        rdram[0x20u + i] = static_cast<std::uint8_t>(path[i]);
+        ram[0x20u + i] = static_cast<std::uint8_t>(path[i]);
 
-    const auto fd = bootstrap.dispatchEeIomanSyscall(kOpen, pathAddress, 1u, 0u, rdram);
+    const auto fd = bootstrap.dispatchEeIomanSyscall(kOpen, pathAddress, 1u, 0u);
     assert(fd >= iop::RetailFileIo::FirstDescriptor);
     assert(bootstrap.dispatchEeIomanSyscall(kRead, static_cast<std::uint32_t>(fd),
-                                            bufferAddress, 5u, rdram) == 5);
+                                            bufferAddress, 5u) == 5);
     constexpr std::array<std::uint8_t, 5> expected{0x4D, 0x4B, 0x53, 0x4D, 0x21};
     for (std::size_t i = 0; i < expected.size(); ++i)
-        assert(rdram[0x100u + i] == expected[i]);
+        assert(ram[0x100u + i] == expected[i]);
     assert(bootstrap.dispatchEeIomanSyscall(kSeek, static_cast<std::uint32_t>(fd),
-                                            0u, 0u, rdram) == 0);
+                                            0u, 0u) == 0);
     assert(bootstrap.dispatchEeIomanSyscall(kClose, static_cast<std::uint32_t>(fd),
-                                            0u, 0u, rdram) == 0);
+                                            0u, 0u) == 0);
     assert(bootstrap.ioman().openFileCount() == 0u);
     assert(bootstrap.trace().size() == 4u);
-    assert(bootstrap.dispatchEeIomanSyscall(0x99u, 0u, 0u, 0u, rdram) == -ENOSYS);
 
+    // Context register convention: a0=path, a1=flags, a2=unused, v0=result.
+    for (std::size_t i = 0; i < sizeof(path); ++i)
+        ram[0x20u + i] = static_cast<std::uint8_t>(path[i]);
+    bootstrap.context().r[4].low64 = pathAddress;
+    bootstrap.context().r[5].low64 = 1u;
+    bootstrap.context().r[6].low64 = 0u;
+    const auto contextFd = bootstrap.dispatchIomanFromContext(kOpen);
+    assert(contextFd >= iop::RetailFileIo::FirstDescriptor);
+    assert(static_cast<std::int32_t>(bootstrap.context().r[2].low64) == contextFd);
+    assert(bootstrap.dispatchEeIomanSyscall(kClose, static_cast<std::uint32_t>(contextFd),
+                                            0u, 0u) == 0);
+
+    assert(bootstrap.invokeGeneratedEntry(nullptr) == GeneratedEntryStatus::NullEntry);
+    assert(bootstrap.invokeGeneratedEntry(&generatedFixture) == GeneratedEntryStatus::Invoked);
+    assert(g_entrySawExpectedRuntime);
+    assert(bootstrap.eeRdram()[0x180u] == 0xA5u);
+    assert(bootstrap.context().pc == 0x00102030u);
+    assert(bootstrap.context().r[2].low64 == 0x1234u);
+
+    assert(bootstrap.dispatchEeIomanSyscall(0x99u, 0u, 0u, 0u) == -ENOSYS);
     bootstrap.reset();
+    assert(bootstrap.context().pc == 0u);
+    assert(bootstrap.eeRdram()[0x180u] == 0u);
     fs::remove_all(root);
     return 0;
 }
