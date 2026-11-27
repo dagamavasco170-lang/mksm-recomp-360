@@ -269,6 +269,17 @@ private:
 };
 
 
+// Sparse guest-PC map emitted from the verified generated-function list.
+struct PS2GeneratedBlockEntry
+{
+    std::uint32_t guestPc{};
+    PS2Runtime::RecompiledFunction function{};
+};
+
+extern const std::uint32_t g_ps2RecompiledBlockEntryCount;
+extern PS2GeneratedBlockEntry g_ps2RecompiledBlockEntries[];
+
+
 // Xbox generated-runtime FileIO shims. These match the PS2 runtime function-table
 // signature and route through the EE-pointer-aware IOMAN bridge.
 inline std::uint32_t ps2XboxFioArg(const R5900Context *ctx, std::uint32_t reg) noexcept
