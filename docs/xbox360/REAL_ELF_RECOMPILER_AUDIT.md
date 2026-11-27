@@ -119,5 +119,9 @@ delay-slot state. The arithmetic probe's generated adapter is required by the
 CI artifact validation.
 
 This remains focused synthetic coverage, not a hardware differential test.
-ADD/SUB overflow exceptions, broader divide edge vectors, COP0 exception state,
-cycle/timing behavior, and physical-console validation remain open.
+ADD/SUB overflow has an additional translator-emission gate: it checks that the
+overflow signal is present and the destination write remains in the guarded
+non-overflow path. This is still generated-text validation only; it does not
+execute overflow or prove exception-state/PC behavior. Runtime exception-state
+integration, broader divide vectors, COP0 state, cycle/timing, and physical-console
+validation remain open.
