@@ -98,11 +98,28 @@ namespace ps2recomp
         inst.modificationInfo.modifiesMemory = false;
         inst.modificationInfo.modifiesControl = false;
 
+        // These opcode-family flags are derived directly from the primary
+        // opcode so an invalid/reserved Rabbitizer descriptor still reaches
+        // the correct conservative translator path.
+        inst.isMMI = inst.opcode == OPCODE_MMI;
+        inst.isVU = inst.opcode == OPCODE_COP2 ||
+                    inst.opcode == OPCODE_LWC2 ||
+                    inst.opcode == OPCODE_LDC2 ||
+                    inst.opcode == OPCODE_SWC2 ||
+                    inst.opcode == OPCODE_SDC2;
+
         RabbitizerInstruction rabbitizerInst;
         RabbitizerInstructionR5900_init(&rabbitizerInst, rawInstruction, address);
         RabbitizerInstructionR5900_processUniqueId(&rabbitizerInst);
 
         const RabbitizerInstrDescriptor *desc = rabbitizerInst.descriptor;
+        if (desc == nullptr)
+        {
+            if (includeDisassembly)
+                inst.disassembly = "unknown/reserved R5900 instruction";
+            RabbitizerInstructionR5900_destroy(&rabbitizerInst);
+            return inst;
+        }
 
         inst.isBranch = RabbitizerInstrDescriptor_isBranch(desc);
         inst.isJump = RabbitizerInstrDescriptor_isJump(desc);
@@ -113,13 +130,6 @@ namespace ps2recomp
 
         inst.isLoad = RabbitizerInstrDescriptor_doesLoad(desc);
         inst.isStore = RabbitizerInstrDescriptor_doesStore(desc);
-
-        inst.isMMI = inst.opcode == OPCODE_MMI;
-        inst.isVU = inst.opcode == OPCODE_COP2 ||
-                    inst.opcode == OPCODE_LWC2 ||
-                    inst.opcode == OPCODE_LDC2 ||
-                    inst.opcode == OPCODE_SWC2 ||
-                    inst.opcode == OPCODE_SDC2;
 
         bool modifiesGpr = false;
         if (RabbitizerInstrDescriptor_modifiesRs(desc) && inst.rs != 0)
