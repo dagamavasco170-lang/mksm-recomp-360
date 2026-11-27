@@ -32,3 +32,6 @@ The host function-table emitter now emits a sparse `g_ps2RecompiledBlockEntries`
 `RecompiledBlockDispatcher` loads that sparse map and resolves `R5900Context::pc` to one generated function. It executes sequential blocks until the PC is unmapped, a block makes no PC progress, or the caller-supplied block budget is exhausted. The budget is mandatory; no unbounded guest loop is possible through this API. Unknown PCs are reported rather than guessed from address ranges.
 
 The map is only as complete as the generated function list supplied to the emitter. This does not establish that all title code is recompiled, nor does it add EE exceptions, interrupts, COP0, VU/GS scheduling, or cycle accuracy. Tests use synthetic fixture PCs to verify dispatch mechanics, not game execution.
+
+
+At runtime, after the generated translation unit is linked, call the no-argument `PS2RuntimeBootstrap::registerGeneratedBlocks()` overload to load the emitter-produced sparse table. The span-taking overload remains available for tests and externally supplied verified maps.
