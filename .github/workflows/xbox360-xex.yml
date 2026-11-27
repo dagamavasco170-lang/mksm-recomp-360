@@ -104,10 +104,11 @@ jobs:
           for macro in ('MKSM_RECOMP_GENERATED_PROBE_ENTRY',
                         'MKSM_RECOMP_GENERATED_SCRATCHPAD_ENTRY',
                         'MKSM_RECOMP_GENERATED_MMI_ENTRY',
-                        'MKSM_RECOMP_GENERATED_SPR_DMA_ENTRY'):
+                        'MKSM_RECOMP_GENERATED_SPR_DMA_ENTRY',
+                        'MKSM_RECOMP_GENERATED_ARITHMETIC_ENTRY'):
               if macro not in generated_header:
                   raise SystemExit(f'Generated adapter is missing {macro}')
-          print('MKSM_GENERATED_ARTIFACTS_PASS sparse-block-table=nonempty adapters=4')
+          print('MKSM_GENERATED_ARTIFACTS_PASS sparse-block-table=nonempty adapters=5')
           PY
       - name: Configure smoke target
         run: |
