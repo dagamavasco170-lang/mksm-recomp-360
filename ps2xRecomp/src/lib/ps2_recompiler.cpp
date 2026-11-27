@@ -1051,7 +1051,7 @@ namespace ps2recomp
                 function.isSkipped = false;
                 function.isRecompiled = true;
                 m_reporter.recordFunctionRecompiled();
-                m_reporter.recordFunctionResult(function.name, function.start, function.end, "recompiled", "decode completed; code generation is a separate stage");
+                m_reporter.recordFunctionResult(function.name, function.start, function.end, "decoded", "decode completed; code generation is a separate stage");
 #if _DEBUG
                 processedCount++;
                 if (processedCount % 100 == 0)
@@ -1070,7 +1070,7 @@ namespace ps2recomp
             for (size_t i = functionCountBeforeEntryDiscovery; i < m_functions.size(); ++i)
             {
                 const Function &entry = m_functions[i];
-                const std::string status = entry.isRecompiled ? "recompiled-entrypoint" :
+                const std::string status = entry.isRecompiled ? "decoded-entrypoint" :
                                            entry.isStub ? "stubbed" :
                                            entry.isSkipped ? "skipped" : "discovered-unprocessed";
                 m_reporter.recordFunctionResult(entry.name, entry.start, entry.end, status,
