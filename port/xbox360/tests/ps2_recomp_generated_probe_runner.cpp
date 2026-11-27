@@ -172,6 +172,46 @@ int main()
     if (mergeFailed)
         failures |= 1u << 9u;
 
+    // Execute generated arithmetic independently against hand-calculated reference values.
+    constexpr std::uint32_t arithmeticReturnPc = 0xCAFE7890u;
+    R5900Context arithmeticContext{};
+    R5900Context *arithmeticCtx = &arithmeticContext;
+    SET_GPR_U32(arithmeticCtx, 31, arithmeticReturnPc);
+    SET_GPR_U32(arithmeticCtx, 1, 0xFFFFFFF9u); // -7
+    SET_GPR_U32(arithmeticCtx, 2, 3u);
+    SET_GPR_U32(arithmeticCtx, 5, 0xFFFFFFFFu);
+    SET_GPR_U32(arithmeticCtx, 6, 2u);
+    SET_GPR_U32(arithmeticCtx, 9, 0xFFFFFFF9u); // -7
+    SET_GPR_U32(arithmeticCtx, 10, 3u);
+    SET_GPR_U32(arithmeticCtx, 13, 0xFFFFFFFFu);
+    SET_GPR_U32(arithmeticCtx, 14, 3u);
+    MKSM_RECOMP_GENERATED_ARITHMETIC_ENTRY(rdram.data(), arithmeticCtx, nullptr);
+    const bool arithmeticFailed = arithmeticContext.pc != arithmeticReturnPc ||
+        arithmeticContext.in_delay_slot ||
+        GPR_U64(arithmeticCtx, 3) != 0xFFFFFFFFFFFFFFEBull ||
+        GPR_U64(arithmeticCtx, 4) != 0u ||
+        GPR_U64(arithmeticCtx, 7) != 0xFFFFFFFFFFFFFFFEull ||
+        GPR_U64(arithmeticCtx, 8) != 1u ||
+        GPR_U64(arithmeticCtx, 11) != 0xFFFFFFFFFFFFFFFEull ||
+        GPR_U64(arithmeticCtx, 12) != 0xFFFFFFFFFFFFFFFFull ||
+        GPR_U64(arithmeticCtx, 15) != 0x55555555ull ||
+        GPR_U64(arithmeticCtx, 16) != 0u;
+    std::printf("MKSM_RECOMP_ARITHMETIC_TRACE failures=%08X pc=%08X "
+                "mult=%016llX/%016llX multu=%016llX/%016llX "
+                "div=%016llX/%016llX divu=%016llX/%016llX\\n",
+                static_cast<unsigned>(arithmeticFailed ? 1u : 0u),
+                static_cast<unsigned>(arithmeticContext.pc),
+                static_cast<unsigned long long>(GPR_U64(arithmeticCtx, 3)),
+                static_cast<unsigned long long>(GPR_U64(arithmeticCtx, 4)),
+                static_cast<unsigned long long>(GPR_U64(arithmeticCtx, 7)),
+                static_cast<unsigned long long>(GPR_U64(arithmeticCtx, 8)),
+                static_cast<unsigned long long>(GPR_U64(arithmeticCtx, 11)),
+                static_cast<unsigned long long>(GPR_U64(arithmeticCtx, 12)),
+                static_cast<unsigned long long>(GPR_U64(arithmeticCtx, 15)),
+                static_cast<unsigned long long>(GPR_U64(arithmeticCtx, 16)));
+    if (arithmeticFailed)
+        failures |= 1u << 10u;
+
     const auto mmi = runGeneratedMmiProbe(rdram.data());
     std::printf("MKSM_RECOMP_MMI_TRACE failures=%08X pc=%08X "
                 "pmfhl=%08X/%08X/%08X/%08X "
