@@ -148,6 +148,14 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         NAME ps2recomp_reporter_json_write
         COMMAND ps2recomp_reporter_json_test
             "${CMAKE_CURRENT_BINARY_DIR}/reporter-test/ps2_recomp_report.json")
+
+    add_executable(r5900_translation_coverage_test
+        tests/r5900_translation_coverage_test.cpp)
+    target_link_libraries(r5900_translation_coverage_test PRIVATE ps2_recomp_lib)
+    target_compile_features(r5900_translation_coverage_test PRIVATE cxx_std_20)
+    add_test(
+        NAME r5900_translation_coverage
+        COMMAND r5900_translation_coverage_test)
 endif()
 
 option(PS2X_BUILD_BRANCH64_CHECK "Build focused signed branch codegen regression" OFF)
