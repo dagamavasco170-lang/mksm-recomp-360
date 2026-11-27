@@ -137,7 +137,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebI
     EnableFastReleaseMode(ps2_recomp)
 endif()
 
-if(BUILD_TESTING)
+if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_executable(ps2recomp_reporter_json_test
         tests/recompiler_reporter_json_test.cpp
         src/lib/recompiler_reporter.cpp)
