@@ -75,6 +75,15 @@ bool checkGeneratedBlockDispatch()
         static_cast<std::uint32_t>(ctx.r[6].low64) == 9u &&
         static_cast<std::uint32_t>(ctx.r[7].low64) == 12u;
 
+    const auto ram = bootstrap.eeRdram();
+    const bool memoryPassed =
+        ram[0x01FFFFF8u] == 0xD4u && ram[0x01FFFFF9u] == 0xC3u &&
+        ram[0x01FFFFFAu] == 0xB2u && ram[0x01FFFFFBu] == 0xA1u &&
+        ram[0] == 0xEFu && ram[1] == 0xCDu && ram[2] == 0xABu &&
+        ram[3] == 0x89u && ram[4] == 0x67u && ram[5] == 0x45u &&
+        ram[6] == 0x23u && ram[7] == 0x5Au &&
+        ram[8] == 0xEFu && ram[9] == 0xBEu;
+
     xsdk_log_write(
         "MKSM_RECOMP_BLOCK_DISPATCH status=%u blocks=%u entry=%08X exit=%08X "
         "map_count=%u failures=%08X fixture=synthetic",
@@ -84,7 +93,7 @@ bool checkGeneratedBlockDispatch()
         static_cast<unsigned>(result.lastPc),
         static_cast<unsigned>(g_ps2RecompiledBlockEntryCount),
         passed ? 0u : 1u);
-    return passed;
+    return passed && memoryPassed;
 }
 } // namespace
 #endif
@@ -639,7 +648,7 @@ int main()
     xsdk_log_write("MKSM smoke: scalar PS2 packed-vector checks passed");
 #if defined(MKSM_XENIA_HEADLESS_SMOKE)
     xsdk_log_write("MKSM_XENIA_GRAPHICS_SKIPPED reason=xenia-has-no-display-controller");
-    xsdk_log_write("MKSM_XENIA_SMOKE_PASS checks=cpp20,guest-memory,ee,ee-lq-sq,ee-unaligned-merge,mmi,spr-dma,generated-recomp");
+    xsdk_log_write("MKSM_XENIA_SMOKE_PASS checks=cpp20,guest-memory,ee,ee-lq-sq,ee-unaligned-merge,mmi,spr-dma,generated-recomp,generated-block-dispatch");
     return 0;
 #else
     return runTitle();
