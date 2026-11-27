@@ -109,13 +109,15 @@ This is a focused synthetic semantic gate; it is not a differential run against
 hardware or a complete EE instruction suite. Overflow/trap, COP0 exception,
 cycle/timing, and physical-console behavior remain uncovered until dedicated
 reference vectors and implementations are added.
-## Arithmetic and HI/LO translation guard coverage
+## Arithmetic and HI/LO semantic execution coverage
 
-The R5900 translation-coverage test now explicitly checks that ADD/SUB emit
-integer-overflow exception guards, MULT/MULTU route their results into HI/LO,
-DIV contains the signed zero-divisor and INT32_MIN/-1 guards, DIVU contains a
-zero-divisor guard, and MFHI/MFLO read the expected context fields. These are
-emission-level regression checks only: they do not execute these generated
-arithmetic snippets against independent reference vectors. A dedicated generated
-arithmetic execution probe remains a follow-up before treating this area as
-semantically validated.
+The synthetic generated-code arithmetic probe now executes through the host runner
+and checks independent expected values for signed/unsigned MULT, DIV and DIVU,
+MFHI/MFLO, divisor-zero cases for signed and unsigned division, and the
+INT32_MIN / -1 signed division edge. It also checks the block return PC and
+delay-slot state. The arithmetic probe's generated adapter is required by the
+CI artifact validation.
+
+This remains focused synthetic coverage, not a hardware differential test.
+ADD/SUB overflow exceptions, broader divide edge vectors, COP0 exception state,
+cycle/timing behavior, and physical-console validation remain open.
