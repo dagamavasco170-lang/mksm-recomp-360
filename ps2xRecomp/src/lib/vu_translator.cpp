@@ -60,7 +60,7 @@ namespace ps2recomp
             case VU0_CR_CMSAR1:
                 return fmt::format("SET_GPR_U32(ctx, {}, ctx->vu0_cmsar1);", rt);
             default:
-                return fmt::format("// Unimplemented CFC2 VU control register: {}", rd);
+                return m_codeGenerator.emitUnhandledInstruction(inst, fmt::format("Unimplemented CFC2 VU control register: {}", rd));
             }
         }
         case COP2_QMTC2:
@@ -99,7 +99,7 @@ namespace ps2recomp
             case VU0_CR_CMSAR1:
                 return fmt::format("ctx->vu0_cmsar1 = GPR_U32(ctx, {});", rt);
             default:
-                return fmt::format("// Unimplemented CTC2 VU control register: {}", rd);
+                return m_codeGenerator.emitUnhandledInstruction(inst, fmt::format("Unimplemented CTC2 VU control register: {}", rd));
             }
         }
         case COP2_BC:
