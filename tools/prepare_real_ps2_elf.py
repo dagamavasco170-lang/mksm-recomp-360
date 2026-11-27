@@ -143,6 +143,47 @@ def main() -> int:
             seen.add(key)
             unique.append(fn)
 
+    # Classify symbols against executable PT_LOAD mappings. Only complete,
+    # non-zero, aligned, file-backed ranges are safe initial translation candidates.
+    for fn in unique:
+        start = fn["address"]
+        end = start + fn["size"]
+        match = next((seg for seg in loads
+                      if seg["flags"] & PF_X
+                      and seg["vaddr"] <= start < seg["vaddr"] + seg["memsz"]), None)
+        fn["executable_segment"] = match["index"] if match else ""
+        if match is None:
+            fn["triage"] = "outside-executable"
+            fn["triage_reason"] = "symbol start is not inside an executable PT_LOAD"
+        elif fn["size"] == 0:
+            fn["triage"] = "needs-boundary"
+            fn["triage_reason"] = "zero-sized symbol; recover extent from DWARF/Ghidra or adjacent symbols"
+        elif end > match["vaddr"] + match["memsz"]:
+            fn["triage"] = "invalid-range"
+            fn["triage_reason"] = "symbol range crosses executable PT_LOAD memory boundary"
+        elif end > match["vaddr"] + match["filesz"]:
+            fn["triage"] = "not-file-backed"
+            fn["triage_reason"] = "symbol extends into zero-filled PT_LOAD tail"
+        elif (start & 3) != 0 or (fn["size"] & 3) != 0:
+            fn["triage"] = "unaligned"
+            fn["triage_reason"] = "R5900 instruction address/size is not 4-byte aligned"
+        else:
+            fn["triage"] = "candidate"
+            fn["triage_reason"] = "complete aligned symbol range is file-backed in executable PT_LOAD"
+
+    # Overlapping function extents need manual boundary reconciliation.
+    by_segment = {}
+    for fn in unique:
+        if fn["triage"] == "candidate":
+            by_segment.setdefault(fn["executable_segment"], []).append(fn)
+    for segment_functions in by_segment.values():
+        segment_functions.sort(key=lambda fn: fn["address"])
+        for left, right in zip(segment_functions, segment_functions[1:]):
+            if left["address"] + left["size"] > right["address"]:
+                left["triage"] = right["triage"] = "overlap-review"
+                left["triage_reason"] = right["triage_reason"] = "function symbol ranges overlap"
+
+    triage_counts = Counter(fn["triage"] for fn in unique)
     opcode_counts = Counter()
     for seg in loads:
         if not (seg["flags"] & PF_X):
@@ -177,7 +218,7 @@ def main() -> int:
     config_path.write_text(config, encoding="utf-8")
 
     with csv_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["address", "size", "name", "section_index", "source_table"])
+        writer = csv.DictWriter(f, fieldnames=["address", "size", "name", "section_index", "source_table", "executable_segment", "triage", "triage_reason"])
         writer.writeheader()
         for fn in unique:
             writer.writerow({**fn, "address": f"0x{fn['address']:08X}",
@@ -188,7 +229,9 @@ def main() -> int:
                 "machine_id": machine, "type": e_type, "flags": f"0x{flags:08X}",
                 "entry_point": f"0x{entry:08X}", "entry_in_executable_load": entry_exec},
         "program_headers": {"load_segment_count": len(loads), "segments": loads},
-        "sections": {"count": shnum}, "functions": {"symbol_count": len(unique),
+        "sections": {"count": shnum}, "functions": {
+                "symbol_count": len(unique), "triage_counts": dict(sorted(triage_counts.items())),
+                "candidate_count": triage_counts["candidate"],
                 "inventory_csv": str(csv_path)},
         "instruction_words_in_executable_file_bytes": sum(opcode_counts.values()),
         "primary_opcode_histogram": dict(sorted(opcode_counts.items())),
@@ -199,7 +242,8 @@ def main() -> int:
                         "Do not treat this preflight as proof that the ELF fully recompiles or boots."]
     }
     report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    print(f"PS2_ELF_PREFLIGHT_PASS machine=EM_MIPS class=32 endian=little entry=0x{entry:08X} loads={len(loads)} functions={len(unique)}")
+    print(f"PS2_ELF_PREFLIGHT_PASS machine=EM_MIPS class=32 endian=little entry=0x{entry:08X} loads={len(loads)} functions={len(unique)} candidates={triage_counts['candidate']}")
+    print("function_triage=" + json.dumps(dict(sorted(triage_counts.items())), sort_keys=True))
     print(f"config={config_path}")
     print(f"report={report_path}")
     print(f"functions={csv_path}")
