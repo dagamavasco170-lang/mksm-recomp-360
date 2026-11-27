@@ -70,3 +70,25 @@ and conservative function dispositions:
 ```powershell
 py -3 -m unittest discover -s tools/tests -p "test_audit_ps2recomp_report.py" -v
 ```
+
+## R5900 translator coverage gate
+
+The host CTest target `r5900_translation_coverage` drives decoded R5900 words
+through the production `R5900Decoder` and `CodeGenerator::translateInstruction`.
+It checks representative EE integer, quadword-memory, COP0, FPU, MMI, and VU
+translations against expected emitted C++ fragments. It also asserts that
+currently unsupported COP0/FPU/VU control-register accesses, LWC2/SWC2, and
+COP3 instructions are surfaced through the unhandled-instruction diagnostic
+instead of being emitted as fake zero values or silent no-ops.
+
+Run it with:
+
+```powershell
+cmake --build build/host --target r5900_translation_coverage_test
+ctest --test-dir build/host --output-on-failure -R r5900_translation_coverage
+```
+
+This is an instruction-emission coverage gate, not a proof of cycle accuracy or
+full EE semantics. Unsupported instructions remain explicit blockers in the
+recompiler report; they must be implemented and tested before the related game
+functions can be considered runtime-ready.
