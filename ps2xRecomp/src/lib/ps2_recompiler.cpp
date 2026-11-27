@@ -992,6 +992,7 @@ namespace ps2recomp
                         function.isStub = true;
                         function.isSkipped = false;
                         m_reporter.recordFunctionStubbed();
+                        m_reporter.recordFunctionResult(function.name, function.start, function.end, "stubbed", "configured stub implementation");
                         continue;
                     }
 
@@ -1010,6 +1011,7 @@ namespace ps2recomp
                         function.isSkipped = true;
                         function.isStub = false;
                         m_reporter.recordFunctionSkipped();
+                        m_reporter.recordFunctionResult(function.name, function.start, function.end, "skipped", "configured skip rule");
                         continue;
                     }
 
@@ -1027,6 +1029,7 @@ namespace ps2recomp
                     m_reporter.recordDecodeFailure();
                     m_reporter.recordFunctionSkipped();
                     function.isSkipped = true;
+                    m_reporter.recordFunctionResult(function.name, function.start, function.end, "decode-failed", "decodeFunction returned false");
                     if (correctnessCritical)
                     {
                         ++correctnessCriticalFailureCount;
@@ -1048,6 +1051,7 @@ namespace ps2recomp
                 function.isSkipped = false;
                 function.isRecompiled = true;
                 m_reporter.recordFunctionRecompiled();
+                m_reporter.recordFunctionResult(function.name, function.start, function.end, "recompiled", "decode completed; code generation is a separate stage");
 #if _DEBUG
                 processedCount++;
                 if (processedCount % 100 == 0)
@@ -1061,7 +1065,17 @@ namespace ps2recomp
 #endif
             }
 
+            const size_t functionCountBeforeEntryDiscovery = m_functions.size();
             discoverAdditionalEntryPoints();
+            for (size_t i = functionCountBeforeEntryDiscovery; i < m_functions.size(); ++i)
+            {
+                const Function &entry = m_functions[i];
+                const std::string status = entry.isRecompiled ? "recompiled-entrypoint" :
+                                           entry.isStub ? "stubbed" :
+                                           entry.isSkipped ? "skipped" : "discovered-unprocessed";
+                m_reporter.recordFunctionResult(entry.name, entry.start, entry.end, status,
+                                                "additional control-flow entry point");
+            }
 
             if (failedCount > 0)
             {
@@ -1679,6 +1693,16 @@ namespace ps2recomp
             if (!generateStubHeader())
             {
                 throw std::runtime_error("Failed to generate stub header");
+            }
+
+            const fs::path reportPath = fs::path(m_config.outputPath) / "ps2_recomp_report.json";
+            if (!m_reporter.writeJson(reportPath.string()))
+            {
+                m_reporter.warning("report", "Failed to write structured report: " + reportPath.string());
+            }
+            else
+            {
+                m_reporter.progress("wrote structured report to " + reportPath.string());
             }
         }
         catch (const std::exception &e)
