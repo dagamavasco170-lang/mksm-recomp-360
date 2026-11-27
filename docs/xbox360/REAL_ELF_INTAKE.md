@@ -21,7 +21,9 @@ It writes locally:
 - `build/real-elf/elf_validation.json`: validated header, load map, symbol count,
   entry-point result and primary-opcode histogram;
 - `build/real-elf/function_inventory.csv`: named STT_FUNC symbols from ELF
-  SYMTAB/DYNSYM (may be empty for stripped files);
+  SYMTAB/DYNSYM (may be empty for stripped files), each classified as
+  `candidate`, `needs-boundary`, `outside-executable`, `not-file-backed`,
+  `unaligned`, `invalid-range`, or `overlap-review`;
 - `build/real-elf/recompile.real-elf.toml`: absolute-path configuration for the
   existing `ps2_recomp` executable, output directed to
   `build/real-elf/generated`.
@@ -38,6 +40,11 @@ The executable path depends on the generator (for Ninja/Make it is commonly
 not apply game-specific syscall/COP0/cache patches or infer Ghidra function maps.
 
 ## 2. Interpreting the report
+
+A function marked `candidate` has a non-zero, aligned symbol extent wholly contained
+in the file-backed portion of one executable PT_LOAD and does not overlap another
+candidate symbol. This is a conservative address/range filter, not proof that the
+function's instructions are supported or that the symbol boundary is correct.
 
 The opcode histogram counts 32-bit words in executable PT_LOAD file bytes and is
 only a **primary-opcode inventory**. It is not a decoder-support matrix: embedded
