@@ -188,17 +188,15 @@ namespace ps2recomp
         ss << "namespace {\n";
         ss << "struct GeneratedFunctionTableInitializer {\n";
         ss << "    GeneratedFunctionTableInitializer() {\n";
-        ss << "#ifdef PS2X_GENERATED_RUNTIME_ABI\n";
-        ss << "        std::size_t sparseIndex = 0u;\\n";
-        ss << "#endif\\n";
+        std::size_t sparseIndex = 0u;
         for (const auto &[address, name] : entries)
         {
             const uint32_t slot = (address - tableBase) >> 2;
             const std::string xboxBridge = xboxFioBridgeTarget(name);
-            ss << "#ifdef PS2X_GENERATED_RUNTIME_ABI\\n";
+            ss << "#ifdef PS2X_GENERATED_RUNTIME_ABI\n";
             ss << "        g_ps2RecompiledBlockEntries[" << sparseIndex << "] = {0x"
-               << std::hex << address << "u, " << (xboxBridge.empty() ? name : xboxBridge) << "};\\n";
-            ss << "#endif\\n";
+               << std::hex << address << "u, " << (xboxBridge.empty() ? name : xboxBridge) << "};\n";
+            ss << "#endif\n";
             ++sparseIndex;
             if (!xboxBridge.empty())
             {
