@@ -22,6 +22,11 @@ struct alignas(16) Ps2GeneratedGpr128
 
 // Intentionally narrow ABI for the first Xenon-generated-code probes.
 // It is not a replacement for the desktop R5900Context.
+enum class Ps2EeExceptionCode : std::uint8_t
+{
+    IntegerOverflow = 12
+};
+
 struct R5900Context
 {
     std::array<Ps2GeneratedGpr128, 32> r{};
@@ -32,6 +37,12 @@ struct R5900Context
     std::uint64_t lo1{};
     bool in_delay_slot{};
     std::uint32_t branch_pc{};
+    std::uint32_t cop0_status{};
+    std::uint32_t cop0_cause{};
+    std::uint32_t cop0_epc{};
+    std::uint32_t exception_code{};
+    std::uint32_t exception_pc{};
+    bool exception_pending{};
 };
 
 // Match the desktop runtime's split 128-bit MMI HI/LO banks.
@@ -146,6 +157,27 @@ public:
         ps2::xbox360::rdram_address::kScratchpadSize;
 
     [[nodiscard]] bool eeCheckpointDue() const noexcept { return false; }
+
+    // Latch an EE exception; the dispatcher observes the pending flag and
+    // stops before another generated block can execute.
+    void SignalException(R5900Context *ctx, Ps2EeExceptionCode code,
+                         std::uint32_t faultPc) noexcept
+    {
+        if (!ctx || ctx->exception_pending) return;
+        constexpr std::uint32_t kExcCodeMask = 0x7Cu;
+        constexpr std::uint32_t kBranchDelay = 1u << 31u;
+        constexpr std::uint32_t kStatusExl = 1u << 1u;
+        const bool delay = ctx->in_delay_slot;
+        ctx->exception_code = static_cast<std::uint32_t>(code);
+        ctx->exception_pc = faultPc;
+        ctx->cop0_epc = delay ? ctx->branch_pc : faultPc;
+        ctx->cop0_cause = (ctx->cop0_cause & ~kExcCodeMask) |
+            ((ctx->exception_code & 0x1Fu) << 2u);
+        if (delay) ctx->cop0_cause |= kBranchDelay;
+        else ctx->cop0_cause &= ~kBranchDelay;
+        ctx->cop0_status |= kStatusExl;
+        ctx->exception_pending = true;
+    }
 
     // Runtime-owned syscall bridge: generated EE code can route IOP file calls
     // through the same dispatcher used by the standalone smoke tests.
