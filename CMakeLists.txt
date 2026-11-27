@@ -59,13 +59,17 @@ if(PS2X_IS_ARM_TARGET)
     add_compile_definitions(USE_SSE2NEON)
 
     if(PS2X_IS_AARCH64_TARGET AND APPLE)
+        # macOS ARM64 already uses optimal defaults
         message(STATUS "macOS ARM64 - using default compiler flags")
     elseif(PS2X_IS_AARCH64_TARGET AND MSVC)
+        # Windows ARM64 - MSVC already uses optimal defaults
         message(STATUS "Windows ARM64 (MSVC) - using default compiler flags")
     elseif(PS2X_IS_AARCH64_TARGET)
-        message(STATUS "Non-Apple ARM64 - adding NEON flags")
+        # Linux ARM64 - add NEON flags
+        message(STATUS "Non-Apple ARM64 - adding NEON compiler flags")
         add_compile_options(-march=armv8-a+fp+simd)
 
+        # Try to enable crypto and CRC extensions if supported
         include(CheckCXXCompilerFlag)
         check_cxx_compiler_flag("-march=armv8-a+fp+simd+crypto+crc" COMPILER_SUPPORTS_CRYPTO_CRC)
         if(COMPILER_SUPPORTS_CRYPTO_CRC)
