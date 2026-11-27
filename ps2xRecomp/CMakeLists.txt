@@ -30,7 +30,7 @@ FetchContent_Declare(
     GIT_TAG 12.1.0
 )
 FetchContent_MakeAvailable(fmt)
- 
+
 FetchContent_Declare(
     libdwarf
     GIT_REPOSITORY https://github.com/davea42/libdwarf-code.git
@@ -38,15 +38,13 @@ FetchContent_Declare(
     GIT_SHALLOW TRUE
 )
 
-set(BUILD_DWARFDUMP    OFF CACHE BOOL "" FORCE)
+set(BUILD_DWARFDUMP OFF CACHE BOOL "" FORCE)
 set(BUILD_DWARFEXAMPLE OFF CACHE BOOL "" FORCE)
-set(BUILD_DWARFGEN     OFF CACHE BOOL "" FORCE)
-
-set(BUILD_SHARED   OFF CACHE BOOL "" FORCE)
+set(BUILD_DWARFGEN OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED OFF CACHE BOOL "" FORCE)
 set(BUILD_NON_SHARED ON CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(libdwarf)
-
 set(LIBDWARF_INCLUDE_DIR "${libdwarf_SOURCE_DIR}/src/lib/libdwarf")
 
 FetchContent_Declare(
@@ -56,89 +54,64 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(rabbitizer)
 
-if (NOT TARGET rabbitizer)
+if(NOT TARGET rabbitizer)
     file(GLOB_RECURSE RABBITIZER_SOURCES CONFIGURE_DEPENDS
         "${rabbitizer_SOURCE_DIR}/src/analysis/*.c"
         "${rabbitizer_SOURCE_DIR}/src/common/*.c"
         "${rabbitizer_SOURCE_DIR}/src/instructions/*.c"
         "${rabbitizer_SOURCE_DIR}/src/instructions/*/*.c"
     )
-
     add_library(rabbitizer STATIC ${RABBITIZER_SOURCES})
-
     target_include_directories(rabbitizer PUBLIC
         "${rabbitizer_SOURCE_DIR}/include"
         "${rabbitizer_SOURCE_DIR}/tables"
-        "${rabbitizer_SOURCE_DIR}/tables/tables"
-    )
+        "${rabbitizer_SOURCE_DIR}/tables/tables")
 endif()
 
-file(GLOB_RECURSE PS2RECOMP_LIB_SOURCES CONFIGURE_DEPENDS
-    src/lib/*.cpp
-)
-
-file(GLOB_RECURSE PS2RECOMP_HEADERS CONFIGURE_DEPENDS
-    include/*.h
-    include/*.hpp
-)
+file(GLOB_RECURSE PS2RECOMP_LIB_SOURCES CONFIGURE_DEPENDS src/lib/*.cpp)
+file(GLOB_RECURSE PS2RECOMP_HEADERS CONFIGURE_DEPENDS include/*.h include/*.hpp)
 
 add_library(ps2_recomp_lib STATIC ${PS2RECOMP_LIB_SOURCES} ${PS2RECOMP_HEADERS})
-
-target_compile_definitions(ps2_recomp_lib
-PUBLIC
-    LIBDWARF_STATIC
-PRIVATE
-    LIBDWARF_STATIC
-)
-
+target_compile_definitions(ps2_recomp_lib PUBLIC LIBDWARF_STATIC PRIVATE LIBDWARF_STATIC)
 target_include_directories(ps2_recomp_lib
-PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${elfio_SOURCE_DIR}
-    ${LIBDWARF_INCLUDE_DIR}
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${elfio_SOURCE_DIR}
+        ${LIBDWARF_INCLUDE_DIR}
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../ps2xRuntime/include)
+target_link_libraries(ps2_recomp_lib PUBLIC fmt::fmt toml11::toml11 dwarf rabbitizer)
 
-PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../ps2xRuntime/include
-)
-
-target_link_libraries(ps2_recomp_lib
-PUBLIC
-    fmt::fmt
-    toml11::toml11 
-    dwarf
-    rabbitizer
-)
-
-file(GLOB_RECURSE PS2RECOMP_EXE_SOURCES CONFIGURE_DEPENDS
-    src/runner/*.cpp
-)
-
+file(GLOB_RECURSE PS2RECOMP_EXE_SOURCES CONFIGURE_DEPENDS src/runner/*.cpp)
 add_executable(ps2_recomp ${PS2RECOMP_EXE_SOURCES})
-
-target_link_libraries(ps2_recomp
-PRIVATE
-    ps2_recomp_lib
-)
+target_link_libraries(ps2_recomp PRIVATE ps2_recomp_lib)
 
 install(TARGETS ps2_recomp ps2_recomp_lib
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-)
-
-install(DIRECTORY include/
-    DESTINATION include
-)
+    ARCHIVE DESTINATION lib)
+install(DIRECTORY include/ DESTINATION include)
 
 include("${CMAKE_SOURCE_DIR}/ps2xRuntime/cmake/ReleaseMode.cmake")
-
 if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     EnableFastReleaseMode(ps2_recomp_lib)
     EnableFastReleaseMode(ps2_recomp)
 endif()
 
-option(PS2X_BUILD_BRANCH64_CHECK "Build focused signed branch codegen regression" OFF)
+if(BUILD_TESTING)
+    add_executable(ps2recomp_reporter_json_test
+        tests/recompiler_reporter_json_test.cpp
+        src/lib/recompiler_reporter.cpp)
+    target_include_directories(ps2recomp_reporter_json_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    target_compile_features(ps2recomp_reporter_json_test PRIVATE cxx_std_20)
+    add_test(
+        NAME ps2recomp_reporter_json_write
+        COMMAND ps2recomp_reporter_json_test
+            "${CMAKE_CURRENT_BINARY_DIR}/reporter-test/ps2_recomp_report.json")
+endif()
 
+option(PS2X_BUILD_BRANCH64_CHECK "Build focused signed branch codegen regression" OFF)
 option(PS2X_BUILD_XBOX360_CODEGEN_PROBE
     "Build a generated-code execution probe for the Xbox 360 EE port" OFF)
 if(PS2X_BUILD_XBOX360_CODEGEN_PROBE)
@@ -149,8 +122,7 @@ if(PS2X_BUILD_XBOX360_CODEGEN_PROBE)
     add_executable(mksm_xbox360_codegen_fixture
         "${CMAKE_SOURCE_DIR}/port/xbox360/tests/ps2_recomp_codegen_fixture.cpp")
     target_link_libraries(mksm_xbox360_codegen_fixture PRIVATE ps2_recomp_lib)
-    target_include_directories(mksm_xbox360_codegen_fixture PRIVATE
-        "${CMAKE_SOURCE_DIR}/port/xbox360")
+    target_include_directories(mksm_xbox360_codegen_fixture PRIVATE "${CMAKE_SOURCE_DIR}/port/xbox360")
 
     add_custom_command(
         OUTPUT "${MKSM_XBOX360_GENERATED_CPP}"
@@ -180,8 +152,6 @@ if(PS2X_BUILD_XBOX360_CODEGEN_PROBE)
         target_compile_options(mksm_xbox360_codegen_probe PRIVATE -msse4.1)
     endif()
 
-    # Compile and execute the same generated function with the target's
-    # explicit little-endian, RDRAM-only ABI shim on the host.
     add_executable(mksm_xbox360_codegen_memory_probe
         "${MKSM_XBOX360_GENERATED_CPP}"
         "${CMAKE_SOURCE_DIR}/port/xbox360/tests/ps2_recomp_generated_memory_probe_runner.cpp")
@@ -190,12 +160,11 @@ if(PS2X_BUILD_XBOX360_CODEGEN_PROBE)
         "${CMAKE_SOURCE_DIR}/port/xbox360"
         "${CMAKE_SOURCE_DIR}/port/xbox360/tests"
         "${CMAKE_SOURCE_DIR}/ps2xRuntime/include")
-    target_compile_definitions(mksm_xbox360_codegen_memory_probe PRIVATE
-        PS2X_GENERATED_RUNTIME_ABI=1)
+    target_compile_definitions(mksm_xbox360_codegen_memory_probe PRIVATE PS2X_GENERATED_RUNTIME_ABI=1)
     target_compile_features(mksm_xbox360_codegen_memory_probe PRIVATE cxx_std_20)
 endif()
 
 if(PS2X_BUILD_BRANCH64_CHECK)
     add_executable(ps2_branch64_check ../ps2xTest/src/branch64_regression.cpp)
     target_link_libraries(ps2_branch64_check PRIVATE ps2_recomp_lib)
-endif()
+endif()
