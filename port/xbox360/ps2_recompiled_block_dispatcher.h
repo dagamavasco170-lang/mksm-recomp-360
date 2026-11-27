@@ -14,7 +14,8 @@ enum class BlockDispatchStatus : std::uint8_t
     BudgetExhausted,
     UnknownProgramCounter,
     NullEntry,
-    NoProgress
+    NoProgress,
+    ExceptionPending
 };
 
 struct BlockDispatchResult
@@ -89,6 +90,12 @@ public:
             const std::uint32_t previousPc = context.pc;
             function(rdram, &context, runtime);
             ++result.executedBlocks;
+            if (context.exception_pending)
+            {
+                result.status = BlockDispatchStatus::ExceptionPending;
+                result.lastPc = context.pc;
+                return result;
+            }
             result.lastPc = context.pc;
             if (context.pc == previousPc)
             {
