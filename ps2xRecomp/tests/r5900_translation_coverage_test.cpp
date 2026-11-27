@@ -2,6 +2,7 @@
 #include "ps2recomp/instructions.h"
 #include "ps2recomp/r5900_decoder.h"
 #include "ps2recomp/recompiler_reporter.h"
+#include "ps2recomp/types.h"
 
 #include <cstdint>
 #include <iostream>
