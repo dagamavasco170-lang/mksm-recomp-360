@@ -111,7 +111,7 @@ constexpr std::array<std::uint32_t, 6> makeLqSqProbeWords()
     };
 }
 
-constexpr std::array<std::uint32_t, 14> makeArithmeticProbeWords()
+constexpr std::array<std::uint32_t, 23> makeArithmeticProbeWords()
 {
     using namespace ps2::xbox360::ee::test_program::detail;
     return {
@@ -121,12 +121,22 @@ constexpr std::array<std::uint32_t, 14> makeArithmeticProbeWords()
         rType(5u, 6u, 0u, 0x19u), // MULTU r5,r6
         rType(0u, 0u, 7u, 0x12u), // MFLO r7
         rType(0u, 0u, 8u, 0x10u), // MFHI r8
-        rType(9u, 10u, 0u, 0x1Au), // DIV r9,r10
+        rType(25u, 26u, 0u, 0x1Au), // DIV r25,r26
         rType(0u, 0u, 11u, 0x12u), // MFLO r11
         rType(0u, 0u, 12u, 0x10u), // MFHI r12
         rType(13u, 14u, 0u, 0x1Bu), // DIVU r13,r14
         rType(0u, 0u, 15u, 0x12u), // MFLO r15
         rType(0u, 0u, 16u, 0x10u), // MFHI r16
+        rType(31u, 0u, 0u, 0x08u), // JR r31
+        rType(9u, 0u, 0u, 0x1Au), // DIV r9,r0: divisor zero
+        rType(0u, 0u, 17u, 0x12u), // MFLO r17
+        rType(0u, 0u, 18u, 0x10u), // MFHI r18
+        rType(13u, 0u, 0u, 0x1Bu), // DIVU r13,r0: divisor zero
+        rType(0u, 0u, 19u, 0x12u), // MFLO r19
+        rType(0u, 0u, 20u, 0x10u), // MFHI r20
+        rType(23u, 24u, 0u, 0x1Au), // DIV INT32_MIN,-1
+        rType(0u, 0u, 21u, 0x12u), // MFLO r21
+        rType(0u, 0u, 22u, 0x10u), // MFHI r22
         rType(31u, 0u, 0u, 0x08u), // JR r31
         0u // delay slot: NOP
     };
@@ -511,7 +521,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+15+16+57+14 entry=00100000/00100100/00100200/00100300/00100600 symbols="
+    std::cout << "MKSM_RECOMP_GENERATED_CPP instructions=23+15+16+57+23 entry=00100000/00100100/00100200/00100300/00100600 symbols="
               << entryName << "," << scratchpadEntryName << "," << mmiEntryName
               << "," << sprDmaEntryName << "," << arithmeticEntryName
               << " output=" << generatedCpp.string() << '\n';
