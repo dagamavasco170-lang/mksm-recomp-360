@@ -127,7 +127,6 @@ constexpr std::array<std::uint32_t, 23> makeArithmeticProbeWords()
         rType(13u, 14u, 0u, 0x1Bu), // DIVU r13,r14
         rType(0u, 0u, 15u, 0x12u), // MFLO r15
         rType(0u, 0u, 16u, 0x10u), // MFHI r16
-        rType(31u, 0u, 0u, 0x08u), // JR r31
         rType(9u, 0u, 0u, 0x1Au), // DIV r9,r0: divisor zero
         rType(0u, 0u, 17u, 0x12u), // MFLO r17
         rType(0u, 0u, 18u, 0x10u), // MFHI r18
