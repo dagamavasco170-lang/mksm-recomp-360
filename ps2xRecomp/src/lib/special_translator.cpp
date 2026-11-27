@@ -135,9 +135,9 @@ namespace ps2recomp
                 "{{ int64_t a = (int64_t)GPR_S64(ctx, {}); "
                 "int64_t b = (int64_t)GPR_S64(ctx, {}); "
                 "int64_t r = a + b; "
-                "if (((a ^ b) >= 0) && ((a ^ r) < 0)) runtime->SignalException(ctx, EXCEPTION_INTEGER_OVERFLOW); "
+                "if (((a ^ b) >= 0) && ((a ^ r) < 0)) runtime->SignalException(ctx, Ps2EeExceptionCode::IntegerOverflow, 0x{:X}u); "
                 "else SET_GPR_S64(ctx, {}, r); }}",
-                inst.rs, inst.rt, inst.rd);
+                inst.rs, inst.rt, inst.rd, inst.address);
         case SPECIAL_DADDU:
             return fmt::format(
                 "SET_GPR_U64(ctx, {}, (uint64_t)GPR_U64(ctx, {}) + (uint64_t)GPR_U64(ctx, {}));",
@@ -147,9 +147,9 @@ namespace ps2recomp
                 "{{ int64_t a = (int64_t)GPR_S64(ctx, {}); "
                 "int64_t b = (int64_t)GPR_S64(ctx, {}); "
                 "int64_t r = a - b; "
-                "if (((a ^ b) < 0) && ((a ^ r) < 0)) runtime->SignalException(ctx, EXCEPTION_INTEGER_OVERFLOW); "
+                "if (((a ^ b) < 0) && ((a ^ r) < 0)) runtime->SignalException(ctx, Ps2EeExceptionCode::IntegerOverflow, 0x{:X}u); "
                 "else SET_GPR_S64(ctx, {}, r); }}",
-                inst.rs, inst.rt, inst.rd);
+                inst.rs, inst.rt, inst.rd, inst.address);
         case SPECIAL_DSUBU:
             return fmt::format("SET_GPR_U64(ctx, {}, GPR_U64(ctx, {}) - GPR_U64(ctx, {}));", inst.rd, inst.rs, inst.rt);
         case SPECIAL_DSLL:
