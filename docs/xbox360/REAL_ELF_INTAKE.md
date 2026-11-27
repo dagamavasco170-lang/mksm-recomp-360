@@ -30,7 +30,7 @@ Then invoke the existing recompiler:
 
 ```powershell
 cmake --build build --config Release --target ps2_recomp
-.`build\\ps2xRecomp\\Release\\ps2_recomp.exe` build/real-elf/recompile.real-elf.toml
+`build/ps2xRecomp/Release/ps2_recomp.exe` build/real-elf/recompile.real-elf.toml
 ```
 
 The executable path depends on the generator (for Ninja/Make it is commonly
