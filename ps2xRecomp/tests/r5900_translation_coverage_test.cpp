@@ -151,7 +151,22 @@ int main()
         checkUnsupported("SWC2_UNIMPLEMENTED",
                          encodeI(OPCODE_SWC2, 1, 2, 0)) &&
         checkUnsupported("COP0_CO_UNIMPLEMENTED",
-                         encodeCopRegister(OPCODE_COP0, COP0_CO, 0, 0) | 0x3Fu);
+                         encodeCopRegister(OPCODE_COP0, COP0_CO, 0, 0) | 0x3Fu) &&
+        checkUnsupported("SPECIAL_UNKNOWN_FUNCTION",
+                         encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, 0x1Fu)) &&
+        checkUnsupported("REGIMM_UNKNOWN_SUBCODE",
+                         encodeI(OPCODE_REGIMM, 1, 4, 0)) &&
+        checkUnsupported("MMI_UNKNOWN_FUNCTION",
+                         encodeR(OPCODE_MMI, 0, 2, 3, 0, 0x3Du)) &&
+        checkUnsupported("FPU_UNKNOWN_FORMAT",
+                         encodeCopRegister(OPCODE_COP1, COP1_D, 4, 1)) &&
+        checkUnsupported("FPU_S_UNSUPPORTED_FUNCTION",
+                         (OPCODE_COP1 << 26) | (COP1_S << 21) | (2u << 16) |
+                             (1u << 11) | (3u << 6) | COP1_S_ROUND_L) &&
+        checkUnsupported("VU_UNKNOWN_FORMAT",
+                         encodeCopRegister(OPCODE_COP2, 0x0Fu, 4, 1)) &&
+        checkUnsupported("PRIMARY_OPCODE_UNIMPLEMENTED",
+                         encodeI(0x3Bu, 1, 2, 0));
 
     if (!unsupportedOk)
         return 1;
