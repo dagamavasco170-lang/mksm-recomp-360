@@ -105,9 +105,9 @@ namespace ps2recomp
             return fmt::format(
                 "{{ uint32_t tmp; bool ov; "
                 "SUB32_OV(GPR_U32(ctx, {}), GPR_U32(ctx, {}), tmp, ov); "
-                "if (ov) runtime->SignalException(ctx, EXCEPTION_INTEGER_OVERFLOW); "
+                "if (ov) runtime->SignalException(ctx, Ps2EeExceptionCode::IntegerOverflow, 0x{:X}u); "
                 "else SET_GPR_S32(ctx, {}, (int32_t)tmp); }}",
-                inst.rs, inst.rt, inst.rd);
+                inst.rs, inst.rt, inst.rd, inst.address);
         case SPECIAL_SUBU:
             return fmt::format("SET_GPR_S32(ctx, {}, (int32_t)SUB32(GPR_U32(ctx, {}), GPR_U32(ctx, {})));", inst.rd, inst.rs, inst.rt);
         case SPECIAL_AND:
