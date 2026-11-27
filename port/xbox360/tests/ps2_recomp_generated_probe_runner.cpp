@@ -10,6 +10,27 @@
 
 int main()
 {
+    // Exercise the runtime exception latch independently of generated code.
+    PS2Runtime exceptionRuntime{};
+    R5900Context exceptionContext{};
+    exceptionContext.in_delay_slot = true;
+    exceptionContext.branch_pc = 0x00102000u;
+    exceptionRuntime.SignalException(&exceptionContext,
+        Ps2EeExceptionCode::IntegerOverflow, 0x00102004u);
+    if (!exceptionContext.exception_pending ||
+        exceptionContext.exception_code != 12u ||
+        exceptionContext.exception_pc != 0x00102004u ||
+        exceptionContext.cop0_epc != 0x00102000u ||
+        (exceptionContext.cop0_cause & (1u << 31u)) == 0u ||
+        ((exceptionContext.cop0_cause >> 2u) & 0x1Fu) != 12u ||
+        (exceptionContext.cop0_status & 2u) == 0u)
+    {
+        std::printf("MKSM_RECOMP_EXCEPTION_TRACE FAIL\\n");
+        return 1;
+    }
+    std::printf("MKSM_RECOMP_EXCEPTION_TRACE PASS epc=%08X cause=%08X\\n",
+        static_cast<unsigned>(exceptionContext.cop0_epc),
+        static_cast<unsigned>(exceptionContext.cop0_cause));
     constexpr std::uint32_t returnPc = 0xCAFE1234u;
     std::vector<std::uint8_t> rdram(PS2_RAM_SIZE, 0u);
     R5900Context context{};
