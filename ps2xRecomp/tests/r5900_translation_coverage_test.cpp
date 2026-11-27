@@ -160,6 +160,36 @@ int main()
                   << subOverflowCode << '\n';
         return 1;
     }
+    // Fault PC and destination register must occupy the correct fmt::format slots.
+    // A swapped argument list can compile but silently signal the wrong guest PC.
+    const auto addFaultPc = addOverflowCode.find("0x100000u");
+    const auto addDestination = addOverflowCode.find("SET_GPR_S32(ctx, 3");
+    if (addFaultPc == std::string::npos || addDestination == std::string::npos)
+    {
+        std::cerr << "R5900_OVERFLOW_FAIL ADD fault PC/destination arguments: "
+                  << addOverflowCode << '\\n';
+        return 1;
+    }
+    const auto daddInst = decoder.decodeInstruction(
+        0x00100000u, encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, SPECIAL_DADD), true);
+    const auto daddCode = generator.translateInstruction(daddInst);
+    if (daddCode.find("0x100000u") == std::string::npos ||
+        daddCode.find("SET_GPR_S64(ctx, 3") == std::string::npos)
+    {
+        std::cerr << "R5900_OVERFLOW_FAIL DADD fault PC/destination arguments: "
+                  << daddCode << '\\n';
+        return 1;
+    }
+    const auto dsubInst = decoder.decodeInstruction(
+        0x00100000u, encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, SPECIAL_DSUB), true);
+    const auto dsubCode = generator.translateInstruction(dsubInst);
+    if (dsubCode.find("0x100000u") == std::string::npos ||
+        dsubCode.find("SET_GPR_S64(ctx, 3") == std::string::npos)
+    {
+        std::cerr << "R5900_OVERFLOW_FAIL DSUB fault PC/destination arguments: "
+                  << dsubCode << '\\n';
+        return 1;
+    }
     std::cout << "R5900_OVERFLOW_EMISSION_PASS add=sub_guarded sub=sub_guarded\n";
 
     std::size_t conservativeFallbacks = 0;
