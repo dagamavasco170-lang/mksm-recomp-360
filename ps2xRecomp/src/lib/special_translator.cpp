@@ -132,11 +132,11 @@ namespace ps2recomp
             return fmt::format("ctx->sa = GPR_U32(ctx, {}) & 0x7F;", inst.rs);
         case SPECIAL_DADD:
             return fmt::format(
-                "{{ int64_t a = (int64_t)GPR_S64(ctx, {}); "
-                "int64_t b = (int64_t)GPR_S64(ctx, {}); "
-                "int64_t r = a + b; "
-                "if (((a ^ b) >= 0) && ((a ^ r) < 0)) runtime->SignalException(ctx, Ps2EeExceptionCode::IntegerOverflow, 0x{:X}u); "
-                "else SET_GPR_S64(ctx, {}, r); }}",
+                "{{ uint64_t a = GPR_U64(ctx, {}); "
+                "uint64_t b = GPR_U64(ctx, {}); "
+                "uint64_t r = a + b; "
+                "if (((~(a ^ b)) & (a ^ r)) >> 63) runtime->SignalException(ctx, Ps2EeExceptionCode::IntegerOverflow, 0x{:X}u); "
+                "else SET_GPR_U64(ctx, {}, r); }}",
                 inst.rs, inst.rt, inst.address, inst.rd);
         case SPECIAL_DADDU:
             return fmt::format(
@@ -144,11 +144,11 @@ namespace ps2recomp
                 inst.rd, inst.rs, inst.rt);
         case SPECIAL_DSUB:
             return fmt::format(
-                "{{ int64_t a = (int64_t)GPR_S64(ctx, {}); "
-                "int64_t b = (int64_t)GPR_S64(ctx, {}); "
-                "int64_t r = a - b; "
-                "if (((a ^ b) < 0) && ((a ^ r) < 0)) runtime->SignalException(ctx, Ps2EeExceptionCode::IntegerOverflow, 0x{:X}u); "
-                "else SET_GPR_S64(ctx, {}, r); }}",
+                "{{ uint64_t a = GPR_U64(ctx, {}); "
+                "uint64_t b = GPR_U64(ctx, {}); "
+                "uint64_t r = a - b; "
+                "if (((a ^ b) & (a ^ r)) >> 63) runtime->SignalException(ctx, Ps2EeExceptionCode::IntegerOverflow, 0x{:X}u); "
+                "else SET_GPR_U64(ctx, {}, r); }}",
                 inst.rs, inst.rt, inst.address, inst.rd);
         case SPECIAL_DSUBU:
             return fmt::format("SET_GPR_U64(ctx, {}, GPR_U64(ctx, {}) - GPR_U64(ctx, {}));", inst.rd, inst.rs, inst.rt);
