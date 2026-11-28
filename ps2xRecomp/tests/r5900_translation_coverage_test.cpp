@@ -174,7 +174,9 @@ int main()
         0x00100000u, encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, SPECIAL_DADD), true);
     const auto daddCode = generator.translateInstruction(daddInst);
     if (daddCode.find("0x100000u") == std::string::npos ||
-        daddCode.find("SET_GPR_S64(ctx, 3") == std::string::npos)
+        daddCode.find("SET_GPR_U64(ctx, 3") == std::string::npos ||
+        daddCode.find("uint64_t a = GPR_U64") == std::string::npos ||
+        daddCode.find("((~(a ^ b)) & (a ^ r)) >> 63") == std::string::npos)
     {
         std::cerr << "R5900_OVERFLOW_FAIL DADD fault PC/destination arguments: "
                   << daddCode << '\n';
@@ -184,7 +186,9 @@ int main()
         0x00100000u, encodeR(OPCODE_SPECIAL, 1, 2, 3, 0, SPECIAL_DSUB), true);
     const auto dsubCode = generator.translateInstruction(dsubInst);
     if (dsubCode.find("0x100000u") == std::string::npos ||
-        dsubCode.find("SET_GPR_S64(ctx, 3") == std::string::npos)
+        dsubCode.find("SET_GPR_U64(ctx, 3") == std::string::npos ||
+        dsubCode.find("uint64_t a = GPR_U64") == std::string::npos ||
+        dsubCode.find("((a ^ b) & (a ^ r)) >> 63") == std::string::npos)
     {
         std::cerr << "R5900_OVERFLOW_FAIL DSUB fault PC/destination arguments: "
                   << dsubCode << '\n';
